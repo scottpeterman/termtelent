@@ -1,0 +1,95 @@
+{
+  "collection_summary": {
+    "start_time": "2025-08-02T05:33:49.708343",
+    "end_time": "2025-08-02T05:33:52.294110",
+    "total_runtime_seconds": 2.585767,
+    "total_runtime_formatted": "0:00:02",
+    "devices_per_minute": 46.40789367332787
+  },
+  "collection_results": {
+    "total_devices": 2,
+    "successful_collections": 2,
+    "failed_collections": 0,
+    "success_rate": 100.0
+  },
+  "performance_metrics": {
+    "average_device_time": 2.5004844999999998,
+    "fastest_device_time": 2.499431,
+    "slowest_device_time": 2.501538,
+    "concurrent_workers": 10
+  },
+  "vendor_breakdown": {
+    "Cisco": 2
+  },
+  "device_types": {
+    "IOSv": 1,
+    "7206VXR": 1
+  },
+  "credential_usage": {
+    "primary": 2
+  },
+  "error_analysis": {},
+  "method_statistics": {
+    "get_facts": {
+      "success_count": 2,
+      "total_duration": 0.6664509773254395,
+      "avg_duration": 0.3332254886627197,
+      "total_data_size": 825
+    },
+    "get_arp_table": {
+      "success_count": 2,
+      "total_duration": 0.2456071376800537,
+      "avg_duration": 0.12280356884002686,
+      "total_data_size": 1347
+    },
+    "get_config": {
+      "success_count": 2,
+      "total_duration": 0.8608343601226807,
+      "avg_duration": 0.43041718006134033,
+      "total_data_size": 12642
+    },
+    "get_interfaces": {
+      "success_count": 2,
+      "total_duration": 0.22265076637268066,
+      "avg_duration": 0.11132538318634033,
+      "total_data_size": 2809
+    },
+    "get_interfaces_ip": {
+      "success_count": 2,
+      "total_duration": 0.41855406761169434,
+      "avg_duration": 0.20927703380584717,
+      "total_data_size": 484
+    },
+    "get_lldp_neighbors": {
+      "success_count": 2,
+      "total_duration": 0.22728323936462402,
+      "avg_duration": 0.11364161968231201,
+      "total_data_size": 226
+    },
+    "get_mac_address_table": {
+      "success_count": 2,
+      "total_duration": 0.4772019386291504,
+      "avg_duration": 0.2386009693145752,
+      "total_data_size": 0
+    }
+  },
+  "configuration_used": {
+    "max_workers": 10,
+    "timeout": 60,
+    "enhanced_inventory": true,
+    "collection_methods": {
+      "get_arp_table": true,
+      "get_config": true,
+      "get_environment": false,
+      "get_facts": true,
+      "get_interfaces": true,
+      "get_interfaces_ip": true,
+      "get_inventory": true,
+      "get_lldp_neighbors": true,
+      "get_mac_address_table": true,
+      "get_network_instances": false,
+      "get_optics": false,
+      "get_users": false
+    }
+  }
+}

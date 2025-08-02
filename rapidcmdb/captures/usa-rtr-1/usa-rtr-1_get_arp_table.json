@@ -1,0 +1,50 @@
+[
+  {
+    "interface": "GigabitEthernet0/1",
+    "mac": "0C:B3:93:61:00:01",
+    "ip": "172.16.0.1",
+    "age": -1.0
+  },
+  {
+    "interface": "GigabitEthernet0/1",
+    "mac": "0C:AF:DA:85:DC:95",
+    "ip": "172.16.0.2",
+    "age": 20.0
+  },
+  {
+    "interface": "GigabitEthernet0/2",
+    "mac": "0C:B3:93:61:00:02",
+    "ip": "172.16.1.5",
+    "age": -1.0
+  },
+  {
+    "interface": "GigabitEthernet0/2",
+    "mac": "0C:82:F1:C3:66:19",
+    "ip": "172.16.1.6",
+    "age": 236.0
+  },
+  {
+    "interface": "GigabitEthernet0/0",
+    "mac": "CA:01:41:94:00:1D",
+    "ip": "172.16.100.1",
+    "age": 3.0
+  },
+  {
+    "interface": "GigabitEthernet0/0",
+    "mac": "0C:B3:93:61:00:00",
+    "ip": "172.16.100.2",
+    "age": -1.0
+  },
+  {
+    "interface": "GigabitEthernet0/3",
+    "mac": "0C:B3:93:61:00:03",
+    "ip": "172.16.128.5",
+    "age": -1.0
+  },
+  {
+    "interface": "GigabitEthernet0/3",
+    "mac": "0C:00:9D:13:00:00",
+    "ip": "172.16.128.6",
+    "age": 160.0
+  }
+]

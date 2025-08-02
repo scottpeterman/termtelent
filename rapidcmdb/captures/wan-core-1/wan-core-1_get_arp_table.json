@@ -1,0 +1,38 @@
+[
+  {
+    "interface": "Ethernet1/0",
+    "mac": "1E:0E:D7:86:D8:3E",
+    "ip": "172.16.1.1",
+    "age": 1.0
+  },
+  {
+    "interface": "Ethernet1/0",
+    "mac": "CA:01:41:94:00:1C",
+    "ip": "172.16.1.2",
+    "age": -1.0
+  },
+  {
+    "interface": "Ethernet1/1",
+    "mac": "CA:01:41:94:00:1D",
+    "ip": "172.16.100.1",
+    "age": -1.0
+  },
+  {
+    "interface": "Ethernet1/1",
+    "mac": "0C:B3:93:61:00:00",
+    "ip": "172.16.100.2",
+    "age": 94.0
+  },
+  {
+    "interface": "Ethernet1/2",
+    "mac": "CA:01:41:94:00:1E",
+    "ip": "172.16.128.1",
+    "age": -1.0
+  },
+  {
+    "interface": "Ethernet1/2",
+    "mac": "0C:00:9D:13:00:01",
+    "ip": "172.16.128.2",
+    "age": 102.0
+  }
+]

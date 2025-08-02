@@ -1,0 +1,173 @@
+!
+upgrade fpd auto
+version 15.2
+service timestamps debug datetime msec
+service timestamps log datetime msec
+no service password-encryption
+!
+hostname wan-core-1
+!
+boot-start-marker
+boot-end-marker
+!
+!
+enable secret 5 $1$NyF4$vDny.QvWCRInApAEdWRng1
+!
+no aaa new-model
+no ip icmp rate-limit unreachable
+!
+!
+!
+!
+!
+!
+no ip domain lookup
+ip domain name home.com
+ip cef
+no ipv6 cef
+!
+multilink bundle-name authenticated
+!
+!
+!
+!
+!
+!
+!
+!
+!
+username cisco privilege 15 password 0 cisco
+!
+redundancy
+!
+!
+ip tcp synwait-time 5
+! 
+!
+!
+!
+!
+!
+!
+!
+!
+!
+interface FastEthernet0/0
+ no ip address
+ shutdown
+ duplex half
+!
+interface Ethernet1/0
+ description to the world of the real
+ ip address 172.16.1.2 255.255.255.0
+ duplex half
+!
+interface Ethernet1/1
+ ip address 172.16.100.1 255.255.255.0
+ duplex half
+!
+interface Ethernet1/2
+ description to eng rtr 1
+ ip address 172.16.128.1 255.255.255.252
+ duplex half
+!
+interface Ethernet1/3
+ no ip address
+ shutdown
+ duplex half
+!
+interface Ethernet2/0
+ no ip address
+ shutdown
+ duplex half
+!
+interface Ethernet2/1
+ no ip address
+ shutdown
+ duplex half
+!
+interface Ethernet2/2
+ no ip address
+ shutdown
+ duplex half
+!
+interface Ethernet2/3
+ no ip address
+ shutdown
+ duplex half
+!
+interface Ethernet3/0
+ no ip address
+ shutdown
+ duplex half
+!
+interface Ethernet3/1
+ no ip address
+ shutdown
+ duplex half
+!
+interface Ethernet3/2
+ no ip address
+ shutdown
+ duplex half
+!
+interface Ethernet3/3
+ no ip address
+ shutdown
+ duplex half
+!
+!
+router eigrp 1
+ network 0.0.0.0
+!
+router ospf 1
+ network 172.16.0.0 0.0.255.255 area 0
+ default-information originate always
+!
+ip forward-protocol nd
+no ip http server
+no ip http secure-server
+!
+!
+ip route 0.0.0.0 0.0.0.0 172.16.1.1
+ip route 10.0.0.0 255.0.0.0 172.16.1.1
+!
+no cdp log mismatch duplex
+!
+snmp-server community lab RO
+snmp-server enable traps entity-sensor threshold
+!
+!
+control-plane
+!
+!
+!
+mgcp profile default
+!
+!
+!
+gatekeeper
+ shutdown
+!
+!
+line con 0
+ exec-timeout 0 0
+ privilege level 15
+ logging synchronous
+ stopbits 1
+line aux 0
+ exec-timeout 0 0
+ privilege level 15
+ logging synchronous
+ stopbits 1
+line vty 0 4
+ privilege level 15
+ login local
+ transport input all
+line vty 5 14
+ privilege level 15
+ login local
+ transport input all
+!
+!
+end

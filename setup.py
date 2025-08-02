@@ -10,8 +10,8 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = fh.read().splitlines()
 
 setup(
-    name="TerminalTelemetry",
-    version="1.0.0",  # Bump version for major release with RapidCMDB
+    name="TerminalTelemetry Enterprise",
+    version="0.1.0",  # Bump version for major release with RapidCMDB
     author="Scott Peterman",
     author_email="scottpeterman@gmail.com",
     description="A PyQt6 terminal emulator with SSH, telemetry, and network discovery capabilities",
@@ -114,17 +114,12 @@ setup(
 
     entry_points={
         "console_scripts": [
-            # Existing terminal commands
-            "termtel-con=termtel.tte:main",
-            "termtel=termtel.tte:main",
-            # New RapidCMDB commands
-            "termtel-cmdb=rapidcmdb.app:main",
-            "termtel-full=launch:main",
-        ],
-        "gui_scripts": [
-            # GUI version (Windows will launch without console)
-            "termtel-gui=termtel.tte:main",
-        ],
+        "termtelent-con=launcher.launch:main",
+    ],
+    "gui_scripts": [
+        # GUI version (Windows will launch without console)
+        "termtel-gui=launcher.launch:main",
+    ],
     },
 
     # Optional dependencies for different use cases

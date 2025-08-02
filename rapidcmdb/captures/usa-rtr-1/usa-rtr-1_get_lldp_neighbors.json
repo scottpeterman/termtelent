@@ -1,0 +1,20 @@
+{
+  "GigabitEthernet0/2": [
+    {
+      "port": "Ethernet1",
+      "hostname": "usa-spine-2"
+    }
+  ],
+  "GigabitEthernet0/1": [
+    {
+      "port": "Ethernet1",
+      "hostname": "usa-spine-1"
+    }
+  ],
+  "GigabitEthernet0/3": [
+    {
+      "port": "Gi0/0",
+      "hostname": "eng-rtr-1.lab.local"
+    }
+  ]
+}

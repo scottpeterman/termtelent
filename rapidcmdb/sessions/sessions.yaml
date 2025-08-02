@@ -1,0 +1,48 @@
+# TermTel Sessions Configuration
+# This file defines connection sessions for the terminal emulator
+
+- folder_name: Examples
+  sessions:
+  - DeviceType: linux
+    Model: Development Server
+    SerialNumber: ''
+    SoftwareVersion: 'Ubuntu 22.04'
+    Vendor: Example
+    credsid: '1'
+    display_name: Dev Server
+    host: 192.168.1.100
+    port: '22'
+
+  - DeviceType: router
+    Model: Example Router
+    SerialNumber: 'EX123456'
+    SoftwareVersion: '15.1'
+    Vendor: Cisco
+    credsid: '2'
+    display_name: Core Router
+    host: 192.168.1.1
+    port: '22'
+
+- folder_name: Production
+  sessions:
+  - DeviceType: linux
+    Model: Web Server
+    SerialNumber: ''
+    SoftwareVersion: 'CentOS 8'
+    Vendor: RedHat
+    credsid: '1'
+    display_name: Web-01
+    host: 10.0.1.10
+    port: '22'
+
+# Session Configuration Reference:
+# - folder_name: Organization folder for grouping sessions
+# - DeviceType: Type of device (linux, router, switch, etc.)
+# - Model: Device model/description
+# - SerialNumber: Device serial number (optional)
+# - SoftwareVersion: OS/firmware version (optional)
+# - Vendor: Device manufacturer
+# - credsid: Credential ID for stored passwords
+# - display_name: Name shown in the session navigator
+# - host: IP address or hostname
+# - port: SSH port (usually 22)

@@ -1,0 +1,119 @@
+{
+  "FastEthernet0/0": {
+    "is_enabled": false,
+    "is_up": false,
+    "description": "",
+    "mac_address": "CA:01:41:94:00:00",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 100.0
+  },
+  "Ethernet1/0": {
+    "is_enabled": true,
+    "is_up": true,
+    "description": "to the world of the real",
+    "mac_address": "CA:01:41:94:00:1C",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 10.0
+  },
+  "Ethernet1/1": {
+    "is_enabled": true,
+    "is_up": true,
+    "description": "",
+    "mac_address": "CA:01:41:94:00:1D",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 10.0
+  },
+  "Ethernet1/2": {
+    "is_enabled": true,
+    "is_up": true,
+    "description": "to eng rtr 1",
+    "mac_address": "CA:01:41:94:00:1E",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 10.0
+  },
+  "Ethernet1/3": {
+    "is_enabled": false,
+    "is_up": false,
+    "description": "",
+    "mac_address": "CA:01:41:94:00:1F",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 10.0
+  },
+  "Ethernet2/0": {
+    "is_enabled": false,
+    "is_up": false,
+    "description": "",
+    "mac_address": "CA:01:41:94:00:38",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 10.0
+  },
+  "Ethernet2/1": {
+    "is_enabled": false,
+    "is_up": false,
+    "description": "",
+    "mac_address": "CA:01:41:94:00:39",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 10.0
+  },
+  "Ethernet2/2": {
+    "is_enabled": false,
+    "is_up": false,
+    "description": "",
+    "mac_address": "CA:01:41:94:00:3A",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 10.0
+  },
+  "Ethernet2/3": {
+    "is_enabled": false,
+    "is_up": false,
+    "description": "",
+    "mac_address": "CA:01:41:94:00:3B",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 10.0
+  },
+  "Ethernet3/0": {
+    "is_enabled": false,
+    "is_up": false,
+    "description": "",
+    "mac_address": "CA:01:41:94:00:54",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 10.0
+  },
+  "Ethernet3/1": {
+    "is_enabled": false,
+    "is_up": false,
+    "description": "",
+    "mac_address": "CA:01:41:94:00:55",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 10.0
+  },
+  "Ethernet3/2": {
+    "is_enabled": false,
+    "is_up": false,
+    "description": "",
+    "mac_address": "CA:01:41:94:00:56",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 10.0
+  },
+  "Ethernet3/3": {
+    "is_enabled": false,
+    "is_up": false,
+    "description": "",
+    "mac_address": "CA:01:41:94:00:57",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 10.0
+  }
+}

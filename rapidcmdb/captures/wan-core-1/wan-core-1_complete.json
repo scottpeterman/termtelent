@@ -1,0 +1,275 @@
+{
+  "device_ip": "172.16.100.1",
+  "device_name": "wan-core-1",
+  "success": true,
+  "data": {
+    "get_facts": {
+      "uptime": 22500.0,
+      "vendor": "Cisco",
+      "os_version": "7200 Software (C7200-ADVENTERPRISEK9-M), Version 15.2(4)M11, RELEASE SOFTWARE (fc2)",
+      "serial_number": "4279256517",
+      "model": "7206VXR",
+      "hostname": "wan-core-1",
+      "fqdn": "wan-core-1.home.com",
+      "interface_list": [
+        "FastEthernet0/0",
+        "Ethernet1/0",
+        "Ethernet1/1",
+        "Ethernet1/2",
+        "Ethernet1/3",
+        "Ethernet2/0",
+        "Ethernet2/1",
+        "Ethernet2/2",
+        "Ethernet2/3",
+        "Ethernet3/0",
+        "Ethernet3/1",
+        "Ethernet3/2",
+        "Ethernet3/3"
+      ]
+    },
+    "get_arp_table": [
+      {
+        "interface": "Ethernet1/0",
+        "mac": "1E:0E:D7:86:D8:3E",
+        "ip": "172.16.1.1",
+        "age": 1.0
+      },
+      {
+        "interface": "Ethernet1/0",
+        "mac": "CA:01:41:94:00:1C",
+        "ip": "172.16.1.2",
+        "age": -1.0
+      },
+      {
+        "interface": "Ethernet1/1",
+        "mac": "CA:01:41:94:00:1D",
+        "ip": "172.16.100.1",
+        "age": -1.0
+      },
+      {
+        "interface": "Ethernet1/1",
+        "mac": "0C:B3:93:61:00:00",
+        "ip": "172.16.100.2",
+        "age": 94.0
+      },
+      {
+        "interface": "Ethernet1/2",
+        "mac": "CA:01:41:94:00:1E",
+        "ip": "172.16.128.1",
+        "age": -1.0
+      },
+      {
+        "interface": "Ethernet1/2",
+        "mac": "0C:00:9D:13:00:01",
+        "ip": "172.16.128.2",
+        "age": 102.0
+      }
+    ],
+    "get_config": {
+      "startup": "Using 2290 out of 522232 bytes!\n!\n!\n!\n!\n\n!\n\nupgrade fpd auto\nversion 15.2\nservice timestamps debug datetime msec\nservice timestamps log datetime msec\nno service password-encryption\n!\nhostname wan-core-1\n!\nboot-start-marker\nboot-end-marker\n!\n!\nenable secret 5 $1$NyF4$vDny.QvWCRInApAEdWRng1\n!\nno aaa new-model\nno ip icmp rate-limit unreachable\n!\n!\n!\n!\n!\n!\nno ip domain lookup\nip domain name home.com\nip cef\nno ipv6 cef\n!\nmultilink bundle-name authenticated\n!\n!\n!\n!\n!\n!\n!\n!\n!\nusername cisco privilege 15 password 0 cisco\n!\nredundancy\n!\n!\nip tcp synwait-time 5\n! \n!\n!\n!\n!\n!\n!\n!\n!\n!\ninterface FastEthernet0/0\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet1/0\n description to the world of the real\n ip address 172.16.1.2 255.255.255.0\n duplex half\n!\ninterface Ethernet1/1\n ip address 172.16.100.1 255.255.255.0\n duplex half\n!\ninterface Ethernet1/2\n description to eng rtr 1\n ip address 172.16.128.1 255.255.255.252\n duplex half\n!\ninterface Ethernet1/3\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet2/0\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet2/1\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet2/2\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet2/3\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet3/0\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet3/1\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet3/2\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet3/3\n no ip address\n shutdown\n duplex half\n!\n!\nrouter eigrp 1\n network 0.0.0.0\n!\nrouter ospf 1\n network 172.16.0.0 0.0.255.255 area 0\n default-information originate always\n!\nip forward-protocol nd\nno ip http server\nno ip http secure-server\n!\n!\nip route 0.0.0.0 0.0.0.0 172.16.1.1\nip route 10.0.0.0 255.0.0.0 172.16.1.1\n!\nno cdp log mismatch duplex\n!\nsnmp-server community lab RO\nsnmp-server enable traps entity-sensor threshold\n!\n!\ncontrol-plane\n!\n!\n!\nmgcp profile default\n!\n!\n!\ngatekeeper\n shutdown\n!\n!\nline con 0\n exec-timeout 0 0\n privilege level 15\n logging synchronous\n stopbits 1\nline aux 0\n exec-timeout 0 0\n privilege level 15\n logging synchronous\n stopbits 1\nline vty 0 4\n privilege level 15\n login local\n transport input all\nline vty 5 14\n privilege level 15\n login local\n transport input all\n!\n!\nend",
+      "running": "!\nupgrade fpd auto\nversion 15.2\nservice timestamps debug datetime msec\nservice timestamps log datetime msec\nno service password-encryption\n!\nhostname wan-core-1\n!\nboot-start-marker\nboot-end-marker\n!\n!\nenable secret 5 $1$NyF4$vDny.QvWCRInApAEdWRng1\n!\nno aaa new-model\nno ip icmp rate-limit unreachable\n!\n!\n!\n!\n!\n!\nno ip domain lookup\nip domain name home.com\nip cef\nno ipv6 cef\n!\nmultilink bundle-name authenticated\n!\n!\n!\n!\n!\n!\n!\n!\n!\nusername cisco privilege 15 password 0 cisco\n!\nredundancy\n!\n!\nip tcp synwait-time 5\n! \n!\n!\n!\n!\n!\n!\n!\n!\n!\ninterface FastEthernet0/0\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet1/0\n description to the world of the real\n ip address 172.16.1.2 255.255.255.0\n duplex half\n!\ninterface Ethernet1/1\n ip address 172.16.100.1 255.255.255.0\n duplex half\n!\ninterface Ethernet1/2\n description to eng rtr 1\n ip address 172.16.128.1 255.255.255.252\n duplex half\n!\ninterface Ethernet1/3\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet2/0\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet2/1\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet2/2\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet2/3\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet3/0\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet3/1\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet3/2\n no ip address\n shutdown\n duplex half\n!\ninterface Ethernet3/3\n no ip address\n shutdown\n duplex half\n!\n!\nrouter eigrp 1\n network 0.0.0.0\n!\nrouter ospf 1\n network 172.16.0.0 0.0.255.255 area 0\n default-information originate always\n!\nip forward-protocol nd\nno ip http server\nno ip http secure-server\n!\n!\nip route 0.0.0.0 0.0.0.0 172.16.1.1\nip route 10.0.0.0 255.0.0.0 172.16.1.1\n!\nno cdp log mismatch duplex\n!\nsnmp-server community lab RO\nsnmp-server enable traps entity-sensor threshold\n!\n!\ncontrol-plane\n!\n!\n!\nmgcp profile default\n!\n!\n!\ngatekeeper\n shutdown\n!\n!\nline con 0\n exec-timeout 0 0\n privilege level 15\n logging synchronous\n stopbits 1\nline aux 0\n exec-timeout 0 0\n privilege level 15\n logging synchronous\n stopbits 1\nline vty 0 4\n privilege level 15\n login local\n transport input all\nline vty 5 14\n privilege level 15\n login local\n transport input all\n!\n!\nend",
+      "candidate": ""
+    },
+    "get_interfaces": {
+      "FastEthernet0/0": {
+        "is_enabled": false,
+        "is_up": false,
+        "description": "",
+        "mac_address": "CA:01:41:94:00:00",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 100.0
+      },
+      "Ethernet1/0": {
+        "is_enabled": true,
+        "is_up": true,
+        "description": "to the world of the real",
+        "mac_address": "CA:01:41:94:00:1C",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 10.0
+      },
+      "Ethernet1/1": {
+        "is_enabled": true,
+        "is_up": true,
+        "description": "",
+        "mac_address": "CA:01:41:94:00:1D",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 10.0
+      },
+      "Ethernet1/2": {
+        "is_enabled": true,
+        "is_up": true,
+        "description": "to eng rtr 1",
+        "mac_address": "CA:01:41:94:00:1E",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 10.0
+      },
+      "Ethernet1/3": {
+        "is_enabled": false,
+        "is_up": false,
+        "description": "",
+        "mac_address": "CA:01:41:94:00:1F",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 10.0
+      },
+      "Ethernet2/0": {
+        "is_enabled": false,
+        "is_up": false,
+        "description": "",
+        "mac_address": "CA:01:41:94:00:38",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 10.0
+      },
+      "Ethernet2/1": {
+        "is_enabled": false,
+        "is_up": false,
+        "description": "",
+        "mac_address": "CA:01:41:94:00:39",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 10.0
+      },
+      "Ethernet2/2": {
+        "is_enabled": false,
+        "is_up": false,
+        "description": "",
+        "mac_address": "CA:01:41:94:00:3A",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 10.0
+      },
+      "Ethernet2/3": {
+        "is_enabled": false,
+        "is_up": false,
+        "description": "",
+        "mac_address": "CA:01:41:94:00:3B",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 10.0
+      },
+      "Ethernet3/0": {
+        "is_enabled": false,
+        "is_up": false,
+        "description": "",
+        "mac_address": "CA:01:41:94:00:54",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 10.0
+      },
+      "Ethernet3/1": {
+        "is_enabled": false,
+        "is_up": false,
+        "description": "",
+        "mac_address": "CA:01:41:94:00:55",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 10.0
+      },
+      "Ethernet3/2": {
+        "is_enabled": false,
+        "is_up": false,
+        "description": "",
+        "mac_address": "CA:01:41:94:00:56",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 10.0
+      },
+      "Ethernet3/3": {
+        "is_enabled": false,
+        "is_up": false,
+        "description": "",
+        "mac_address": "CA:01:41:94:00:57",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 10.0
+      }
+    },
+    "get_interfaces_ip": {
+      "Ethernet1/0": {
+        "ipv4": {
+          "172.16.1.2": {
+            "prefix_length": 24
+          }
+        }
+      },
+      "Ethernet1/1": {
+        "ipv4": {
+          "172.16.100.1": {
+            "prefix_length": 24
+          }
+        }
+      },
+      "Ethernet1/2": {
+        "ipv4": {
+          "172.16.128.1": {
+            "prefix_length": 30
+          }
+        }
+      }
+    },
+    "get_lldp_neighbors": {},
+    "get_mac_address_table": []
+  },
+  "errors": [],
+  "credential_used": "primary",
+  "credential_source": "tested",
+  "collection_time": "2025-08-02T05:33:49.726534",
+  "collection_duration": 2.501538,
+  "methods_collected": [
+    {
+      "method": "get_facts",
+      "duration": 0.29999852180480957,
+      "data_size": 466,
+      "success": true
+    },
+    {
+      "method": "get_arp_table",
+      "duration": 0.12009382247924805,
+      "data_size": 554,
+      "success": true
+    },
+    {
+      "method": "get_config",
+      "duration": 0.5300545692443848,
+      "data_size": 4876,
+      "success": true
+    },
+    {
+      "method": "get_interfaces",
+      "duration": 0.1071174144744873,
+      "data_size": 2102,
+      "success": true
+    },
+    {
+      "method": "get_interfaces_ip",
+      "duration": 0.19490814208984375,
+      "data_size": 196,
+      "success": true
+    },
+    {
+      "method": "get_lldp_neighbors",
+      "duration": 0.10614252090454102,
+      "data_size": 0,
+      "success": true
+    },
+    {
+      "method": "get_mac_address_table",
+      "duration": 0.22155475616455078,
+      "data_size": 0,
+      "success": true
+    }
+  ],
+  "methods_failed": [
+    {
+      "method": "get_inventory",
+      "duration": 0.0011146068572998047,
+      "error": "Method get_inventory not available for driver ios",
+      "success": false
+    }
+  ]
+}

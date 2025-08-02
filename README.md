@@ -1,269 +1,314 @@
 # TerminalTelemetry Enterprise
 
-![Screenshot](https://raw.githubusercontent.com/scottpeterman/termtelent/refs/heads/main/screenshots/light/slides1.gif)
-![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)
-![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
-![PyPI](https://img.shields.io/badge/pip-installable-green.svg)
+> **A comprehensive network management ecosystem that combines SSH terminal capabilities, real-time device monitoring, network discovery, topology visualization, and enterprise-grade asset management in a unified platform.**
 
-**TerminalTelemetry Enterprise** is a comprehensive network management ecosystem that combines SSH terminal capabilities, real-time device monitoring, network discovery, topology visualization, and enterprise-grade asset management in a unified, tech-inspired platform.
+[![GPLv3 License](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://python.org)
+[![Version 0.1.0](https://img.shields.io/badge/version-0.1.0-green.svg)](https://github.com/scottpeterman/termtelent)
+[![Cross Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/scottpeterman/termtelent)
 
-## Platform Overview
+![TermTel Landing](screenshots/landing/slides1.gif)
 
-```mermaid
-graph TB
-    %% Core Discovery Engine
-    subgraph "🔍 Network Discovery Engine"
-        Scanner[SNMP Scanner Suite<br/>Advanced Device Fingerprinting]
-        Rules[Open Fingerprint Rules<br/>Community-Driven Detection]
-    end
+---
 
-    %% Primary Platforms
-    subgraph "🖥️ TerminalTelemetry Core"
-        Terminal[SSH Terminal Emulator<br/>Multi-Tab Sessions]
-        Telemetry[Real-time Monitoring<br/>Live Device Telemetry]
-        Themes[Advanced Theme System<br/>20+ tech Themes]
-    end
+## Quick Start
 
-    subgraph "🗺️ Network Mapping"
-        Topology[Interactive Topology Viewer]
-        Diagrams[Professional Diagram Creator<br/>DrawIO/Graphml Export]
-        Enhancement[Map Enhancement Tools]
-    end
+**Note: PyPI package coming soon - currently install from source**
 
-    subgraph "📊 Enterprise CMDB"
-        WebDash[Web-Based Dashboard]
-        ConfigMgmt[Configuration Management]
-        Analytics[Reports & Analytics]
-    end
+```bash
+# Clone repository
+git clone https://github.com/scottpeterman/termtelent.git
+cd termtelent
 
-    %% Data Flow
-    Scanner --> Terminal
-    Scanner --> Topology
-    Scanner --> WebDash
-    Rules -.-> Scanner
-    Terminal --> Telemetry
-    Topology --> Diagrams
-    WebDash --> ConfigMgmt
-    WebDash --> Analytics
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-    %% Integration
-    Telemetry -.-> Rules
-    Enhancement --> Diagrams
-    Themes -.-> Terminal
-    Themes -.-> Topology
+# Install dependencies
+pip install -r requirements.txt
 
-    classDef discovery fill:#0066cc,stroke:#004499,stroke-width:3px,color:#fff
-    classDef terminal fill:#009900,stroke:#006600,stroke-width:2px,color:#fff
-    classDef mapping fill:#cc6600,stroke:#994400,stroke-width:2px,color:#fff
-    classDef cmdb fill:#9900cc,stroke:#660099,stroke-width:2px,color:#fff
-
-    class Scanner,Rules discovery
-    class Terminal,Telemetry,Themes terminal
-    class Topology,Diagrams,Enhancement mapping
-    class WebDash,ConfigMgmt,Analytics cmdb
+# Launch application
+python -m launcher.launch
 ```
 
-## 🚀 Quick Start
+**First Launch:**
+1. Themes auto-bootstrap on startup
+2. Create connections via File → Sessions or Quick Connect  
+3. Open monitoring via Tools → Telemetry Dashboard
+4. Customize with 20+ themes via View → Themes
 
-### Installation
+---
+
+## Platform Architecture
+
+The platform consists of two peer components that integrate through shared credentials and data formats:
+
+**SNMP Network Discovery → Real-Time SSH Monitoring → Enterprise CMDB Management**
+
+### SNMP Network Scanner Suite
+**Comprehensive network discovery with open device fingerprinting**
+
+- **TCP pre-filtering** for 3-5x faster scanning performance
+- **SNMPv3/v2c fallback** with automatic community detection
+- **Open fingerprint rules** - completely transparent device detection (no vendor lock-in)
+- **Domain intelligence** - automatic hostname normalization and cleanup
+- **Concurrent scanning** with intelligent rate limiting and error resilience
+- **GUI fingerprint editor** for custom device rule development
+
+[Network Scanner Suite Guide](README_Scanner.md)
+
+### TerminalTelemetry Core Platform
+**Multi-tab SSH terminal emulator with integrated real-time monitoring**
+
+- **Multi-tab SSH terminals** with xterm.js backend and theme integration
+- **Real-time telemetry widgets** - CPU/memory, neighbors, ARP tables, routing, logs
+- **200+ TextFSM templates** for multi-vendor data parsing and normalization
+- **Advanced theme system** with 20+ retro-inspired themes (cyberpunk, CRT, etc.)
+- **Encrypted credential storage** with enterprise-grade security (AES-256)
+- **Platform auto-detection** for optimal data collection per device type
+
+[Real-Time Telemetry Guide](README_Telemetry.md) | [Theme Management](README_THeme_mgmt.md)
+
+### Network Mapping Suite
+**Professional topology visualization and documentation**
+
+- Interactive topology viewer with zoom/pan/search
+- Professional diagram export (DrawIO, GraphML, Visio)
+- Multi-network merging for campus-wide maps
+- Vendor-specific icons and automated layouts
+- Publication-ready documentation generation
+
+[Network Mapping Guide](README_Maps.md)
+
+### RapidCMDB Enterprise Platform
+**Web-based configuration management and asset tracking system**
+
+- **Enterprise-scale device management** (20,000+ devices tested in production)
+- **Automated configuration collection** with change tracking and diff visualization
+- **Secure credential pipeline** with encrypted storage and environment variable injection
+- **Multi-vendor NAPALM integration** for consistent device interaction
+- **Web-based dashboard** with real-time SocketIO updates and search capabilities
+- **External integrations** - NetBox and LogicMonitor synchronization
+
+**Note:** RapidCMDB operates as an independent Flask application with shared credential integration
+
+[RapidCMDB Enterprise Guide](README_RapidCMDB.md) | [Pipeline Architecture](README_Pipeline.md)
+
+---
+
+## Screenshots
+
+### Dark Theme Interface
+![Main Interface](screenshots/slides1.gif)
+
+### Light Theme Support
+![Light Theme](screenshots/light/slides1.gif)
+
+---
+
+## Unified Workflow
+
+![Data Flow Architecture](diagrams/arch_flow.mermaid)
+
+All components share:
+- **Unified credential store** - secure AES-256 encrypted credential management
+- **Universal theming** - consistent retro-inspired UI across all platforms
+- **Open fingerprint rules** - community-driven device detection with full transparency
+- **Standard data formats** - JSON/CSV export and seamless integration between components
+- **Cross-platform deployment** - Windows, macOS, Linux support with identical functionality
+
+[Platform Integration Overview](README_Pipeline.md)
+
+---
+
+## Key Advantages
+
+### Open & Transparent
+- No vendor lock-in - all detection rules visible and editable
+- Community-driven shared fingerprint database
+- No licensing fees - deploy anywhere without restrictions
+- Full transparency - see exactly what commands are executed
+
+### Enterprise Security
+- AES-256 encrypted credential storage
+- Real-world reliability - handles network timeouts and edge cases  
+- Performance optimized - TCP pre-filtering and async processing
+- Cross-platform - Windows, macOS, Linux support
+
+### Modern Interface
+- Tech aesthetic - 20+ professionally designed themes
+- Responsive interface - threaded operations keep UI smooth
+- Contextual tools - right-click menus and integrated workflows
+- Extensible design - modular architecture for custom development
+
+---
+
+## Documentation
+
+### Core Platform Guides
+- [Network Scanner Suite](README_Scanner.md) - SNMP discovery with open fingerprinting
+- [Real-Time Telemetry](README_Telemetry.md) - Live device monitoring and visualization
+- [Network Mapping Suite](README_Maps.md) - Topology visualization and professional diagrams
+- [RapidCMDB Enterprise](README_RapidCMDB.md) - Web-based device management and analytics
+
+### Advanced Topics
+- [Theme Management System](README_THeme_mgmt.md) - Advanced theming and customization
+- [Custom Widget Development](README_widgets.md) - Extending the platform with custom widgets
+- [Pipeline Architecture](README_Pipeline.md) - Data flow and processing pipelines
+
+### Architecture Diagrams
+- [High-Level Architecture](diagrams/arch_high_level.mermaid) - System overview
+- [Component Architecture](diagrams/arch_components.mermaid) - Detailed component relationships
+- [Data Flow](diagrams/arch_flow.mermaid) - Information processing pipeline
+- [Architecture Summary](diagrams/arch_summary.mermaid) - Consolidated view
+
+---
+
+## Installation & Setup
+
+### System Requirements
+- **Python:** 3.12 (tested version)
+- **OS:** Windows, macOS, Linux  
+- **Memory:** 4GB RAM (8GB+ recommended for large networks)
+- **Network:** SSH (22/TCP) and SNMP (161/UDP) access to target devices
+- **Dependencies:** PyQt6, netmiko, pysnmp, flask, cryptography
+
+### Installation from Source
+**Note: PyPI package coming soon - currently install from source**
+
 ```bash
-pip install TerminalTelemetry
-termtel-con  # First run - bootstrap themes
-termtel      # Launch main application
+# Clone the repository
+git clone https://github.com/scottpeterman/termtelent.git
+cd termtelent
+
+# Create and activate virtual environment
+python -m venv .venv
+
+# On Windows:
+.venv\Scripts\activate
+
+# On macOS/Linux:
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Launch TerminalTelemetry Enterprise
+python -m launcher.launch
 ```
 
 ### First-Time Setup
-1. **Launch** the application - themes auto-bootstrap on first run
-2. **Create connections** via File → Sessions or Quick Connect
-3. **Open monitoring** via Tools → Telemetry Dashboard
-4. **Customize appearance** via View → Themes (20+ options)
-5. **Explore tools** via the comprehensive Tools menu
-
-## 🏗️ Platform Components
-
-### 🔍 **Network Discovery Engine**
-*Advanced SNMP-based network discovery with open fingerprinting*
-
-**Key Features:**
-- **TCP pre-filtering** for 3-5x faster scanning
-- **SNMPv3/v2c fallback** with community auto-detection
-- **Open fingerprint rules** - completely transparent device detection
-- **Domain intelligence** - automatic hostname normalization
-- **Real-world error handling** - built for unreliable networks
-- **Enhanced GUI Import Tool** - Visual import with vendor normalization and detailed error reporting
-
-**Detailed Documentation:** [📖 Network Scanner Suite Guide](README_Scanner.md)
+1. Application launches - themes auto-bootstrap on first run
+2. Configure credentials via File → Credential Manager
+3. Import or create sessions via File → Session Editor
+4. Start monitoring via Tools → Telemetry Dashboard
+5. Access RapidCMDB web interface (starts automatically)
 
 ---
 
-### 🖥️ **TerminalTelemetry Core Platform**
-*SSH terminal emulator with integrated real-time monitoring*
+## Project Structure
 
-**Key Features:**
-- **Multi-tab SSH terminals** with xterm.js backend
-- **Real-time telemetry** for network device monitoring
-- **200+ TextFSM templates** for multi-vendor parsing
-- **Advanced theme system** with 20+ tech-inspired themes
-- **Encrypted credential storage** with enterprise security
-
-**Platform Guides:**
-- [📖 Complete Platform Overview](README_Overview.md)
-- [📖 Real-Time Telemetry Monitoring](README_Telemetry.md)
-- [📖 Advanced Theme Management](README_Theme_mgmt.md)
-- [📖 Custom Widget Development](README_widgets.md)
-
----
-
-### 🗺️ **Network Mapping Suite**
-*Professional network topology visualization and documentation*
-
-**Key Features:**
-- **Interactive topology viewer** with zoom/pan/search
-- **Professional diagram export** (DrawIO, GraphML, Visio)
-- **Multi-network merging** for campus-wide maps
-- **Vendor-specific icons** and automated layouts
-- **Publication-ready documentation** generation
-
-**Detailed Documentation:** [📖 Network Mapping Suite Guide](README_Maps.md)
-
----
-
-### 📊 **RapidCMDB Enterprise Platform**
-*Web-based configuration management and asset tracking*
-
-**Key Features:**
-- **Enterprise-scale device management** (20,000+ devices tested)
-- **Configuration change tracking** with diff visualization
-- **Web-based dashboard** with real-time updates
-- **NetBox/LogicMonitor integration** for unified workflows
-- **Advanced analytics and reporting**
-
-**Platform Documentation:** [📖 RapidCMDB Enterprise Guide](README_RapidCMDB.md)
-
----
-
-## 🔧 Platform Integration
-
-### **Unified Workflow**
 ```
-Network Discovery → Device Monitoring → Topology Mapping → Asset Management
+termtelent/
+├── termtel/                    # Main application package
+│   ├── tte.py                 # Application entry point
+│   ├── widgets/               # Core UI components
+│   ├── termtelwidgets/        # Telemetry widgets
+│   ├── themes/                # Theme system
+│   └── static/                # Web assets
+├── rapidcmdb/                 # Enterprise CMDB platform
+│   ├── app.py                 # Flask web application
+│   ├── blueprints/            # Web interface modules
+│   └── templates/             # HTML templates
+├── launcher/                  # Application launcher
+├── sessions/                  # Session configurations
+├── screenshots/               # Demo images
+└── diagrams/                  # Architecture diagrams
 ```
 
-All components share:
-- **Common credential store** - one secure location for all credentials
-- **Universal theming** - consistent UI across all platforms
-- **Shared fingerprint rules** - community-driven device detection
-- **Standard data formats** - seamless integration between tools
-
-**Integration Guide:** [📖 Platform Integration Overview](README_integration.md)
-
 ---
 
-## 🎯 **What Makes This Different**
+## Contributing
 
-### **🔓 Completely Open Ecosystem**
-- **No vendor lock-in** - all detection rules are visible and editable
-- **Community-driven** - shared fingerprint database
-- **No licensing fees** - deploy anywhere without restrictions
-- **Full transparency** - see exactly what commands are executed
+We welcome contributions! Ways to help:
 
-### **🚀 Production-Ready Architecture**
-- **Enterprise security** - AES-256 encrypted credential storage
-- **Real-world reliability** - handles network timeouts and edge cases
-- **Performance optimized** - TCP pre-filtering and async processing
-- **Cross-platform** - Windows, macOS, Linux support
+- **Bug Reports:** Use GitHub Issues with device platform details
+- **Template Contributions:** Use built-in template editor to create/fix parsing
+- **Fingerprint Rules:** Submit vendor detection improvements  
+- **Documentation:** Help improve guides and examples
 
-### **🎨 Modern User Experience**
-- **tech aesthetic** - 20+ professionally designed themes
-- **Responsive interface** - threaded operations keep UI smooth
-- **Contextual tools** - right-click menus and integrated workflows
-- **Extensible design** - modular architecture for custom development
-
----
-
-## 📚 **Comprehensive Documentation**
-
-### **Platform Components**
-- [📖 **Network Scanner Suite**](README_Scanner.md) - SNMP discovery with open fingerprinting
-- [📖 **TerminalTelemetry Platform**](README_Overview.md) - SSH terminals and real-time monitoring
-- [📖 **Real-Time Telemetry**](README_Telemetry.md) - Live device monitoring and visualization
-- [📖 **Network Mapping Suite**](README_Maps.md) - Topology visualization and professional diagrams
-- [📖 **RapidCMDB Enterprise**](README_RapidCMDB.md) - Web-based device management and analytics
-
-### **Advanced Topics**
-- [📖 **Theme Management System**](README_Theme_mgmt.md) - Advanced theming and customization
-- [📖 **Custom Widget Development**](README_widgets.md) - Extending the platform with custom widgets
-- [📖 **Platform Integration**](README_integration.md) - Connecting all components together
-- [📖 **Pipeline Architecture**](README_Pipeline.md) - Data flow and processing pipelines
-
----
-
-## 🛠️ **Development & Support**
-
-### **System Requirements**
-- **Python**: 3.9+
-- **Operating System**: Windows, macOS, Linux
-- **Memory**: 4GB RAM (8GB+ for large networks)
-- **Network Access**: SSH (22/TCP) and SNMP (161/UDP) to target devices
-
-### **Development Setup**
+### Development Workflow
 ```bash
-git clone https://github.com/scottpeterman/terminaltelemetry.git
-cd terminaltelemetry
-pip install -e .
+# Clone and setup development environment
+git clone https://github.com/scottpeterman/termtelent.git
+cd termtelent
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+# Run tests (when available)
 python -m pytest tests/
+
+# Launch for development
+python -m launcher.launch
 ```
 
-### **Contributing**
-- **Bug Reports**: Use GitHub Issues with device platform details
-- **Template Contributions**: Use built-in template editor to create/fix parsing
-- **Fingerprint Rules**: Submit vendor detection improvements
-- **Documentation**: Help improve guides and examples
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
 ---
 
-## 🏆 **Enterprise Deployment**
+## Enterprise Proven
 
-### **Proven Scale**
 - **20,000+ devices** tested in single RapidCMDB deployment
-- **Sub-second response** times for standard operations
+- **Sub-second response times** for standard operations
 - **Multi-vendor support** across Cisco, Arista, Juniper, HP, Fortinet
 - **Cross-platform deployment** on Windows, Linux, macOS
 
-### **Security & Compliance**
+---
+
+## Security & Compliance
+
 - **Enterprise-grade encryption** (AES-256 + PBKDF2)
 - **No data exfiltration** - purely SSH client connections
 - **Audit trail** - comprehensive logging of all operations
 - **Zero infrastructure** - no servers or agents required
 
-### **Cost Benefits**
+---
+
+## Business Value
+
 - **No licensing fees** - deploy to unlimited devices
-- **Instant deployment** - pip install and run anywhere
+- **Instant deployment** - pip install and run anywhere  
 - **Reduce vendor lock-in** - works with any SSH-accessible device
 - **Engineer productivity** - familiar SSH workflow with modern tools
 
 ---
 
-## 📜 **License & Acknowledgments**
+## License & Technology
 
 **License:** GPLv3 - Free for personal and commercial use
 
 **Built With:**
 - PyQt6 and Python ecosystem
-- xterm.js for terminal functionality
+- xterm.js for terminal functionality  
 - netmiko and TextFSM for network automation
-- Modern tech design principles
+- Flask for web-based components
+- Modern responsive design principles
 
 ---
 
-## 🤝 **Community & Support**
+## Support & Community
 
-- **📧 GitHub Issues**: Bug reports and feature requests
-- **📖 Documentation**: Comprehensive guides and API reference
-- **🤝 Community**: Template library and fingerprint rule sharing
+- **[GitHub Issues](https://github.com/scottpeterman/termtelent/issues)** - Bug reports and feature requests
+- **Documentation** - Comprehensive guides and API reference
+- **Community** - Template library and fingerprint rule sharing
 
 ---
 
-*"The most powerful network management platform is the one that gives you complete control and transparency over your infrastructure."*
+> *"The most powerful network management platform is the one that gives you complete control and transparency over your infrastructure."*
 
-**TerminalTelemetry** - *Where network discovery, monitoring, and management converge in a unified, open, and powerful ecosystem.*
+**TerminalTelemetry Enterprise** - Where network discovery, monitoring, and management converge in a unified, open, and powerful ecosystem.

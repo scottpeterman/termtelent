@@ -1,0 +1,223 @@
+{
+  "device_ip": "172.16.100.2",
+  "device_name": "usa-rtr-1",
+  "success": true,
+  "data": {
+    "get_facts": {
+      "uptime": 39900.0,
+      "vendor": "Cisco",
+      "os_version": "IOSv Software (VIOS-ADVENTERPRISEK9-M), Version 15.6(2)T, RELEASE SOFTWARE (fc2)",
+      "serial_number": "9D7O4OFX59CN89H57WA52",
+      "model": "IOSv",
+      "hostname": "usa-rtr-1",
+      "fqdn": "usa-rtr-1.lab.local",
+      "interface_list": [
+        "GigabitEthernet0/0",
+        "GigabitEthernet0/1",
+        "GigabitEthernet0/2",
+        "GigabitEthernet0/3"
+      ]
+    },
+    "get_arp_table": [
+      {
+        "interface": "GigabitEthernet0/1",
+        "mac": "0C:B3:93:61:00:01",
+        "ip": "172.16.0.1",
+        "age": -1.0
+      },
+      {
+        "interface": "GigabitEthernet0/1",
+        "mac": "0C:AF:DA:85:DC:95",
+        "ip": "172.16.0.2",
+        "age": 20.0
+      },
+      {
+        "interface": "GigabitEthernet0/2",
+        "mac": "0C:B3:93:61:00:02",
+        "ip": "172.16.1.5",
+        "age": -1.0
+      },
+      {
+        "interface": "GigabitEthernet0/2",
+        "mac": "0C:82:F1:C3:66:19",
+        "ip": "172.16.1.6",
+        "age": 236.0
+      },
+      {
+        "interface": "GigabitEthernet0/0",
+        "mac": "CA:01:41:94:00:1D",
+        "ip": "172.16.100.1",
+        "age": 3.0
+      },
+      {
+        "interface": "GigabitEthernet0/0",
+        "mac": "0C:B3:93:61:00:00",
+        "ip": "172.16.100.2",
+        "age": -1.0
+      },
+      {
+        "interface": "GigabitEthernet0/3",
+        "mac": "0C:B3:93:61:00:03",
+        "ip": "172.16.128.5",
+        "age": -1.0
+      },
+      {
+        "interface": "GigabitEthernet0/3",
+        "mac": "0C:00:9D:13:00:00",
+        "ip": "172.16.128.6",
+        "age": 160.0
+      }
+    ],
+    "get_config": {
+      "startup": "Using 3746 out of 262144 bytes\n!\n\n!\nversion 15.6\nservice timestamps debug datetime msec\nservice timestamps log datetime msec\nno service password-encryption\n!\nhostname usa-rtr-1\n!\nboot-start-marker\nboot-end-marker\n!\n!\nenable secret 5 $1$6wmG$Jgpwd5oBxUtiLWBYGYvbe0\n!\nno aaa new-model\nethernet lmi ce\n!\n!\n!\nmmi polling-interval 60\nno mmi auto-configure\nno mmi pvc\nmmi snmp-timeout 180\n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\nno ip domain lookup\nip domain name lab.local\nip name-server 8.8.8.8\nip name-server 8.8.4.4\nip cef\nno ipv6 cef\n!\nmultilink bundle-name authenticated\n!\n!\ncts logging verbose\n!\n!\nusername cisco privilege 15 password 0 cisco\n!\nredundancy\n!\nlldp run\n!\n! \n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\ninterface GigabitEthernet0/0\n description to gateway e1/1\n ip address 172.16.100.2 255.255.255.0\n duplex auto\n speed auto\n media-type rj45\n!\ninterface GigabitEthernet0/1\n description To usa-spine-1\n ip address 172.16.0.1 255.255.255.252\n duplex auto\n speed auto\n media-type rj45\n!\ninterface GigabitEthernet0/2\n description To usa-spine-2\n ip address 172.16.1.5 255.255.255.252\n duplex auto\n speed auto\n media-type rj45\n!\ninterface GigabitEthernet0/3\n ip address 172.16.128.5 255.255.255.252\n duplex auto\n speed auto\n media-type rj45\n!\nrouter ospf 1\n router-id 172.16.1.1\n network 172.16.10.0 0.0.0.3 area 0\n network 172.16.10.4 0.0.0.3 area 0\n network 172.16.0.0 0.0.255.255 area 0\n!\nip forward-protocol nd\n!\n!\nno ip http server\nno ip http secure-server\n!\n!\nsnmp-server community lab_ro RO\nsnmp-server community lab RO\nsnmp-server chassis-id \n!\n!\ncontrol-plane\n!\nbanner exec ^C\n**************************************************************************\n* IOSv is strictly limited to use for evaluation, demonstration and IOS  *\n* education. IOSv is provided as-is and is not supported by Cisco's      *\n* Technical Advisory Center. Any use or disclosure, in whole or in part, *\n* of the IOSv Software or Documentation to any third party for any       *\n* purposes is expressly prohibited except as otherwise authorized by     *\n* Cisco in writing.                                                      *\n**************************************************************************^C\nbanner incoming ^C\n**************************************************************************\n* IOSv is strictly limited to use for evaluation, demonstration and IOS  *\n* education. IOSv is provided as-is and is not supported by Cisco's      *\n* Technical Advisory Center. Any use or disclosure, in whole or in part, *\n* of the IOSv Software or Documentation to any third party for any       *\n* purposes is expressly prohibited except as otherwise authorized by     *\n* Cisco in writing.                                                      *\n**************************************************************************^C\nbanner login ^C\n**************************************************************************\n* IOSv is strictly limited to use for evaluation, demonstration and IOS  *\n* education. IOSv is provided as-is and is not supported by Cisco's      *\n* Technical Advisory Center. Any use or disclosure, in whole or in part, *\n* of the IOSv Software or Documentation to any third party for any       *\n* purposes is expressly prohibited except as otherwise authorized by     *\n* Cisco in writing.                                                      *\n**************************************************************************^C\n!\nline con 0\n privilege level 15\n login local\n stopbits 1\nline aux 0\n stopbits 1\nline vty 0 4\n privilege level 15\n login local\n transport input all\nline vty 5 14\n privilege level 15\n login local\n transport input all\nline vty 15\n login local\n transport input all\n!\nno scheduler allocate\nntp server pool.ntp.org\n!\nend",
+      "running": "!\nversion 15.6\nservice timestamps debug datetime msec\nservice timestamps log datetime msec\nno service password-encryption\n!\nhostname usa-rtr-1\n!\nboot-start-marker\nboot-end-marker\n!\n!\nenable secret 5 $1$6wmG$Jgpwd5oBxUtiLWBYGYvbe0\n!\nno aaa new-model\nethernet lmi ce\n!\n!\n!\nmmi polling-interval 60\nno mmi auto-configure\nno mmi pvc\nmmi snmp-timeout 180\n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\nno ip domain lookup\nip domain name lab.local\nip name-server 8.8.8.8\nip name-server 8.8.4.4\nip cef\nno ipv6 cef\n!\nmultilink bundle-name authenticated\n!\n!\ncts logging verbose\n!\n!\nusername cisco privilege 15 password 0 cisco\n!\nredundancy\n!\nlldp run\n!\n! \n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\n!\ninterface GigabitEthernet0/0\n description to gateway e1/1\n ip address 172.16.100.2 255.255.255.0\n duplex auto\n speed auto\n media-type rj45\n!\ninterface GigabitEthernet0/1\n description To usa-spine-1\n ip address 172.16.0.1 255.255.255.252\n duplex auto\n speed auto\n media-type rj45\n!\ninterface GigabitEthernet0/2\n description To usa-spine-2\n ip address 172.16.1.5 255.255.255.252\n duplex auto\n speed auto\n media-type rj45\n!\ninterface GigabitEthernet0/3\n ip address 172.16.128.5 255.255.255.252\n duplex auto\n speed auto\n media-type rj45\n!\nrouter ospf 1\n router-id 172.16.1.1\n network 172.16.10.0 0.0.0.3 area 0\n network 172.16.10.4 0.0.0.3 area 0\n network 172.16.0.0 0.0.255.255 area 0\n!\nip forward-protocol nd\n!\n!\nno ip http server\nno ip http secure-server\n!\n!\nsnmp-server community lab_ro RO\nsnmp-server community lab RO\nsnmp-server chassis-id \n!\n!\ncontrol-plane\n!\nbanner exec ^C\n**************************************************************************\n* IOSv is strictly limited to use for evaluation, demonstration and IOS  *\n* education. IOSv is provided as-is and is not supported by Cisco's      *\n* Technical Advisory Center. Any use or disclosure, in whole or in part, *\n* of the IOSv Software or Documentation to any third party for any       *\n* purposes is expressly prohibited except as otherwise authorized by     *\n* Cisco in writing.                                                      *\n**************************************************************************^C\nbanner incoming ^C\n**************************************************************************\n* IOSv is strictly limited to use for evaluation, demonstration and IOS  *\n* education. IOSv is provided as-is and is not supported by Cisco's      *\n* Technical Advisory Center. Any use or disclosure, in whole or in part, *\n* of the IOSv Software or Documentation to any third party for any       *\n* purposes is expressly prohibited except as otherwise authorized by     *\n* Cisco in writing.                                                      *\n**************************************************************************^C\nbanner login ^C\n**************************************************************************\n* IOSv is strictly limited to use for evaluation, demonstration and IOS  *\n* education. IOSv is provided as-is and is not supported by Cisco's      *\n* Technical Advisory Center. Any use or disclosure, in whole or in part, *\n* of the IOSv Software or Documentation to any third party for any       *\n* purposes is expressly prohibited except as otherwise authorized by     *\n* Cisco in writing.                                                      *\n**************************************************************************^C\n!\nline con 0\n privilege level 15\n login local\n stopbits 1\nline aux 0\n stopbits 1\nline vty 0 4\n privilege level 15\n login local\n transport input all\nline vty 5 14\n privilege level 15\n login local\n transport input all\nline vty 15\n login local\n transport input all\n!\nno scheduler allocate\nntp server pool.ntp.org\n!\nend",
+      "candidate": ""
+    },
+    "get_interfaces": {
+      "GigabitEthernet0/0": {
+        "is_enabled": true,
+        "is_up": true,
+        "description": "to gateway e1/1",
+        "mac_address": "0C:B3:93:61:00:00",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 1000.0
+      },
+      "GigabitEthernet0/1": {
+        "is_enabled": true,
+        "is_up": true,
+        "description": "To usa-spine-1",
+        "mac_address": "0C:B3:93:61:00:01",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 1000.0
+      },
+      "GigabitEthernet0/2": {
+        "is_enabled": true,
+        "is_up": true,
+        "description": "To usa-spine-2",
+        "mac_address": "0C:B3:93:61:00:02",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 1000.0
+      },
+      "GigabitEthernet0/3": {
+        "is_enabled": true,
+        "is_up": true,
+        "description": "",
+        "mac_address": "0C:B3:93:61:00:03",
+        "last_flapped": -1.0,
+        "mtu": 1500,
+        "speed": 1000.0
+      }
+    },
+    "get_interfaces_ip": {
+      "GigabitEthernet0/0": {
+        "ipv4": {
+          "172.16.100.2": {
+            "prefix_length": 24
+          }
+        }
+      },
+      "GigabitEthernet0/1": {
+        "ipv4": {
+          "172.16.0.1": {
+            "prefix_length": 30
+          }
+        }
+      },
+      "GigabitEthernet0/2": {
+        "ipv4": {
+          "172.16.1.5": {
+            "prefix_length": 30
+          }
+        }
+      },
+      "GigabitEthernet0/3": {
+        "ipv4": {
+          "172.16.128.5": {
+            "prefix_length": 30
+          }
+        }
+      }
+    },
+    "get_lldp_neighbors": {
+      "GigabitEthernet0/2": [
+        {
+          "port": "Ethernet1",
+          "hostname": "usa-spine-2"
+        }
+      ],
+      "GigabitEthernet0/1": [
+        {
+          "port": "Ethernet1",
+          "hostname": "usa-spine-1"
+        }
+      ],
+      "GigabitEthernet0/3": [
+        {
+          "port": "Gi0/0",
+          "hostname": "eng-rtr-1.lab.local"
+        }
+      ]
+    },
+    "get_mac_address_table": []
+  },
+  "errors": [],
+  "credential_used": "primary",
+  "credential_source": "tested",
+  "collection_time": "2025-08-02T05:33:49.726534",
+  "collection_duration": 2.499431,
+  "methods_collected": [
+    {
+      "method": "get_facts",
+      "duration": 0.3664524555206299,
+      "data_size": 359,
+      "success": true
+    },
+    {
+      "method": "get_arp_table",
+      "duration": 0.12551331520080566,
+      "data_size": 793,
+      "success": true
+    },
+    {
+      "method": "get_config",
+      "duration": 0.3307797908782959,
+      "data_size": 7766,
+      "success": true
+    },
+    {
+      "method": "get_interfaces",
+      "duration": 0.11553335189819336,
+      "data_size": 707,
+      "success": true
+    },
+    {
+      "method": "get_interfaces_ip",
+      "duration": 0.22364592552185059,
+      "data_size": 288,
+      "success": true
+    },
+    {
+      "method": "get_lldp_neighbors",
+      "duration": 0.12114071846008301,
+      "data_size": 226,
+      "success": true
+    },
+    {
+      "method": "get_mac_address_table",
+      "duration": 0.2556471824645996,
+      "data_size": 0,
+      "success": true
+    }
+  ],
+  "methods_failed": [
+    {
+      "method": "get_inventory",
+      "duration": 0.0,
+      "error": "Method get_inventory not available for driver ios",
+      "success": false
+    }
+  ]
+}

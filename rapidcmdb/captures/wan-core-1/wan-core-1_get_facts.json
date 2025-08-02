@@ -1,0 +1,24 @@
+{
+  "uptime": 22500.0,
+  "vendor": "Cisco",
+  "os_version": "7200 Software (C7200-ADVENTERPRISEK9-M), Version 15.2(4)M11, RELEASE SOFTWARE (fc2)",
+  "serial_number": "4279256517",
+  "model": "7206VXR",
+  "hostname": "wan-core-1",
+  "fqdn": "wan-core-1.home.com",
+  "interface_list": [
+    "FastEthernet0/0",
+    "Ethernet1/0",
+    "Ethernet1/1",
+    "Ethernet1/2",
+    "Ethernet1/3",
+    "Ethernet2/0",
+    "Ethernet2/1",
+    "Ethernet2/2",
+    "Ethernet2/3",
+    "Ethernet3/0",
+    "Ethernet3/1",
+    "Ethernet3/2",
+    "Ethernet3/3"
+  ]
+}

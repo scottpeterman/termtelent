@@ -1,0 +1,208 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-08-02T12:30:26.613897+00:00",
+  "total_devices": 2,
+  "devices": {
+    "host_wan_core_1homecom": {
+      "id": "host_wan_core_1homecom",
+      "primary_ip": "172.16.100.1",
+      "all_ips": [
+        "172.16.100.1"
+      ],
+      "mac_addresses": [],
+      "interfaces": {
+        "ip_172_16_100_1": {
+          "name": "Interface-172.16.100.1",
+          "ip_address": "172.16.100.1",
+          "status": "discovered",
+          "type": "data"
+        }
+      },
+      "vendor": "cisco",
+      "device_type": "router",
+      "model": "",
+      "serial_number": "",
+      "os_version": "",
+      "sys_descr": "Cisco IOS Software, 7200 Software (C7200-ADVENTERPRISEK9-M), Version 15.2(4)M11, RELEASE SOFTWARE (fc2)\r\nTechnical Support: http://www.cisco.com/techsupport\r\nCopyright (c) 1986-2016 by Cisco Systems, Inc.\r\nCompiled Sun 16-Oct-16 07:53 by prod_rel_team",
+      "sys_name": "wan-core-1.home.com",
+      "first_seen": "2025-08-02T12:30:26.613897+00:00",
+      "last_seen": "2025-08-02T12:30:26.613897+00:00",
+      "scan_count": 1,
+      "last_scan_id": "scan_20250802_053026_2fca139b",
+      "identity_method": "basic",
+      "identity_confidence": 0,
+      "snmp_data_by_ip": {
+        "172.16.100.1": {
+          "1.3.6.1.2.1.1.1.0": "Cisco IOS Software, 7200 Software (C7200-ADVENTERPRISEK9-M), Version 15.2(4)M11, RELEASE SOFTWARE (fc2)\r\nTechnical Support: http://www.cisco.com/techsupport\r\nCopyright (c) 1986-2016 by Cisco Systems, Inc.\r\nCompiled Sun 16-Oct-16 07:53 by prod_rel_team",
+          "1.3.6.1.2.1.1.5.0": "wan-core-1.home.com",
+          "1.3.6.1.2.1.1.2.0": "1.3.6.1.4.1.9.1.222",
+          "1.3.6.1.2.1.1.3.0": "2240776",
+          "1.3.6.1.2.1.1.7.0": "78",
+          "Entity Model Name": "CISCO7206VXR",
+          "Entity Serial Number": "4279256517"
+        }
+      },
+      "confidence_score": 100,
+      "detection_method": "definitive_pattern_match",
+      "snmp_version_used": "v2c"
+    },
+    "host_usa_rtr_1lablocal": {
+      "id": "host_usa_rtr_1lablocal",
+      "primary_ip": "172.16.100.2",
+      "all_ips": [
+        "172.16.100.2"
+      ],
+      "mac_addresses": [],
+      "interfaces": {
+        "ip_172_16_100_2": {
+          "name": "Interface-172.16.100.2",
+          "ip_address": "172.16.100.2",
+          "status": "discovered",
+          "type": "data"
+        }
+      },
+      "vendor": "cisco",
+      "device_type": "router",
+      "model": "",
+      "serial_number": "",
+      "os_version": "",
+      "sys_descr": "Cisco IOS Software, IOSv Software (VIOS-ADVENTERPRISEK9-M), Version 15.6(2)T, RELEASE SOFTWARE (fc2)\r\nTechnical Support: http://www.cisco.com/techsupport\r\nCopyright (c) 1986-2016 by Cisco Systems, Inc.\r\nCompiled Tue 22-Mar-16 16:19 by prod_rel_team",
+      "sys_name": "usa-rtr-1.lab.local",
+      "first_seen": "2025-08-02T12:30:26.613897+00:00",
+      "last_seen": "2025-08-02T12:30:26.613897+00:00",
+      "scan_count": 1,
+      "last_scan_id": "scan_20250802_053026_2fca139b",
+      "identity_method": "basic",
+      "identity_confidence": 0,
+      "snmp_data_by_ip": {
+        "172.16.100.2": {
+          "1.3.6.1.2.1.1.1.0": "Cisco IOS Software, IOSv Software (VIOS-ADVENTERPRISEK9-M), Version 15.6(2)T, RELEASE SOFTWARE (fc2)\r\nTechnical Support: http://www.cisco.com/techsupport\r\nCopyright (c) 1986-2016 by Cisco Systems, Inc.\r\nCompiled Tue 22-Mar-16 16:19 by prod_rel_team",
+          "1.3.6.1.2.1.1.5.0": "usa-rtr-1.lab.local",
+          "1.3.6.1.2.1.1.2.0": "1.3.6.1.4.1.9.1.1041",
+          "1.3.6.1.2.1.1.3.0": "3974510",
+          "1.3.6.1.2.1.1.7.0": "78",
+          "Entity Model Name": "IOSv",
+          "Entity Serial Number": "9D7O4OFX59CN89H57WA52"
+        }
+      },
+      "confidence_score": 100,
+      "detection_method": "definitive_pattern_match",
+      "snmp_version_used": "v2c"
+    }
+  },
+  "sessions": [
+    {
+      "id": "scan_20250802_053021_132dec40",
+      "timestamp": "2025-08-02T12:30:21.724928+00:00",
+      "target_ip": "172.16.100.1",
+      "scan_type": "single_device",
+      "devices_found": 1,
+      "new_devices": 0,
+      "updated_devices": 0,
+      "snmp_version_used": "v2c",
+      "results": [
+        {
+          "ip_address": "172.16.100.1",
+          "vendor": "cisco",
+          "device_type": "router",
+          "model": "",
+          "serial_number": "",
+          "os_version": "",
+          "sys_descr": "Cisco IOS Software, 7200 Software (C7200-ADVENTERPRISEK9-M), Version 15.2(4)M11, RELEASE SOFTWARE (fc2)\r\nTechnical Support: http://www.cisco.com/techsupport\r\nCopyright (c) 1986-2016 by Cisco Systems, Inc.\r\nCompiled Sun 16-Oct-16 07:53 by prod_rel_team",
+          "sys_name": "wan-core-1.home.com",
+          "snmp_data": {
+            "1.3.6.1.2.1.1.1.0": "Cisco IOS Software, 7200 Software (C7200-ADVENTERPRISEK9-M), Version 15.2(4)M11, RELEASE SOFTWARE (fc2)\r\nTechnical Support: http://www.cisco.com/techsupport\r\nCopyright (c) 1986-2016 by Cisco Systems, Inc.\r\nCompiled Sun 16-Oct-16 07:53 by prod_rel_team",
+            "1.3.6.1.2.1.1.5.0": "wan-core-1.home.com",
+            "1.3.6.1.2.1.1.2.0": "1.3.6.1.4.1.9.1.222",
+            "1.3.6.1.2.1.1.3.0": "2240776",
+            "1.3.6.1.2.1.1.4.0": "",
+            "1.3.6.1.2.1.1.6.0": "",
+            "1.3.6.1.2.1.1.7.0": "78",
+            "1.3.6.1.2.1.47.1.1.1.1.13.1": "CISCO7206VXR",
+            "1.3.6.1.2.1.47.1.1.1.1.11.1": "4279256517",
+            "1.3.6.1.4.1.9.2.1.58.0": "4",
+            "1.3.6.1.4.1.9.9.25.1.1.1.2.2": "CW_IMAGE$C7200-ADVENTERPRISEK9-M$",
+            "1.3.6.1.4.1.9.9.25.1.1.1.2.5": "CW_VERSION$15.2(4)M11$"
+          },
+          "confidence_score": 100,
+          "detection_method": "definitive_pattern_match",
+          "scan_timestamp": "2025-08-02T12:30:21.724928+00:00",
+          "snmp_version": "v2c"
+        }
+      ],
+      "duration": "1s"
+    },
+    {
+      "id": "scan_20250802_053022_d60019d0",
+      "timestamp": "2025-08-02T12:30:22.245747+00:00",
+      "target_ip": "172.16.100.2",
+      "scan_type": "single_device",
+      "devices_found": 1,
+      "new_devices": 0,
+      "updated_devices": 0,
+      "snmp_version_used": "v2c",
+      "results": [
+        {
+          "ip_address": "172.16.100.2",
+          "vendor": "cisco",
+          "device_type": "router",
+          "model": "",
+          "serial_number": "",
+          "os_version": "",
+          "sys_descr": "Cisco IOS Software, IOSv Software (VIOS-ADVENTERPRISEK9-M), Version 15.6(2)T, RELEASE SOFTWARE (fc2)\r\nTechnical Support: http://www.cisco.com/techsupport\r\nCopyright (c) 1986-2016 by Cisco Systems, Inc.\r\nCompiled Tue 22-Mar-16 16:19 by prod_rel_team",
+          "sys_name": "usa-rtr-1.lab.local",
+          "snmp_data": {
+            "1.3.6.1.2.1.1.1.0": "Cisco IOS Software, IOSv Software (VIOS-ADVENTERPRISEK9-M), Version 15.6(2)T, RELEASE SOFTWARE (fc2)\r\nTechnical Support: http://www.cisco.com/techsupport\r\nCopyright (c) 1986-2016 by Cisco Systems, Inc.\r\nCompiled Tue 22-Mar-16 16:19 by prod_rel_team",
+            "1.3.6.1.2.1.1.5.0": "usa-rtr-1.lab.local",
+            "1.3.6.1.2.1.1.2.0": "1.3.6.1.4.1.9.1.1041",
+            "1.3.6.1.2.1.1.3.0": "3974510",
+            "1.3.6.1.2.1.1.4.0": "",
+            "1.3.6.1.2.1.1.6.0": "",
+            "1.3.6.1.2.1.1.7.0": "78",
+            "1.3.6.1.2.1.47.1.1.1.1.13.1": "IOSv",
+            "1.3.6.1.2.1.47.1.1.1.1.11.1": "9D7O4OFX59CN89H57WA52",
+            "1.3.6.1.4.1.9.2.1.58.0": "0",
+            "1.3.6.1.4.1.9.9.25.1.1.1.2.2": "CW_IMAGE$VIOS-ADVENTERPRISEK9-M$",
+            "1.3.6.1.4.1.9.9.25.1.1.1.2.5": "CW_VERSION$15.6(2)T$"
+          },
+          "confidence_score": 100,
+          "detection_method": "definitive_pattern_match",
+          "scan_timestamp": "2025-08-02T12:30:22.245747+00:00",
+          "snmp_version": "v2c"
+        }
+      ],
+      "duration": "1s"
+    }
+  ],
+  "statistics": {
+    "total_devices": 2,
+    "total_sessions": 2,
+    "vendor_breakdown": {
+      "cisco": 2
+    },
+    "type_breakdown": {
+      "router": 2
+    },
+    "snmp_version_breakdown": {
+      "v3_successful": 0,
+      "v2c_successful": 2,
+      "total_successful": 2
+    },
+    "last_scan_date": "2025-08-02T12:30:26.613897+00:00",
+    "oldest_device": "2025-08-02T12:30:26.613897+00:00",
+    "avg_confidence": 100.0,
+    "devices_per_subnet": {
+      "total": 2
+    },
+    "error_stats": {}
+  },
+  "config": {
+    "max_sessions": 100,
+    "max_devices": 10000,
+    "auto_cleanup": true,
+    "cleanup_interval": 86400000000000,
+    "backup_enabled": true,
+    "backup_count": 5,
+    "compress_backups": false
+  }
+}

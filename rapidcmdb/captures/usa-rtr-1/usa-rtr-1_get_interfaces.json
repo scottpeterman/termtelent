@@ -1,0 +1,38 @@
+{
+  "GigabitEthernet0/0": {
+    "is_enabled": true,
+    "is_up": true,
+    "description": "to gateway e1/1",
+    "mac_address": "0C:B3:93:61:00:00",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 1000.0
+  },
+  "GigabitEthernet0/1": {
+    "is_enabled": true,
+    "is_up": true,
+    "description": "To usa-spine-1",
+    "mac_address": "0C:B3:93:61:00:01",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 1000.0
+  },
+  "GigabitEthernet0/2": {
+    "is_enabled": true,
+    "is_up": true,
+    "description": "To usa-spine-2",
+    "mac_address": "0C:B3:93:61:00:02",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 1000.0
+  },
+  "GigabitEthernet0/3": {
+    "is_enabled": true,
+    "is_up": true,
+    "description": "",
+    "mac_address": "0C:B3:93:61:00:03",
+    "last_flapped": -1.0,
+    "mtu": 1500,
+    "speed": 1000.0
+  }
+}

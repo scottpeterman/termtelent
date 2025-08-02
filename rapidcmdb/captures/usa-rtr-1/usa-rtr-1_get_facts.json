@@ -1,0 +1,15 @@
+{
+  "uptime": 39900.0,
+  "vendor": "Cisco",
+  "os_version": "IOSv Software (VIOS-ADVENTERPRISEK9-M), Version 15.6(2)T, RELEASE SOFTWARE (fc2)",
+  "serial_number": "9D7O4OFX59CN89H57WA52",
+  "model": "IOSv",
+  "hostname": "usa-rtr-1",
+  "fqdn": "usa-rtr-1.lab.local",
+  "interface_list": [
+    "GigabitEthernet0/0",
+    "GigabitEthernet0/1",
+    "GigabitEthernet0/2",
+    "GigabitEthernet0/3"
+  ]
+}

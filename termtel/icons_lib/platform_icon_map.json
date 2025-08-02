@@ -1,0 +1,129 @@
+{
+  "base_path": "icons_lib",
+  "platform_patterns": {
+    "C9200": "workgroup_switch.jpg",
+    "C9300": "layer_3_switch.jpg",
+    "C9400": "layer_3_switch.jpg",
+    "C9500": "mulitswitch_device.jpg",
+    "WS-C2960": "workgroup_switch.jpg",
+    "WS-C3560": "layer_3_switch.jpg",
+    "WS-C3850": "layer_3_switch.jpg",
+    "Nexus7000": "Nexus_7000.jpg",
+    "Nexus9000": "Nexus_7000.jpg",
+    "ISR4": "router.jpg",
+    "CISCO2921": "router.jpg",
+    "CISCO2951": "router.jpg",
+    "7206VXR": "7500ars_(7513).jpg",
+    "DCS-7010": "layer_3_switch.jpg",
+    "DCS-7020": "layer_3_switch.jpg",
+    "DCS-7050": "layer_3_switch.jpg",
+    "DCS-7280": "mulitswitch_device.jpg",
+    "IOSv": "workgroup_switch.jpg",
+    "vEOS": "layer_3_switch.jpg",
+    "CCS-720": "workgroup_switch.jpg",
+    "VG202": "voice_router.jpg",
+    "IP Phone": "ip_phone.jpg",
+    "SEP": "ip_phone.jpg",
+    "ATA": "ata.jpg",
+    "VG": "ata.jpg",
+    "Nexus": "carrier_routing_system.jpg"
+  },
+  "defaults": {
+    "default_switch": "layer_3_switch.jpg",
+    "default_router": "router.jpg",
+    "default_firewall": "firewall.jpg",
+    "default_endpoint": "pc.jpg",
+    "default_wireless": "wireless.jpg",
+    "default_unknown": "generic_processor.jpg",
+    "default_phone": "generic_processor.jpg",
+    "default_ata": "ata.jpg"
+  },
+  "fallback_patterns": {
+    "switch": {
+      "platform_patterns": [
+        "switch",
+        "nexus",
+        "catalyst",
+        "c9",
+        "ws-c",
+        "dcs",
+        "eos"
+      ],
+      "name_patterns": [
+        "-sml-",
+        "-swl-",
+        "sml.",
+        "swl.",
+        "-sw-",
+        "-mds-",
+        "-fcsw"
+      ],
+      "icon": "default_switch"
+    },
+    "router": {
+      "platform_patterns": [
+        "router",
+        "isr",
+        "asr",
+        "csr",
+        "iosv"
+      ],
+      "name_patterns": [
+        "-rtr-",
+        "rtr."
+      ],
+      "icon": "default_router"
+    },
+    "firewall": {
+      "platform_patterns": [
+        "firewall",
+        "asa",
+        "ftd",
+        "palo",
+        "fortinet"
+      ],
+      "name_patterns": [
+        "-fw-",
+        "fw.",
+        "fwr"
+      ],
+      "icon": "default_firewall"
+    },
+    "wireless": {
+      "platform_patterns": [
+        "ap-",
+        "aireos",
+        "wireless",
+        "aironet"
+      ],
+      "name_patterns": [
+        "-ap",
+        "ap."
+      ],
+      "icon": "default_wireless"
+    },
+    "phone": {
+      "platform_patterns": [
+        "ip phone",
+        "phone"
+      ],
+      "name_patterns": [
+        "-ph-",
+        "ph.",
+        "SEP"
+      ],
+      "icon": "default_phone"
+    },
+    "ata": {
+      "platform_patterns": [
+        "ata",
+        "vg"
+      ],
+      "name_patterns": [
+        "-ata-",
+        "ata."
+      ],
+      "icon": "default_ata"
+    }
+  }
+}

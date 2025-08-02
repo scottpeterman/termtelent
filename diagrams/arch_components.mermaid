@@ -1,0 +1,69 @@
+graph TB
+    %% Input Layer
+    Network[Network Segment<br/>CIDR: 192.168.1.0/24] --> Scanner
+    Rules[vendor_fingerprints.yaml<br/>Detection Rules] --> Scanner
+    Config[Scanner Configuration<br/>SNMP Credentials<br/>TCP Ports<br/>Timeouts] --> Scanner
+
+    %% Core Scanner Component
+    subgraph Scanner["🔍 SNMP Scanner (pyscanner3.py)"]
+        direction TB
+        TCP[TCP Pre-Filter<br/>Check ports: 22,161,443]
+        SNMP[SNMP Collection<br/>v3 → v2c Fallback]
+        Fingerprint[Fingerprint Engine<br/>OID + Pattern Matching]
+        Extract[Field Extraction<br/>Model/Serial/Firmware]
+
+        TCP --> SNMP
+        SNMP --> Fingerprint
+        Fingerprint --> Extract
+    end
+
+    %% Fingerprint Management
+    subgraph FingerprintMgmt["🖥️ Fingerprint Management"]
+        direction TB
+        Editor[Fingerprint Editor<br/>fingerprint_widget.py]
+        Validate[Rule Validation<br/>Pattern Testing]
+        Export[Rule Export/Import<br/>YAML Management]
+
+        Editor --> Validate
+        Validate --> Export
+    end
+
+    %% Output Processing
+    Scanner --> ScanOutput[Scan Results<br/>JSON Format<br/>Device Data + Metadata]
+
+    %% CMDB Import Pipeline
+    subgraph CMDBPipeline["📊 CMDB Import Pipeline"]
+        direction TB
+        Import[Import Tool<br/>import_scan_ui.py]
+        Domain[Domain Processing<br/>Strip .local, .corp, etc.]
+        Filter[Advanced Filtering<br/>Vendor/Type/Confidence]
+        Preview[Device Preview<br/>Before/After Comparison]
+        Normalize[Data Normalization<br/>Deduplication Logic]
+
+        Import --> Domain
+        Domain --> Filter
+        Filter --> Preview
+        Preview --> Normalize
+    end
+
+    %% Data Stores
+    ScanOutput --> CMDBPipeline
+    CMDBPipeline --> Database[(CMDB Database<br/>SQLite/PostgreSQL)]
+    CMDBPipeline --> ExportData[Export Formats<br/>JSON/CSV/Excel]
+
+    %% Management Interfaces
+    FingerprintMgmt -.-> Rules
+    Rules -.-> Scanner
+
+    %% Styling
+    classDef scanner fill:#0066cc,stroke:#004499,stroke-width:2px,color:#fff
+    classDef editor fill:#009900,stroke:#006600,stroke-width:2px,color:#fff
+    classDef import fill:#cc6600,stroke:#994400,stroke-width:2px,color:#fff
+    classDef data fill:#666666,stroke:#333333,stroke-width:2px,color:#fff
+    classDef config fill:#9900cc,stroke:#660099,stroke-width:2px,color:#fff
+
+    class Scanner scanner
+    class FingerprintMgmt editor
+    class CMDBPipeline import
+    class Database,ExportData data
+    class Network,Rules,Config,ScanOutput config

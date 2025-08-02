@@ -1,0 +1,515 @@
+{% extends "base.html" %}
+
+{% block title %}Configurations - {{ app_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">Configurations</li>
+{% endblock %}
+
+{% block content %}
+<!-- Configuration Search -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-search me-2"></i>
+                    Configuration Search
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="configSearchForm" class="row g-3">
+                    <div class="col-md-6">
+                        <label for="searchTerm" class="form-label">Search Term</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="searchTerm" name="search"
+                                   placeholder="Circuit ID, IP address, VLAN, interface name..."
+                                   value="{{ request.args.get('search', '') }}">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-search me-1"></i>Search
+                            </button>
+                        </div>
+                        <div class="form-text">
+                            Search across all device configurations for circuit IDs, IP addresses, VLANs, interface names, etc.
+                        </div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label for="deviceFilter" class="form-label">Device</label>
+                        <select class="form-select" id="deviceFilter" name="device">
+                            <option value="">All Devices</option>
+                            <!-- Will be populated via JavaScript -->
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label for="configType" class="form-label">Config Type</label>
+                        <select class="form-select" id="configType" name="config_type">
+                            <option value="">All Types</option>
+                            <option value="running" {{ 'selected' if request.args.get('config_type') == 'running' }}>Running</option>
+                            <option value="startup" {{ 'selected' if request.args.get('config_type') == 'startup' }}>Startup</option>
+                            <option value="candidate" {{ 'selected' if request.args.get('config_type') == 'candidate' }}>Candidate</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label for="searchMode" class="form-label">Search Mode</label>
+                        <select class="form-select" id="searchMode" name="mode">
+                            <option value="contains" {{ 'selected' if request.args.get('mode') == 'contains' }}>Contains</option>
+                            <option value="exact" {{ 'selected' if request.args.get('mode') == 'exact' }}>Exact Match</option>
+                            <option value="regex" {{ 'selected' if request.args.get('mode') == 'regex' }}>Regex</option>
+                            <option value="ip" {{ 'selected' if request.args.get('mode') == 'ip' }}>IP/Subnet</option>
+                        </select>
+                    </div>
+                </form>
+
+                <!-- Quick Search Buttons -->
+                <div class="mt-3">
+                    <small class="text-muted me-3">Quick searches:</small>
+                    <button class="btn btn-outline-secondary btn-sm me-2" onclick="quickSearch('interface GigabitEthernet')">
+                        <i class="bi bi-ethernet me-1"></i>Interfaces
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm me-2" onclick="quickSearch('ip address')">
+                        <i class="bi bi-globe me-1"></i>IP Addresses
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm me-2" onclick="quickSearch('vlan')">
+                        <i class="bi bi-hdd-network me-1"></i>VLANs
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm me-2" onclick="quickSearch('bgp')">
+                        <i class="bi bi-diagram-3 me-1"></i>BGP
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm me-2" onclick="quickSearch('ospf')">
+                        <i class="bi bi-share me-1"></i>OSPF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Results -->
+{% if search_results %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-ul me-2"></i>
+                    Search Results
+                    <span class="badge bg-primary ms-2">{{ search_results|length }} found</span>
+                </h5>
+                <div>
+                    <button class="btn btn-outline-success btn-sm" onclick="exportSearchResults()">
+                        <i class="bi bi-download me-1"></i>Export Results
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th>Device</th>
+                                <th>Config Type</th>
+                                <th>Matches</th>
+                                <th>Last Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in search_results %}
+                            <tr>
+                                <td>
+                                    <strong>{{ result.device_name }}</strong>
+                                    <br><small class="text-muted">{{ result.vendor }} {{ result.model }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge
+                                        {% if result.config_type == 'running' %}bg-success
+                                        {% elif result.config_type == 'startup' %}bg-warning
+                                        {% else %}bg-info{% endif %}">
+                                        {{ result.config_type|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ result.match_count }} lines</span>
+                                    <br><small class="text-muted">{{ result.config_size|file_size }}</small>
+                                </td>
+                                <td>
+                                    {{ result.created_at|datetime }}
+                                    <br><small class="text-muted">{{ result.created_at|relative_time }}</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-outline-info"
+                                                onclick="viewConfigWithHighlight({{ result.config_id }}, '{{ request.args.get('search', '') }}')"
+                                                title="View with highlights">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <a href="{{ url_for('config.view_config', config_id=result.config_id) }}"
+                                           class="btn btn-outline-secondary" title="View full config">
+                                            <i class="bi bi-file-text"></i>
+                                        </a>
+                                        <a href="{{ url_for('devices.device_detail', device_name=result.device_name) }}"
+                                           class="btn btn-outline-primary" title="View device">
+                                            <i class="bi bi-router"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Configuration Statistics -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-primary">{{ stats.devices_with_configs or 0 }}</div>
+                <div class="metric-label">Devices with Configs</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-success">{{ stats.total_configs or 0 }}</div>
+                <div class="metric-label">Total Configurations</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-info">{{ stats.total_size|file_size if stats.total_size else '0 B' }}</div>
+                <div class="metric-label">Total Size</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-warning">{{ change_stats.changes_24h or 0 }}</div>
+                <div class="metric-label">Changes (24h)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Configuration Changes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>
+                    Recent Configuration Changes
+                </h5>
+                <a href="{{ url_for('config.index') }}?view=changes" class="btn btn-outline-primary btn-sm">
+                    View All Changes <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_changes %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Device</th>
+                                    <th>Config Type</th>
+                                    <th>Change Type</th>
+                                    <th>Size Change</th>
+                                    <th>Detected</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for change in recent_changes %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ change.device_name }}</strong>
+                                        <br><small class="text-muted">{{ change.site_code }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ change.config_type|title }}</span>
+                                    </td>
+                                    <td>
+                                        {% if change.change_type == 'added' %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-plus-circle me-1"></i>Added
+                                            </span>
+                                        {% elif change.change_type == 'modified' %}
+                                            <span class="badge bg-warning">
+                                                <i class="bi bi-pencil me-1"></i>Modified
+                                            </span>
+                                        {% elif change.change_type == 'deleted' %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-trash me-1"></i>Deleted
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-info">{{ change.change_type|title }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if change.new_size and change.old_size %}
+                                            {% set size_diff = change.new_size - change.old_size %}
+                                            {% if size_diff > 0 %}
+                                                <span class="text-success">+{{ size_diff|file_size }}</span>
+                                            {% elif size_diff < 0 %}
+                                                <span class="text-danger">{{ size_diff|file_size }}</span>
+                                            {% else %}
+                                                <span class="text-muted">No change</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">{{ change.change_size }} lines</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ change.detected_at|datetime }}
+                                        <br><small class="text-muted">{{ change.detected_at|relative_time }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            {% if change.old_config_id and change.new_config_id %}
+                                                <a href="{{ url_for('config.compare_configs', old_id=change.old_config_id, new_id=change.new_config_id) }}"
+                                                   class="btn btn-outline-warning" title="Compare configs">
+                                                    <i class="bi bi-files"></i>
+                                                </a>
+                                            {% endif %}
+                                            <a href="{{ url_for('config.view_config', config_id=change.new_config_id) }}"
+                                               class="btn btn-outline-info" title="View config">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('devices.device_detail', device_name=change.device_name) }}"
+                                               class="btn btn-outline-primary" title="View device">
+                                                <i class="bi bi-router"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-file-earmark-diff fs-1"></i>
+                        <p class="mt-2">No recent configuration changes</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Configuration View Modal -->
+<div class="modal fade" id="configViewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Configuration Viewer</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <span id="configModalDevice" class="badge bg-primary"></span>
+                        <span id="configModalType" class="badge bg-secondary ms-2"></span>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="downloadConfig()">
+                            <i class="bi bi-download me-1"></i>Download
+                        </button>
+                    </div>
+                </div>
+                <div class="position-relative">
+                    <pre id="configContent" class="bg-black text-light p-3 rounded" style="height: 60vh; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85rem;"></pre>
+                    <div id="configLoading" class="position-absolute top-50 start-50 translate-middle d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Search functionality
+document.getElementById('configSearchForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const searchTerm = document.getElementById('searchTerm').value.trim();
+    if (!searchTerm) {
+        showAlert('Please enter a search term', 'warning');
+        return;
+    }
+
+    // Show loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalHtml = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Searching...';
+    submitBtn.disabled = true;
+
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.append('search', searchTerm);
+
+    const device = document.getElementById('deviceFilter').value;
+    if (device) params.append('device', device);
+
+    const configType = document.getElementById('configType').value;
+    if (configType) params.append('config_type', configType);
+
+    const mode = document.getElementById('searchMode').value;
+    if (mode) params.append('mode', mode);
+
+    // Redirect to search results
+    window.location.href = `{{ url_for('config.index') }}?${params.toString()}`;
+});
+
+// Quick search functions
+function quickSearch(term) {
+    document.getElementById('searchTerm').value = term;
+    document.getElementById('configSearchForm').dispatchEvent(new Event('submit'));
+}
+
+// Load devices for filter dropdown
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/devices/api/search?q=')
+        .then(response => response.json())
+        .then(devices => {
+            const deviceFilter = document.getElementById('deviceFilter');
+            devices.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.device_name;
+                option.textContent = device.device_name;
+                deviceFilter.appendChild(option);
+            });
+
+            // Set selected device if in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const selectedDevice = urlParams.get('device');
+            if (selectedDevice) {
+                deviceFilter.value = selectedDevice;
+            }
+        })
+        .catch(error => console.error('Failed to load devices:', error));
+});
+
+// Configuration viewer
+let currentConfigId = null;
+
+function viewConfigWithHighlight(configId, searchTerm) {
+    currentConfigId = configId;
+
+    const modal = new bootstrap.Modal(document.getElementById('configViewModal'));
+    const content = document.getElementById('configContent');
+    const loading = document.getElementById('configLoading');
+
+    // Show modal and loading
+    modal.show();
+    content.textContent = '';
+    loading.classList.remove('d-none');
+
+    // Fetch configuration
+    fetch(`/config/api/config/${configId}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.classList.add('d-none');
+
+            if (data.error) {
+                content.textContent = 'Error loading configuration: ' + data.error;
+                return;
+            }
+
+            // Update modal header
+            document.getElementById('configModalDevice').textContent = data.device_name;
+            document.getElementById('configModalType').textContent = data.config_type.toUpperCase();
+
+            // Highlight search terms
+            let configText = data.config_content;
+            if (searchTerm && searchTerm.trim()) {
+                const regex = new RegExp(`(${escapeRegex(searchTerm.trim())})`, 'gi');
+                configText = configText.replace(regex, '<mark class="bg-warning text-dark">$1</mark>');
+            }
+
+            content.innerHTML = configText;
+        })
+        .catch(error => {
+            loading.classList.add('d-none');
+            content.textContent = 'Error loading configuration: ' + error.message;
+        });
+}
+
+function downloadConfig() {
+    if (!currentConfigId) return;
+
+    fetch(`/config/api/config/${currentConfigId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showAlert('Error downloading configuration: ' + data.error, 'danger');
+                return;
+            }
+
+            const blob = new Blob([data.config_content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${data.device_name}_${data.config_type}_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(error => {
+            showAlert('Error downloading configuration: ' + error.message, 'danger');
+        });
+}
+
+function exportSearchResults() {
+    const searchTerm = document.getElementById('searchTerm').value;
+    if (!searchTerm) {
+        showAlert('No search results to export', 'warning');
+        return;
+    }
+
+    showAlert('Export functionality would create a detailed report of all search matches', 'info');
+}
+
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Auto-complete for search terms
+document.getElementById('searchTerm').addEventListener('input', function() {
+    // Could implement auto-complete for common terms
+    // like interface names, IP ranges, etc.
+});
+
+// Search mode help
+document.getElementById('searchMode').addEventListener('change', function() {
+    const helpText = {
+        'contains': 'Search for text anywhere in configurations',
+        'exact': 'Find exact phrase matches only',
+        'regex': 'Use regular expressions for advanced patterns',
+        'ip': 'Search for IP addresses and subnets (e.g., 192.168.1.0/24)'
+    };
+
+    const searchInput = document.getElementById('searchTerm');
+    searchInput.placeholder = helpText[this.value] || 'Enter search term...';
+});
+</script>
+{% endblock %}

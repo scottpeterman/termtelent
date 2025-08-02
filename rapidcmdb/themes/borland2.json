@@ -1,0 +1,56 @@
+{
+  "primary": "#0000AA",
+  "secondary": "#0000AA",
+  "background": "#0000AA",
+  "darker_bg": "#000088",
+  "lighter_bg": "#0000CC",
+  "text": "#FFFFFF",
+  "grid": "rgba(255, 255, 255, 0.1)",
+  "line": "#FFFF55",
+  "border": "#FFFFFF",
+  "success": "#FFFF55",
+  "error": "#FF0000",
+  "border_light": "rgba(255, 255, 255, 0.4)",
+  "corner_gap": "#0000AA",
+  "corner_bright": "#FFFF55",
+  "panel_bg": "rgba(0, 0, 170, 0.95)",
+  "scrollbar_bg": "rgba(255, 255, 255, 0.1)",
+  "selected_bg": "rgba(255, 255, 255, 0.2)",
+  "button_hover": "#0000CC",
+  "button_pressed": "#000088",
+  "chart_bg": "rgba(0, 0, 170, 0.25)",
+  "terminal": {
+    "theme": {
+      "foreground": "#FFFFFF",
+      "background": "#0000AA",
+      "cursor": "#FFFF55",
+      "cursorAccent": "#0000AA",
+      "selection": "#0000CC",
+      "selectionForeground": "#FFFFFF",
+
+      "black": "#000000",
+      "red": "#FF5555",
+      "green": "#55FF55",
+      "yellow": "#FFFF55",
+      "blue": "#5555FF",
+      "magenta": "#FF55FF",
+      "cyan": "#55FFFF",
+      "white": "#FFFFFF",
+
+      "brightBlack": "#555555",
+      "brightRed": "#FF5555",
+      "brightGreen": "#55FF55",
+      "brightYellow": "#FFFF55",
+      "brightBlue": "#5555FF",
+      "brightMagenta": "#FF55FF",
+      "brightCyan": "#55FFFF",
+      "brightWhite": "#FFFFFF",
+
+      "scrollbar": {
+        "background": "#0000AA",
+        "thumb": "#555555",
+        "thumb_hover": "#777777"
+      }
+    }
+  }
+}

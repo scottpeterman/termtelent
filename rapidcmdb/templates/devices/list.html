@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}Devices - {{ app_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">Devices</li>
+{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-primary">{{ stats.total or 0 }}</div>
+                <div class="metric-label">Total Devices</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-success">{{ stats.online or 0 }}</div>
+                <div class="metric-label">Online</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-danger">{{ stats.error or 0 }}</div>
+                <div class="metric-label">Errors</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-warning">{{ stats.stale or 0 }}</div>
+                <div class="metric-label">Stale Data</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters and Search -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Device Inventory</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label for="search" class="form-label">Search</label>
+                <input type="text" class="form-control" id="search" name="search"
+                       placeholder="Device name, hostname, or IP"
+                       value="{{ current_filters.search }}">
+            </div>
+            <div class="col-md-2">
+                <label for="vendor" class="form-label">Vendor</label>
+                <select class="form-select" id="vendor" name="vendor">
+                    <option value="">All Vendors</option>
+                    {% for vendor in vendors %}
+                    <option value="{{ vendor }}" {% if vendor == current_filters.vendor %}selected{% endif %}>
+                        {{ vendor }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="role" class="form-label">Role</label>
+                <select class="form-select" id="role" name="role">
+                    <option value="">All Roles</option>
+                    {% for role in roles %}
+                    <option value="{{ role }}" {% if role == current_filters.role %}selected{% endif %}>
+                        {{ role|title }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="site" class="form-label">Site</label>
+                <select class="form-select" id="site" name="site">
+                    <option value="">All Sites</option>
+                    {% for site in sites %}
+                    <option value="{{ site }}" {% if site == current_filters.site %}selected{% endif %}>
+                        {{ site }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">All Status</option>
+                    <option value="online" {% if current_filters.status == 'online' %}selected{% endif %}>Online</option>
+                    <option value="error" {% if current_filters.status == 'error' %}selected{% endif %}>Error</option>
+                    <option value="stale" {% if current_filters.status == 'stale' %}selected{% endif %}>Stale</option>
+                    <option value="unknown" {% if current_filters.status == 'unknown' %}selected{% endif %}>Unknown</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <div class="mt-3 d-flex justify-content-between align-items-center">
+            <div>
+                <a href="{{ url_for('devices.list_devices') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Clear Filters
+                </a>
+            </div>
+            <div>
+                <a href="{{ url_for('devices.export_devices') }}" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-download me-1"></i>Export CSV
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Devices Table -->
+<div class="card">
+    <div class="card-body">
+        {% if devices %}
+        <div class="table-responsive">
+            <table class="table table-dark table-hover">
+                <thead>
+                    <tr>
+                        <th>Device Name</th>
+                        <th>Vendor</th>
+                        <th>Model</th>
+                        <th>Site</th>
+                        <th>Role</th>
+                        <th>Primary IP</th>
+                        <th>Status</th>
+                        <th>Last Collection</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for device in devices %}
+                    <tr>
+                        <td>
+                            <div>
+                                <strong>{{ device.device_name }}</strong>
+                                {% if device.hostname and device.hostname != device.device_name %}
+                                <br><small class="text-muted">{{ device.hostname }}</small>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>{{ device.vendor or 'Unknown' }}</td>
+                        <td>{{ device.model or 'Unknown' }}</td>
+                        <td>
+                            <span class="badge bg-secondary">{{ device.site_code }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ device.device_role|title }}</span>
+                        </td>
+                        <td>
+                            {% if device.primary_ip %}
+                                <code>{{ device.primary_ip }}</code>
+                            {% else %}
+                                <span class="text-muted">No IP</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if device.status == 'online' %}
+                                <span class="status-badge status-online">
+                                    <i class="bi bi-check-circle me-1"></i>Online
+                                </span>
+                            {% elif device.status == 'error' %}
+                                <span class="status-badge status-offline">
+                                    <i class="bi bi-x-circle me-1"></i>Error
+                                </span>
+                            {% elif device.status == 'stale' %}
+                                <span class="status-badge status-warning">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Stale
+                                </span>
+                            {% else %}
+                                <span class="status-badge bg-secondary">
+                                    <i class="bi bi-question-circle me-1"></i>Unknown
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if device.last_collection %}
+                                <div>{{ device.last_collection|datetime }}</div>
+                                <small class="text-muted">{{ device.last_collection|relative_time }}</small>
+                            {% else %}
+                                <span class="text-muted">Never</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('devices.device_detail', device_name=device.device_name) }}"
+                                   class="btn btn-outline-info" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('devices.device_interfaces', device_name=device.device_name) }}"
+                                   class="btn btn-outline-secondary" title="Interfaces">
+                                    <i class="bi bi-ethernet"></i>
+                                </a>
+                                <button class="btn btn-outline-primary"
+                                        onclick="refreshDevice('{{ device.device_name }}')"
+                                        title="Refresh Data">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-3 text-muted text-center">
+            Showing {{ devices|length }} devices
+            {% if current_filters.search or current_filters.vendor or current_filters.role or current_filters.site or current_filters.status %}
+                (filtered)
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-router fs-1"></i>
+            <h4 class="mt-3">No Devices Found</h4>
+            <p>No devices match your current filters.</p>
+            <a href="{{ url_for('devices.list_devices') }}" class="btn btn-primary">
+                Clear Filters
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function refreshDevice(deviceName) {
+    if (confirm(`Refresh data for ${deviceName}?`)) {
+        fetch(`/devices/${deviceName}/refresh`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                showAlert(`Data refresh initiated for ${deviceName}`, 'success');
+                // Optionally reload the page after a delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                throw new Error('Refresh failed');
+            }
+        })
+        .catch(error => {
+            showAlert(`Failed to refresh ${deviceName}: ${error.message}`, 'danger');
+        });
+    }
+}
+
+// Auto-refresh device status every 2 minutes
+setInterval(function() {
+    fetch('/devices/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.stats) {
+                updateDeviceStats(data.stats);
+            }
+        })
+        .catch(error => {
+            console.error('Failed to refresh device stats:', error);
+        });
+}, 120000);
+
+function updateDeviceStats(stats) {
+    // Update the metric cards with new data
+    const metrics = document.querySelectorAll('.metric-value');
+    if (metrics.length >= 4) {
+        metrics[0].textContent = stats.total || 0;
+        metrics[1].textContent = stats.online || 0;
+        metrics[2].textContent = stats.error || 0;
+        metrics[3].textContent = stats.stale || 0;
+    }
+}
+
+// Enable live search
+let searchTimeout;
+document.getElementById('search').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        // Auto-submit form after 500ms of no typing
+        this.form.submit();
+    }, 500);
+});
+</script>
+{% endblock %}

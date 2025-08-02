@@ -1,0 +1,33 @@
+Value Filldown VRF (\S+)
+Value PROTOCOL (\S+\s\S+|\w)
+Value Required NETWORK (\d+\.\d+\.\d+\.\d+)
+Value PREFIX_LENGTH (\d+)
+Value DISTANCE (\d+)
+Value METRIC (\d+)
+Value DIRECT (directly)
+Value Required,List NEXT_HOP (connected|\d+\.\d+\.\d+\.\d+)
+Value List INTERFACE (.+)
+
+Start
+  ^VRF(\s+name)?:\s+${VRF}\s*$$
+  ^WARNING
+  ^kernel
+  ^Source Codes:
+  # Match for codes
+  ^\s+.+-.+
+  ^\s*$$ -> Routes
+  # Ignore IP routing not enabled
+  ^\! IP routing not enabled
+  # Error on everything else
+  ^. -> Error
+
+Routes
+  ^\s+${PROTOCOL}\s+${NETWORK}/${PREFIX_LENGTH}\s+\[${DISTANCE}/${METRIC}\]\s*$$ -> Record
+  ^\s+${PROTOCOL}\s+${NETWORK}/${PREFIX_LENGTH}\s*$$
+  ^\s+via\s+${NEXT_HOP},\s+${INTERFACE}\s*$$
+  ^\s+${DIRECT}\s+${NEXT_HOP},\s+${INTERFACE}\s*$$
+  ^\s*$$ -> Record
+  ^VRF(?:\s+name)?:\s+${VRF}\s*$$ -> Start
+  ^Gateway\s+of\s+last
+  ^\! IP routing not enabled -> Continue
+  ^.* -> Error "Unexpected line in Routes state: $$0"

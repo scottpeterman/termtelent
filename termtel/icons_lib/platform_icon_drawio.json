@@ -1,0 +1,130 @@
+{
+  "platform_patterns": {
+    "C9200": "shape=mxgraph.cisco.switches.workgroup_switch",
+    "C9300": "shape=mxgraph.cisco.switches.layer_3_switch",
+    "C9400": "shape=mxgraph.cisco.switches.layer_3_switch",
+    "C9407R": "shape=mxgraph.cisco.switches.layer_3_switch",
+    "C9500": "shape=mxgraph.cisco.switches.multilayer_remote_switch",
+    "WS-C2960": "shape=mxgraph.cisco.switches.workgroup_switch",
+    "WS-C3560": "shape=mxgraph.cisco.switches.layer_3_switch",
+    "WS-C3850": "shape=mxgraph.cisco.switches.layer_3_switch",
+    "Nexus": "shape=mxgraph.cisco.switches.layer_3_switch",
+    "ISR4": "shape=mxgraph.cisco.routers.router",
+    "CISCO2921": "shape=mxgraph.cisco.routers.router",
+    "CISCO2951": "shape=mxgraph.cisco.routers.router",
+    "7206VXR": "shape=mxgraph.cisco.routers.router",
+    "DCS-7010": "shape=mxgraph.cisco.switches.layer_3_switch",
+    "DCS-7020": "shape=mxgraph.cisco.switches.layer_3_switch",
+    "DCS-7050": "shape=mxgraph.cisco.switches.layer_3_switch",
+    "DCS-7280": "shape=mxgraph.cisco.switches.multilayer_remote_switch",
+    "IOSv": "shape=mxgraph.cisco.switches.workgroup_switch",
+    "vEOS": "shape=mxgraph.cisco.switches.layer_3_switch",
+    "CCS-720": "shape=mxgraph.cisco.switches.workgroup_switch",
+    "VG202": "shape=mxgraph.cisco.misc.voice_router",
+    "IP Phone": "shape=mxgraph.cisco.misc.ip_phone",
+    "SEP": "shape=mxgraph.cisco.misc.ip_phone",
+    "ATA": "shape=mxgraph.cisco.misc.ata",
+    "VG": "shape=mxgraph.cisco.misc.ata"
+  },
+  "defaults": {
+    "default_switch": "shape=mxgraph.cisco.switches.layer_3_switch",
+    "default_router": "shape=mxgraph.cisco.routers.router",
+    "default_firewall": "shape=mxgraph.cisco.security.firewall",
+    "default_endpoint": "shape=mxgraph.cisco.computers_and_peripherals.pc",
+    "default_wireless": "shape=mxgraph.cisco.wireless.wireless_access_point",
+    "default_unknown": "shape=mxgraph.cisco.misc.generic_building",
+    "default_phone": "shape=mxgraph.cisco.misc.ip_phone",
+    "default_ata": "shape=mxgraph.cisco.misc.ata"
+  },
+  "fallback_patterns": {
+    "switch": {
+      "platform_patterns": [
+        "switch",
+        "nexus",
+        "catalyst",
+        "c9",
+        "ws-c",
+        "dcs",
+        "eos"
+      ],
+      "name_patterns": [
+        "-sml-",
+        "-swl-",
+        "sml.",
+        "swl."
+      ],
+      "shape": "shape=mxgraph.cisco.switches.layer_3_switch"
+    },
+    "router": {
+      "platform_patterns": [
+        "router",
+        "isr",
+        "asr",
+        "csr",
+        "iosv"
+      ],
+      "name_patterns": [
+        "-rtr-",
+        "rtr."
+      ],
+      "shape": "shape=mxgraph.cisco.routers.router"
+    },
+    "firewall": {
+      "platform_patterns": [
+        "firewall",
+        "asa",
+        "ftd",
+        "palo"
+      ],
+      "name_patterns": [
+        "-fw-",
+        "fw."
+      ],
+      "shape": "shape=mxgraph.cisco.security.firewall"
+    },
+    "wireless": {
+      "platform_patterns": [
+        "ap",
+        "aireos",
+        "wireless",
+        "aironet"
+      ],
+      "name_patterns": [
+        "-ap-",
+        "ap."
+      ],
+      "shape": "shape=mxgraph.cisco.wireless.wireless_access_point"
+    },
+    "phone": {
+      "platform_patterns": [
+        "ip phone",
+        "phone"
+      ],
+      "name_patterns": [
+        "-ph-",
+        "ph."
+      ],
+      "shape": "shape=mxgraph.cisco.misc.ip_phone"
+    },
+    "ata": {
+      "platform_patterns": [
+        "ata",
+        "vg"
+      ],
+      "name_patterns": [
+        "-ata-",
+        "ata."
+      ],
+      "shape": "shape=mxgraph.cisco.misc.ata"
+    }
+  },
+  "style_defaults": {
+    "fillColor": "#036897",
+    "strokeColor": "#ffffff",
+    "strokeWidth": "2",
+    "html": "1",
+    "verticalLabelPosition": "bottom",
+    "verticalAlign": "top",
+    "align": "center"
+  }
+}

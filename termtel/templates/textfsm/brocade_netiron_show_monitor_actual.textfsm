@@ -1,0 +1,9 @@
+Value MONITOREDPORT ([0-9\/]+)
+Value INPUTMIRROR ([0-9\/\(\)\ UM]+)
+Value OUTPUTMIRROR ([0-9\/\(\)\ UM]+)
+
+Start
+  ^\w -> Continue.Record
+  ^Monitored Port ${MONITOREDPORT} -> Continue
+  ^\s+Input traffic mirrored to:\s+${INPUTMIRROR} -> Continue
+  ^\s+Output traffic mirrored to:\s+${OUTPUTMIRROR} -> Continue

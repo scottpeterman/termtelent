@@ -1,0 +1,1317 @@
+{% extends "base.html" %}
+
+{% block title %}Enhanced Network Topology - {{ app_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('network.topology') }}">Network</a></li>
+<li class="breadcrumb-item active">Enhanced Topology</li>
+{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --legend-width: 280px;
+        --primary-blue: #0d6efd;
+        --success-green: #198754;
+        --warning-orange: #fd7e14;
+        --danger-red: #dc3545;
+    }
+
+    /* Device List Styles */
+    .devices-list-card {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .node-search {
+        margin-bottom: 15px;
+    }
+
+    .node-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .node-item {
+        padding: 8px 12px;
+        margin: 2px 0;
+        cursor: pointer;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-left: 3px solid transparent;
+    }
+
+    .node-item:hover {
+        background: rgba(13, 110, 253, 0.2);
+        border-left-color: var(--primary-blue);
+    }
+
+    .node-item.highlighted {
+        background: rgba(13, 110, 253, 0.4);
+        border-left-color: var(--primary-blue);
+        color: #fff;
+        font-weight: bold;
+    }
+
+    .node-item.selected {
+        background: var(--success-green);
+        border-left-color: var(--success-green);
+        color: #fff;
+    }
+
+    #topology-container {
+        background: #1a1a1a;
+        border: 2px solid #495057;
+        border-radius: 8px;
+        min-height: 600px;
+        position: relative;
+        overflow: hidden;
+        user-select: none;
+    }
+
+    #mermaid-diagram {
+        width: 100%;
+        height: 100%;
+        min-height: 600px;
+        position: relative;
+    }
+
+    .topology-controls {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        display: flex;
+        gap: 5px;
+    }
+
+    .stats-card {
+        background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: transform 0.3s ease;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(116, 185, 255, 0.3);
+    }
+
+    .stats-number {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .loading-spinner {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1001;
+    }
+
+    .device-info-popup {
+        position: absolute;
+        background: rgba(33, 37, 41, 0.95);
+        border: 1px solid var(--primary-blue);
+        border-radius: 8px;
+        padding: 10px;
+        z-index: 1002;
+        display: none;
+        max-width: 300px;
+        backdrop-filter: blur(10px);
+    }
+
+    /* Highlighted nodes in diagram */
+    .mermaid .node.highlighted rect {
+        stroke: #4ade80 !important;
+        stroke-width: 3px !important;
+        fill: rgba(74, 222, 128, 0.2) !important;
+    }
+
+    .mermaid .node.selected rect {
+        stroke: var(--success-green) !important;
+        stroke-width: 4px !important;
+        fill: rgba(25, 135, 84, 0.3) !important;
+    }
+
+    /* Mobile responsive adjustments */
+    @media (max-width: 768px) {
+        .devices-list-card {
+            max-height: 300px;
+        }
+    }
+</style>
+
+<!-- Device List Card (replacing the fixed legend panel) -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card devices-list-card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-list-ul"></i>
+                    Network Devices
+                    <span class="badge bg-secondary ms-2">
+                        <span id="visible-nodes-count">{{ devices|length if devices else 0 }}</span> of
+                        <span id="total-nodes-count">{{ devices|length if devices else 0 }}</span>
+                    </span>
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="node-search">
+                    <input type="text" id="node-search-input" class="form-control form-control-sm"
+                           placeholder="Search devices...">
+                </div>
+                <ul id="node-list" class="node-list">
+                    {% if devices %}
+                        {% for device in devices %}
+                        <li class="node-item" data-node-name="{{ device.device_name }}" data-node-id="{{ device.device_name|replace(' ', '_')|replace('-', '_')|replace('.', '_') }}">
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">{{ device.device_name }}</div>
+                                <small class="text-muted">
+                                    {{ device.primary_ip or 'N/A' }} •
+                                    {{ device.peer_count or 0 }} connections
+                                </small>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="node-item">
+                            <span class="text-muted">No devices found</span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <!-- This column will contain the topology filters moved from below -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-funnel"></i>
+                    Topology Filters & Controls
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <!-- Site Filter -->
+                    <div class="col-md-4">
+                        <label for="site-filter" class="form-label">Filter by Site</label>
+                        <select id="site-filter" name="sites" class="form-select" multiple>
+                            {% for site in available_sites %}
+                            <option value="{{ site.site_code }}"
+                                    {% if site.site_code in current_filters.sites %}selected{% endif %}>
+                                {{ site.site_code }} ({{ site.device_count }} devices)
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Select specific sites or leave empty for all</small>
+                    </div>
+
+                    <!-- Layout Options -->
+                    <div class="col-md-3">
+                        <label for="layout-select" class="form-label">Layout</label>
+                        <select id="layout-select" name="layout" class="form-select">
+                            <option value="TD" {% if current_filters.layout == 'TD' %}selected{% endif %}>Top-Down</option>
+                            <option value="LR" {% if current_filters.layout == 'LR' %}selected{% endif %}>Left-Right</option>
+                            <option value="RL" {% if current_filters.layout == 'RL' %}selected{% endif %}>Right-Left</option>
+                            <option value="BT" {% if current_filters.layout == 'BT' %}selected{% endif %}>Bottom-Top</option>
+                        </select>
+                    </div>
+
+                    <!-- Network Only Toggle -->
+                    <div class="col-md-2">
+                        <label class="form-label">Display</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="network-only" name="network_only"
+                                   {% if current_filters.network_only %}checked{% endif %}>
+                            <label class="form-check-label" for="network-only">
+                                Network Only
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Control Buttons -->
+                    <div class="col-md-3">
+                        <label class="form-label">Actions</label>
+                        <div class="d-grid gap-1">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                            <div class="d-flex gap-1">
+                                <button type="button" id="fullscreen-toggle" class="btn btn-success btn-sm">
+                                    <i class="bi bi-fullscreen"></i>
+                                </button>
+                                <div class="dropdown">
+                                    <button class="btn btn-warning btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-download"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" id="export-svg">
+                                            <i class="bi bi-image"></i> Export SVG
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" id="export-png">
+                                            <i class="bi bi-file-image"></i> Export PNG
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" id="export-json">
+                                            <i class="bi bi-filetype-json"></i> Export JSON Topology
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="#" id="export-drawio">
+                                            <i class="bi bi-diagram-3"></i> Export Draw.io
+                                        </a></li>
+                                    </ul>
+                                </div>
+                                <a href="{{ url_for('network.test_connection') }}" class="btn btn-info btn-sm">
+                                    <i class="bi bi-wifi"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Active Filters Display -->
+                <div class="mt-3" id="active-filters">
+                    <small class="text-muted">Active Filters: </small>
+                    <span id="filter-badges">
+                        {% if current_filters.sites %}
+                            {% for site in current_filters.sites %}
+                                <span class="badge bg-primary me-1">Site: {{ site }}</span>
+                            {% endfor %}
+                        {% endif %}
+                        {% if current_filters.network_only %}
+                            <span class="badge bg-primary me-1">Network Only</span>
+                        {% endif %}
+                        {% if not current_filters.sites and not current_filters.network_only %}
+                            <span class="text-muted">None</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    <!-- Statistics Row -->
+
+    <!-- Filters Row - REMOVED since it's now above -->
+
+    <!-- Topology Visualization -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-diagram-3"></i>
+                        Network Topology Visualization
+                    </h5>
+                    <div class="d-flex gap-2">
+                        <span class="badge bg-success" id="diagram-status">
+                            {% if topology_data %}Loaded{% else %}No Data{% endif %}
+                        </span>
+                        <span class="badge bg-secondary" id="diagram-stats">
+                            {{ stats.total_devices or 0 }} nodes, {{ stats.total_connections or 0 }} edges
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="topology-container">
+                        <!-- Loading Spinner -->
+                        <div class="loading-spinner" id="loading-spinner" style="display: none;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+
+                        <div class="topology-controls">
+                            <button class="btn btn-sm btn-outline-light" id="zoom-in" title="Zoom In">
+                                <i class="bi bi-zoom-in"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-light" id="zoom-out" title="Zoom Out">
+                                <i class="bi bi-zoom-out"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-light" id="reset-zoom" title="Reset View">
+                                <i class="bi bi-arrows-fullscreen"></i>
+                            </button>
+                        </div>
+
+                        <!-- Pan Instructions -->
+                        <div class="position-absolute top-0 start-0 m-2">
+                            <small class="text-muted bg-dark px-2 py-1 rounded">
+                                <i class="bi bi-mouse"></i> Drag to pan •
+                                <i class="bi bi-mouse-wheel"></i> Wheel to zoom
+                            </small>
+                        </div>
+
+                        <!-- Main Diagram Container -->
+                        <div id="mermaid-diagram">
+                            {% if mermaid_code %}
+                                <!-- Mermaid diagram will be rendered here by JavaScript -->
+                                <div class="d-flex justify-content-center align-items-center h-100">
+                                    <div class="text-center">
+                                        <div class="spinner-border text-primary mb-3" role="status">
+                                            <span class="visually-hidden">Loading diagram...</span>
+                                        </div>
+                                        <p class="text-muted">Rendering topology diagram...</p>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="text-center text-muted p-5">
+                                    <i class="bi bi-diagram-3 display-1"></i>
+                                    <h4 class="mt-3">No Topology Data</h4>
+                                    <p>No network topology data is available. Please check:</p>
+                                    <ul class="list-unstyled">
+                                        <li>• LLDP data collection is enabled</li>
+                                        <li>• Devices have been discovered</li>
+                                        <li>• Selected filters are not too restrictive</li>
+                                    </ul>
+                                    <a href="/topology/api/topology/mermaid?network_only=true" class="btn btn-primary mt-3">
+                                        <i class="bi bi-arrow-clockwise"></i> Try Loading Data via API
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Device Info Popup -->
+                        <div id="device-info-popup" class="device-info-popup">
+                            <div id="popup-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Debug and Status Information -->
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        Topology Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Connection Summary</h6>
+                            <div id="connection-summary">
+                                {% if topology_summary %}
+                                    <p><strong>Total Devices:</strong> {{ topology_summary.total_devices }}</p>
+                                    <p><strong>Total Connections:</strong> {{ topology_summary.total_connections }}</p>
+                                    <p><strong>Avg Connections per Device:</strong> {{ "%.1f"|format(topology_summary.avg_connections) }}</p>
+                                {% else %}
+                                    <p class="text-muted">No topology data loaded</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Device Types</h6>
+                            <div id="device-types">
+                                {% if device_types %}
+                                    {% for device_type, count in device_types %}
+                                        <div><strong>{{ device_type }}:</strong> {{ count }}</div>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted">No device data available</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-gear"></i>
+                        System Status
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>Last Updated:</strong>
+                        <span class="text-muted">{{ last_updated or 'Never' }}</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Data Source:</strong>
+                        <span class="badge bg-info">LLDP Discovery</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Current View:</strong>
+                        <span class="text-muted">{{ current_filters.layout or 'Top-Down' }}</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Network Only:</strong>
+                        <span class="badge {% if current_filters.network_only %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ 'Yes' if current_filters.network_only else 'No' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden data for JavaScript -->
+<script type="application/json" id="topology-data">
+{{ topology_data|tojson|safe if topology_data else '{}' }}
+</script>
+
+<script type="application/json" id="mermaid-code">
+{{ mermaid_code|tojson|safe if mermaid_code else '""' }}
+</script>
+
+<script>
+function enforceNetworkOnlyMode() {
+    const currentUrl = new URL(window.location);
+    if (!currentUrl.searchParams.has('network_only') ||
+        currentUrl.searchParams.get('network_only') !== 'on') {
+        currentUrl.searchParams.set('network_only', 'on');
+        window.location.href = currentUrl.toString();
+        return;
+    }
+
+    const checkbox = document.getElementById('network-only');
+    if (checkbox) {
+        checkbox.checked = true;
+         // checkbox.disabled = true; // Prevent user changes
+    }
+}
+
+// Run before TopologyViewer initializes
+document.addEventListener('DOMContentLoaded', enforceNetworkOnlyMode);
+</script>
+
+<script>
+// Enhanced Topology Viewer with WebView-Compatible Export Functions
+class TopologyViewer {
+    constructor() {
+        this.selectedNode = null;
+        this.highlightedNodes = new Set();
+        this.zoomLevel = 1;
+        this.panOffset = { x: 0, y: 0 };
+        this.isDragging = false;
+        this.lastMousePos = { x: 0, y: 0 };
+        this.isFullscreen = false;
+
+        // Load data from Jinja templates with error handling
+        try {
+            const topologyDataElement = document.getElementById('topology-data');
+            const mermaidCodeElement = document.getElementById('mermaid-code');
+
+            this.topologyData = topologyDataElement ?
+                JSON.parse(topologyDataElement.textContent || '{}') : {};
+            this.mermaidCode = mermaidCodeElement ?
+                JSON.parse(mermaidCodeElement.textContent || '""') : "";
+
+            console.log('Topology data loaded:', Object.keys(this.topologyData).length, 'devices');
+            console.log('Mermaid code loaded:', this.mermaidCode ? 'Yes' : 'No');
+        } catch (error) {
+            console.error('Error loading topology data:', error);
+            console.log('Raw topology data:', document.getElementById('topology-data')?.textContent);
+            console.log('Raw mermaid code:', document.getElementById('mermaid-code')?.textContent);
+            this.topologyData = {};
+            this.mermaidCode = "";
+        }
+
+        // Initialize Mermaid
+        mermaid.initialize({
+            theme: 'dark',
+            darkMode: true,
+            flowchart: {
+                htmlLabels: true,
+                curve: 'basis'
+            },
+            themeVariables: {
+                primaryColor: '#0d6efd',
+                primaryTextColor: '#ffffff',
+                primaryBorderColor: '#495057',
+                lineColor: '#6c757d',
+                secondaryColor: '#495057',
+                tertiaryColor: '#212529',
+                background: '#1a1a1a',
+                mainBkg: '#2d3436',
+                secondBkg: '#636e72'
+            }
+        });
+
+        this.initializeEventListeners();
+        this.renderTopology();
+    }
+
+    initializeEventListeners() {
+        // Node search input
+        const nodeSearchInput = document.getElementById('node-search-input');
+        if (nodeSearchInput) {
+            nodeSearchInput.addEventListener('input', (e) => this.filterNodes(e.target.value));
+        }
+
+        // Node list interactions
+        document.querySelectorAll('.node-item').forEach(item => {
+            const nodeName = item.getAttribute('data-node-name');
+            const nodeId = item.getAttribute('data-node-id');
+
+            if (nodeName) {
+                item.addEventListener('click', () => this.selectNode(nodeName, nodeId));
+                item.addEventListener('mouseenter', () => this.highlightNode(nodeName, nodeId, true));
+                item.addEventListener('mouseleave', () => this.highlightNode(nodeName, nodeId, false));
+            }
+        });
+
+        // Zoom controls
+        const zoomInBtn = document.getElementById('zoom-in');
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', () => this.zoomIn());
+        }
+
+        const zoomOutBtn = document.getElementById('zoom-out');
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', () => this.zoomOut());
+        }
+
+        const resetZoomBtn = document.getElementById('reset-zoom');
+        if (resetZoomBtn) {
+            resetZoomBtn.addEventListener('click', () => this.resetZoom());
+        }
+
+        // Fullscreen toggle
+        const fullscreenBtn = document.getElementById('fullscreen-toggle');
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+        }
+
+        // UPDATED EXPORT FUNCTIONS - WebView Compatible
+        const exportSvgBtn = document.getElementById('export-svg');
+        if (exportSvgBtn) {
+            exportSvgBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.exportSVG();
+            });
+        }
+
+        const exportPngBtn = document.getElementById('export-png');
+        if (exportPngBtn) {
+            exportPngBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.exportPNG();
+            });
+        }
+
+        const exportDrawioBtn = document.getElementById('export-drawio');
+        if (exportDrawioBtn) {
+            exportDrawioBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.exportDrawio();
+            });
+        }
+
+        const exportJsonBtn = document.getElementById('export-json');
+        if (exportJsonBtn) {
+            exportJsonBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.exportJSON();
+            });
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isFullscreen) {
+                this.toggleFullscreen();
+            }
+            // Pan with arrow keys
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+                this.panWithKeys(e.key);
+            }
+        });
+
+        // Mouse wheel zoom
+        const topologyContainer = document.getElementById('topology-container');
+        if (topologyContainer) {
+            topologyContainer.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                if (e.deltaY < 0) {
+                    this.zoomIn();
+                } else {
+                    this.zoomOut();
+                }
+            });
+        }
+    }
+
+    exportDrawio() {
+    console.log('Starting Draw.io export...');
+
+    const button = document.getElementById('export-drawio');
+    const originalText = button?.innerHTML;
+    if (button) {
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Exporting...';
+        button.disabled = true;
+    }
+
+    try {
+        // Build URL parameters
+        const params = new URLSearchParams();
+
+        // Add layout
+        const layoutSelect = document.getElementById('layout-select');
+        if (layoutSelect) {
+            params.append('layout', layoutSelect.value || 'tree');
+        }
+
+        // Add network_only
+        const networkOnlyCheck = document.getElementById('network-only');
+        if (networkOnlyCheck) {
+            params.append('network_only', networkOnlyCheck.checked);
+        }
+
+        // Add selected sites
+        const siteSelect = document.getElementById('site-filter');
+        if (siteSelect) {
+            Array.from(siteSelect.selectedOptions).forEach(option => {
+                params.append('sites', option.value);
+            });
+        }
+
+        // Add use_icons
+        params.append('use_icons', 'true');
+
+        // CORRECTED URL:
+        const downloadUrl = `/topology/api/topology/export/drawio?${params.toString()}`;
+        console.log('Download URL:', downloadUrl);
+
+        // Trigger download via simple navigation
+        window.location.href = downloadUrl;
+
+        // Show success message
+        setTimeout(() => {
+            this.showNotification('Draw.io export started! Check your downloads folder.', 'success');
+        }, 1000);
+
+    } catch (error) {
+        console.error('Export error:', error);
+        this.showNotification('Export failed: ' + error.message, 'error');
+    } finally {
+        // Reset button
+        setTimeout(() => {
+            if (button) {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }, 2000);
+    }
+}
+
+exportJSON() {
+    console.log('Starting JSON export...');
+
+    const button = document.getElementById('export-json');
+    const originalText = button?.innerHTML;
+    if (button) {
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Exporting...';
+        button.disabled = true;
+    }
+
+    try {
+        // Build URL parameters
+        const params = new URLSearchParams();
+
+        // Add selected sites
+        const siteSelect = document.getElementById('site-filter');
+        if (siteSelect) {
+            Array.from(siteSelect.selectedOptions).forEach(option => {
+                params.append('sites', option.value);
+            });
+        }
+
+        // Add network_only
+        const networkOnlyCheck = document.getElementById('network-only');
+        if (networkOnlyCheck) {
+            params.append('network_only', networkOnlyCheck.checked);
+        }
+
+        // Add other parameters
+        params.append('include_metadata', 'false');
+        params.append('pretty_print', 'true');
+        params.append('download_file', 'true');
+
+        // CORRECTED URL:
+        const downloadUrl = `/topology/api/topology/export/json?${params.toString()}`;
+        console.log('Download URL:', downloadUrl);
+
+        // Trigger download via simple navigation
+        window.location.href = downloadUrl;
+
+        // Show success message
+        setTimeout(() => {
+            this.showNotification('JSON export started! Check your downloads folder.', 'success');
+        }, 1000);
+
+    } catch (error) {
+        console.error('Export error:', error);
+        this.showNotification('Export failed: ' + error.message, 'error');
+    } finally {
+        // Reset button
+        setTimeout(() => {
+            if (button) {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }, 2000);
+    }
+}
+
+exportSVG() {
+    console.log('Starting SVG export...');
+
+    const button = document.getElementById('export-svg');
+    const originalText = button?.innerHTML;
+    if (button) {
+        button.innerHTML = '<i class="bi bi-hourglass-split"></i> Exporting...';
+        button.disabled = true;
+    }
+
+    try {
+        // Build URL parameters
+        const params = new URLSearchParams();
+
+        // Add selected sites
+        const siteSelect = document.getElementById('site-filter');
+        if (siteSelect) {
+            Array.from(siteSelect.selectedOptions).forEach(option => {
+                params.append('sites', option.value);
+            });
+        }
+
+        // Add network_only
+        const networkOnlyCheck = document.getElementById('network-only');
+        if (networkOnlyCheck) {
+            params.append('network_only', networkOnlyCheck.checked);
+        }
+
+        // CORRECTED URL:
+        const downloadUrl = `/topology/api/topology/export/svg?${params.toString()}`;
+        console.log('Download URL:', downloadUrl);
+
+        // Trigger download via simple navigation
+        window.location.href = downloadUrl;
+
+        // Show success message
+        setTimeout(() => {
+            this.showNotification('SVG export started! Check your downloads folder.', 'success');
+        }, 1000);
+
+    } catch (error) {
+        console.error('Export error:', error);
+        this.showNotification('Export failed: ' + error.message, 'error');
+    } finally {
+        // Reset button
+        setTimeout(() => {
+            if (button) {
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }, 2000);
+    }
+}
+
+    exportPNG() {
+        console.log('PNG export requested, redirecting to SVG...');
+        this.showNotification('PNG export not available. Using SVG instead.', 'info');
+        this.exportSVG();
+    }
+
+    // ALL OTHER EXISTING METHODS REMAIN THE SAME
+    renderTopology() {
+        const diagramContainer = document.getElementById('mermaid-diagram');
+
+        // Check if no sites are selected
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedSites = urlParams.getAll('sites');
+
+        if (selectedSites.length === 0) {
+            diagramContainer.innerHTML = `
+                <div class="text-center text-muted p-5">
+                    <i class="bi bi-diagram-3 display-1"></i>
+                    <h4 class="mt-3">Select Sites to View Topology</h4>
+                    <p>Please select one or more sites from the filter above to view the network topology.</p>
+                    <ul class="list-unstyled">
+                        <li>• Use the "Filter by Site" dropdown to select specific sites</li>
+                        <li>• Large topologies may take time to render</li>
+                        <li>• Consider filtering to improve performance</li>
+                    </ul>
+                    <button class="btn btn-outline-primary mt-3" onclick="window.topologyViewer.forceRenderAll()">
+                        <i class="bi bi-diagram-3"></i> Show All Sites Anyway
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
+        if (!this.mermaidCode || this.mermaidCode.trim() === '') {
+            console.log('No mermaid code available, trying to load via API...');
+            this.loadTopologyFromAPI();
+            return;
+        }
+
+        try {
+            // Clear existing content
+            diagramContainer.innerHTML = '';
+
+            // Render mermaid diagram
+            mermaid.render('topology-graph', this.mermaidCode).then(({svg}) => {
+                diagramContainer.innerHTML = svg;
+                this.setupPanZoom();
+                this.addNodeInteractivity();
+            }).catch(error => {
+                console.error('Mermaid rendering error:', error);
+                this.showErrorMessage(error.message);
+            });
+
+        } catch (error) {
+            console.error('Error rendering topology:', error);
+            this.showErrorMessage(error.message);
+        }
+    }
+
+    async loadTopologyFromAPI() {
+        try {
+            const response = await fetch('/topology/api/topology/mermaid?network_only=true');
+            const data = await response.json();
+
+            if (data.success && data.mermaid) {
+                this.mermaidCode = data.mermaid;
+                this.topologyData = data.topology || {};
+
+                // Re-render with new data
+                this.renderTopology();
+
+                // Update status
+                const statusElement = document.getElementById('diagram-status');
+                if (statusElement) {
+                    statusElement.className = 'badge bg-success';
+                    statusElement.textContent = 'Loaded from API';
+                }
+            } else {
+                throw new Error(data.error || 'Failed to load topology data');
+            }
+        } catch (error) {
+            console.error('Error loading topology from API:', error);
+            this.showErrorMessage(`Failed to load topology: ${error.message}`);
+        }
+    }
+
+    showErrorMessage(message) {
+        const diagramContainer = document.getElementById('mermaid-diagram');
+        diagramContainer.innerHTML = `
+            <div class="text-center text-danger p-5">
+                <i class="bi bi-exclamation-triangle display-1"></i>
+                <h4 class="mt-3">Error Loading Topology</h4>
+                <p>${message}</p>
+                <button class="btn btn-primary" onclick="window.topologyViewer.loadTopologyFromAPI()">
+                    <i class="bi bi-arrow-clockwise"></i> Retry
+                </button>
+            </div>
+        `;
+    }
+
+    setupPanZoom() {
+        const diagramContainer = document.getElementById('mermaid-diagram');
+        const svgElement = diagramContainer?.querySelector('svg');
+        if (!svgElement) return;
+
+        svgElement.style.cursor = 'grab';
+        svgElement.style.overflow = 'visible';
+        svgElement.style.width = '100%';
+        svgElement.style.height = '100%';
+
+        let transformGroup = svgElement.querySelector('g.transform-group');
+        if (!transformGroup) {
+            transformGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            transformGroup.classList.add('transform-group');
+
+            while (svgElement.firstChild) {
+                transformGroup.appendChild(svgElement.firstChild);
+            }
+            svgElement.appendChild(transformGroup);
+        }
+
+        this.applyTransform();
+
+        // Mouse events for panning
+        svgElement.addEventListener('mousedown', (e) => {
+            if (e.button === 0) {
+                this.isDragging = true;
+                this.lastMousePos = { x: e.clientX, y: e.clientY };
+                svgElement.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (this.isDragging) {
+                const deltaX = e.clientX - this.lastMousePos.x;
+                const deltaY = e.clientY - this.lastMousePos.y;
+
+                this.panOffset.x += deltaX / this.zoomLevel;
+                this.panOffset.y += deltaY / this.zoomLevel;
+
+                this.applyTransform();
+                this.lastMousePos = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (this.isDragging) {
+                this.isDragging = false;
+                if (svgElement) {
+                    svgElement.style.cursor = 'grab';
+                }
+            }
+        });
+    }
+
+    addNodeInteractivity() {
+        const nodes = document.querySelectorAll('#mermaid-diagram .node');
+        nodes.forEach(node => {
+            node.style.cursor = 'pointer';
+
+            node.addEventListener('mouseenter', (e) => {
+                this.showDeviceInfo(e, node);
+            });
+
+            node.addEventListener('mouseleave', () => {
+                this.hideDeviceInfo();
+            });
+
+            // Add click handler for node selection
+            node.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const textElement = node.querySelector('text, .label text, .nodeLabel');
+                if (textElement) {
+                    const nodeText = textElement.textContent || '';
+                    const deviceName = nodeText.split('\n')[0].trim();
+                    const nodeId = deviceName.replace(/[^a-zA-Z0-9_]/g, '_');
+
+                    this.selectNode(deviceName, nodeId);
+
+                    // Scroll the selected device into view in the device list
+                    const nodeItem = document.querySelector(`[data-node-name="${deviceName}"]`);
+                    if (nodeItem) {
+                        nodeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            });
+        });
+    }
+
+    showDeviceInfo(event, node) {
+        const textElement = node.querySelector('text, .label text, .nodeLabel');
+        const deviceName = textElement ? textElement.textContent.split('\n')[0] : 'Unknown Device';
+        const popup = document.getElementById('device-info-popup');
+        const content = document.getElementById('popup-content');
+
+        if (!popup || !content) return;
+
+        // Try to find device data from the node list
+        const nodeListItem = document.querySelector(`[data-node-name="${deviceName}"]`);
+
+        let deviceInfo = '<h6>' + deviceName + '</h6>';
+
+        if (nodeListItem) {
+            const smallText = nodeListItem.querySelector('small');
+            if (smallText) {
+                const infoText = smallText.textContent;
+                const parts = infoText.split(' • ');
+                deviceInfo += '<p><strong>IP:</strong> ' + (parts[0] || 'N/A') + '</p>';
+                deviceInfo += '<p><strong>Connections:</strong> ' + (parts[1] || '0 connections') + '</p>';
+            }
+
+            const roleElement = nodeListItem.querySelector('.node-role');
+            if (roleElement) {
+                deviceInfo += '<p><strong>Role:</strong> ' + roleElement.textContent + '</p>';
+            }
+        } else {
+            deviceInfo += '<p>No additional data available</p>';
+        }
+
+        content.innerHTML = deviceInfo;
+        popup.style.left = event.pageX + 10 + 'px';
+        popup.style.top = event.pageY + 10 + 'px';
+        popup.style.display = 'block';
+    }
+
+    hideDeviceInfo() {
+        const popup = document.getElementById('device-info-popup');
+        if (popup) {
+            popup.style.display = 'none';
+        }
+    }
+
+    selectNode(nodeName, nodeId) {
+        console.log('Selecting node:', nodeName, nodeId);
+
+        // Clear previous selection
+        document.querySelectorAll('.node-item.selected').forEach(item => {
+            item.classList.remove('selected');
+        });
+        this.clearDiagramHighlights('selected');
+
+        // Select new node in list
+        const nodeItem = document.querySelector(`[data-node-name="${nodeName}"]`);
+        if (nodeItem) {
+            nodeItem.classList.add('selected');
+        }
+
+        // Select and highlight node in diagram
+        this.selectedNode = { name: nodeName, id: nodeId };
+        this.highlightNodeInDiagram(nodeName, 'selected');
+        this.scrollToNode(nodeName);
+    }
+
+    highlightNode(nodeName, nodeId, highlight) {
+        const nodeItem = document.querySelector(`[data-node-name="${nodeName}"]`);
+
+        if (highlight) {
+            if (nodeItem) nodeItem.classList.add('highlighted');
+            this.highlightedNodes.add(nodeId);
+            this.highlightNodeInDiagram(nodeName, 'highlighted');
+        } else {
+            if (nodeItem) nodeItem.classList.remove('highlighted');
+            this.highlightedNodes.delete(nodeId);
+            this.unhighlightNodeInDiagram(nodeName, 'highlighted');
+        }
+    }
+
+    highlightNodeInDiagram(nodeName, className) {
+        const svgNodes = document.querySelectorAll('#mermaid-diagram .node');
+        svgNodes.forEach(node => {
+            const textElement = node.querySelector('text, .label text, .nodeLabel');
+            if (textElement) {
+                const nodeText = textElement.textContent || '';
+                if (nodeText.includes(nodeName)) {
+                    node.classList.add(className);
+
+                    const rect = node.querySelector('rect, circle, polygon');
+                    if (rect) {
+                        if (className === 'selected') {
+                            rect.style.fill = '#4ade80';
+                            rect.style.stroke = '#22c55e';
+                            rect.style.strokeWidth = '3px';
+                            rect.style.filter = 'brightness(1.5)';
+                        } else if (className === 'highlighted') {
+                            rect.style.fill = 'rgba(74, 222, 128, 0.3)';
+                            rect.style.stroke = '#4ade80';
+                            rect.style.strokeWidth = '2px';
+                        }
+                    }
+
+                    if (className === 'selected') {
+                        node.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                            inline: 'center'
+                        });
+                    }
+                }
+            }
+        });
+    }
+
+    unhighlightNodeInDiagram(nodeName, className) {
+        const svgNodes = document.querySelectorAll('#mermaid-diagram .node');
+        svgNodes.forEach(node => {
+            const textElement = node.querySelector('text, .label text, .nodeLabel');
+            if (textElement) {
+                const nodeText = textElement.textContent || '';
+                if (nodeText.includes(nodeName)) {
+                    node.classList.remove(className);
+
+                    if (className === 'highlighted') {
+                        const rect = node.querySelector('rect, circle, polygon');
+                        if (rect) {
+                            rect.style.fill = '';
+                            rect.style.stroke = '';
+                            rect.style.strokeWidth = '';
+                            rect.style.filter = '';
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    clearDiagramHighlights(className) {
+        document.querySelectorAll(`#mermaid-diagram .node.${className}`).forEach(node => {
+            node.classList.remove(className);
+
+            if (className === 'selected') {
+                const rect = node.querySelector('rect, circle, polygon');
+                if (rect) {
+                    rect.style.fill = '';
+                    rect.style.stroke = '';
+                    rect.style.strokeWidth = '';
+                    rect.style.filter = '';
+                }
+            }
+        });
+    }
+
+    scrollToNode(nodeName) {
+        const svgNodes = document.querySelectorAll('#mermaid-diagram .node');
+        svgNodes.forEach(node => {
+            const textElement = node.querySelector('text, .label text, .nodeLabel');
+            if (textElement) {
+                const nodeText = textElement.textContent || '';
+                if (nodeText.includes(nodeName)) {
+                    node.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                        inline: 'center'
+                    });
+                }
+            }
+        });
+    }
+
+    filterNodes(searchTerm) {
+        const term = searchTerm.toLowerCase().trim();
+        const nodeItems = document.querySelectorAll('.node-item');
+        let visibleCount = 0;
+
+        nodeItems.forEach(item => {
+            const nodeText = item.textContent.toLowerCase();
+
+            if (term === '' || nodeText.includes(term)) {
+                item.style.display = 'flex';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        const visibleCountElement = document.getElementById('visible-nodes-count');
+        if (visibleCountElement) {
+            visibleCountElement.textContent = visibleCount;
+        }
+    }
+
+    // Zoom and pan controls
+    zoomIn() {
+        this.zoomLevel = Math.min(this.zoomLevel * 1.2, 3);
+        this.applyTransform();
+    }
+
+    zoomOut() {
+        this.zoomLevel = Math.max(this.zoomLevel / 1.2, 0.3);
+        this.applyTransform();
+    }
+
+    resetZoom() {
+        this.zoomLevel = 1;
+        this.panOffset = { x: 0, y: 0 };
+        this.applyTransform();
+    }
+
+    applyTransform() {
+        const svgElement = document.querySelector('#mermaid-diagram svg');
+        const transformGroup = svgElement?.querySelector('g.transform-group');
+
+        if (transformGroup) {
+            transformGroup.style.transform = `translate(${this.panOffset.x}px, ${this.panOffset.y}px) scale(${this.zoomLevel})`;
+            transformGroup.style.transformOrigin = '0 0';
+        }
+    }
+
+    panWithKeys(key) {
+        const panStep = 50;
+        switch (key) {
+            case 'ArrowUp':
+                this.panOffset.y += panStep / this.zoomLevel;
+                break;
+            case 'ArrowDown':
+                this.panOffset.y -= panStep / this.zoomLevel;
+                break;
+            case 'ArrowLeft':
+                this.panOffset.x += panStep / this.zoomLevel;
+                break;
+            case 'ArrowRight':
+                this.panOffset.x -= panStep / this.zoomLevel;
+                break;
+        }
+        this.applyTransform();
+    }
+
+    toggleFullscreen() {
+        const container = document.getElementById('topology-container');
+        const button = document.getElementById('fullscreen-toggle');
+
+        if (!container || !button) return;
+
+        if (!this.isFullscreen) {
+            container.style.position = 'fixed';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.width = '100vw';
+            container.style.height = '100vh';
+            container.style.zIndex = '9999';
+            container.style.background = '#1a1a1a';
+            button.innerHTML = '<i class="bi bi-fullscreen-exit"></i>';
+            this.isFullscreen = true;
+        } else {
+            container.style.position = 'relative';
+            container.style.top = 'auto';
+            container.style.left = 'auto';
+            container.style.width = 'auto';
+            container.style.height = 'auto';
+            container.style.zIndex = 'auto';
+            button.innerHTML = '<i class="bi bi-fullscreen"></i>';
+            this.isFullscreen = false;
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 5000);
+    }
+
+    forceRenderAll() {
+        console.log('Force rendering all sites...');
+        this.loadTopologyFromAPI();
+    }
+}
+
+// Initialize the topology viewer when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.topologyViewer = new TopologyViewer();
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+<!-- Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+{% endblock %}

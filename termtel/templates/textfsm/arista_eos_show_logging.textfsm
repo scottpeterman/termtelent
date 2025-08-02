@@ -1,0 +1,12 @@
+Value MONTH (\S+)
+Value DAY (\d{1,2})
+Value TIME (\d{2}:\d{2}:\d{2})
+Value HOSTNAME (\S+)
+Value FACILITY (\S+)
+Value FACILITY_2 (\S+)
+Value SEVERITY (\d+)
+Value MNEMONIC (\S+)
+Value MESSAGE (.+)
+
+Start
+  ^${MONTH}\s+${DAY}\s+${TIME}\s+${HOSTNAME}\s+${FACILITY}:\s+%${FACILITY_2}-${SEVERITY}-${MNEMONIC}:\s+${MESSAGE} -> Record

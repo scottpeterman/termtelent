@@ -1,0 +1,51 @@
+graph TB
+    %% Core Discovery Engine
+    subgraph "🔍 Network Discovery Engine"
+        Scanner[SNMP Scanner Suite<br/>Advanced Device Fingerprinting]
+        Rules[Open Fingerprint Rules<br/>Community-Driven Detection]
+    end
+
+    %% Primary Platforms
+    subgraph "🖥️ TerminalTelemetry Core"
+        Terminal[SSH Terminal Emulator<br/>Multi-Tab Sessions]
+        Telemetry[Real-time Monitoring<br/>Live Device Telemetry]
+        Themes[Advanced Theme System<br/>30+ Technical Themes]
+    end
+
+    subgraph "🗺️ Network Mapping"
+        Topology[Interactive Topology Viewer]
+        Diagrams[Professional Diagram Creator<br/>DrawIO/GraphML Export]
+        Enhancement[Map Enhancement Tools]
+    end
+
+    subgraph "📊 Enterprise CMDB"
+        WebDash[Web-Based Dashboard]
+        ConfigMgmt[Configuration Management]
+        Analytics[Reports & Analytics]
+    end
+
+    %% Data Flow
+    Scanner --> Terminal
+    Scanner --> Topology
+    Scanner --> WebDash
+    Rules -.-> Scanner
+    Terminal --> Telemetry
+    Topology --> Diagrams
+    WebDash --> ConfigMgmt
+    WebDash --> Analytics
+
+    %% Integration
+    Telemetry -.-> Rules
+    Enhancement --> Diagrams
+    Themes -.-> Terminal
+    Themes -.-> Topology
+
+    classDef discovery fill:#0066cc,stroke:#004499,stroke-width:3px,color:#fff
+    classDef terminal fill:#009900,stroke:#006600,stroke-width:2px,color:#fff
+    classDef mapping fill:#cc6600,stroke:#994400,stroke-width:2px,color:#fff
+    classDef cmdb fill:#9900cc,stroke:#660099,stroke-width:2px,color:#fff
+
+    class Scanner,Rules discovery
+    class Terminal,Telemetry,Themes terminal
+    class Topology,Diagrams,Enhancement mapping
+    class WebDash,ConfigMgmt,Analytics cmdb

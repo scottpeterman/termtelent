@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Network Topology - {{ app_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">Network Topology</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Network Topology</h5>
+            </div>
+            <div class="card-body">
+                {% if topology_links %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Source Device</th>
+                                    <th>Source Interface</th>
+                                    <th>Destination Device</th>
+                                    <th>Destination Interface</th>
+                                    <th>Connection Type</th>
+                                    <th>Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for link in topology_links %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ link.source_device_name }}</strong>
+                                        <br><small class="text-muted">{{ link.source_site }} - {{ link.source_vendor }}</small>
+                                    </td>
+                                    <td><code>{{ link.source_interface or 'N/A' }}</code></td>
+                                    <td>
+                                        <strong>{{ link.dest_device_name }}</strong>
+                                        <br><small class="text-muted">{{ link.dest_site }} - {{ link.dest_vendor }}</small>
+                                    </td>
+                                    <td><code>{{ link.destination_interface or 'N/A' }}</code></td>
+                                    <td>
+                                        <span class="badge bg-info">{{ link.connection_type|upper }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="progress" style="width: 60px;">
+                                            <div class="progress-bar" role="progressbar"
+                                                 style="width: {{ link.confidence_score }}%"
+                                                 aria-valuenow="{{ link.confidence_score }}"
+                                                 aria-valuemin="0" aria-valuemax="100">
+                                                {{ link.confidence_score }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-diagram-3 fs-1"></i>
+                        <h4 class="mt-3">No Topology Data</h4>
+                        <p>No network topology connections have been discovered yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Devices in Topology</h5>
+            </div>
+            <div class="card-body">
+                {% if devices %}
+                    <div class="row">
+                        {% for device in devices %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-secondary">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ device.device_name }}</h6>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            {{ device.vendor }} - {{ device.device_role|title }}<br>
+                                            Site: {{ device.site_code }}<br>
+                                            IP: {{ device.primary_ip or 'N/A' }}
+                                        </small>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <p>No devices with topology connections found.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

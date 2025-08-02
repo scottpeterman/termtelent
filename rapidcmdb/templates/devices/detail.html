@@ -1,0 +1,859 @@
+{% extends "base.html" %}
+
+{% block title %}{{ device.device_name }} - {{ app_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('devices.list_devices') }}">Devices</a></li>
+<li class="breadcrumb-item active">{{ device.hostname or device.device_name }}</li>
+{% endblock %}
+
+{% block content %}
+<!-- Device Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h2 class="mb-2">
+                            <i class="bi bi-router text-primary me-2"></i>
+                            {{ device.hostname or device.device_name }}
+                        </h2>
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <p class="mb-1"><strong>Hostname:</strong> {{ device.hostname or 'N/A' }}</p>
+                                <p class="mb-1"><strong>Vendor:</strong> {{ device.vendor or 'Unknown' }}</p>
+                                <p class="mb-1"><strong>Model:</strong> {{ device.model or 'Unknown' }}</p>
+                            </div>
+                            <div class="col-sm-6">
+                                <p class="mb-1"><strong>Serial:</strong> <code>{{ device.serial_number or 'N/A' }}</code></p>
+                                <p class="mb-1"><strong>Site:</strong> <span class="badge bg-secondary">{{ device.site_code }}</span></p>
+                                <p class="mb-1"><strong>Role:</strong> <span class="badge bg-info">{{ device.device_role|title }}</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="mb-3">
+                            {% if device.primary_ip %}
+                                <h4 class="text-success">
+                                    <i class="bi bi-globe2 me-1"></i>
+                                    <code>{{ device.primary_ip }}</code>
+                                </h4>
+                                <small class="text-muted">Primary IP ({{ device.primary_ip_type|title }})</small>
+                            {% else %}
+                                <h4 class="text-muted">No Primary IP</h4>
+                            {% endif %}
+                        </div>
+                        <div class="d-grid gap-2">
+                            <!-- NEW: Edit Device Button -->
+                            <a href="{{ url_for('device_crud.edit_device', device_id=device.id) }}" class="btn btn-outline-warning">
+                                <i class="bi bi-pencil-square me-1"></i>
+                                Edit Device
+                            </a>
+                            <form method="POST" action="{{ url_for('devices.refresh_device', device_name=device.device_name) }}" class="d-inline">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>
+                                    Refresh Data
+                                </button>
+                            </form>
+                            <a href="{{ url_for('devices.device_interfaces', device_name=device.device_name) }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-ethernet me-1"></i>
+                                View Interfaces
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Information Row -->
+<div class="row mb-4">
+    <!-- Basic Information -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">System Information</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-dark table-sm">
+                    <tbody>
+                        <tr>
+                            <td><strong>OS Version</strong></td>
+                            <td>{{ device.os_version or 'Unknown' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Uptime</strong></td>
+                            <td>
+                                {% if device.uptime %}
+                                    {{ "%.1f"|format(device.uptime / 86400) }} days
+                                {% else %}
+                                    Unknown
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>First Discovered</strong></td>
+                            <td>{{ device.first_discovered|datetime }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Last Updated</strong></td>
+                            <td>
+                                {{ device.last_updated|datetime }}
+                                <br><small class="text-muted">{{ device.last_updated|relative_time }}</small>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Device Key</strong></td>
+                            <td><code>{{ device.device_key[:16] }}...</code></td>
+                        </tr>
+                        {% if device.notes %}
+                        <tr>
+                            <td><strong>Notes</strong></td>
+                            <td>{{ device.notes }}</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Environment Data -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Environment Status</h5>
+            </div>
+            <div class="card-body">
+                {% if environment %}
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center mb-3">
+                                <div class="metric-value text-info">{{ environment.cpu_usage or 'N/A' }}%</div>
+                                <div class="metric-label">CPU Usage</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center mb-3">
+                                <div class="metric-value text-warning">
+                                    {% if environment.memory_total and environment.memory_used %}
+                                        {{ "%.1f"|format((environment.memory_used / environment.memory_total) * 100) }}%
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </div>
+                                <div class="metric-label">Memory Usage</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if environment.memory_total %}
+                    <div class="mb-3">
+                        <label class="form-label small">Memory Usage</label>
+                        <div class="progress">
+                            {% set memory_percent = (environment.memory_used / environment.memory_total) * 100 %}
+                            <div class="progress-bar {% if memory_percent > 80 %}bg-danger{% elif memory_percent > 60 %}bg-warning{% else %}bg-success{% endif %}"
+                                 style="width: {{ memory_percent }}%">
+                                {{ environment.memory_used|file_size }} / {{ environment.memory_total|file_size }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <table class="table table-dark table-sm">
+                        <tbody>
+                            <tr>
+                                <td><strong>Memory Used</strong></td>
+                                <td>{{ environment.memory_used|file_size if environment.memory_used else 'N/A' }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Memory Available</strong></td>
+                                <td>{{ environment.memory_available|file_size if environment.memory_available else 'N/A' }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Last Updated</strong></td>
+                                <td>{{ environment.created_at|relative_time }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-thermometer fs-1"></i>
+                        <p class="mt-2">No environment data available</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- IP Addresses and Interfaces -->
+<div class="row mb-4">
+    <!-- IP Addresses -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">IP Addresses</h5>
+                <span class="badge bg-primary">{{ ips|length }}</span>
+            </div>
+            <div class="card-body">
+                {% if ips %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm">
+                            <thead>
+                                <tr>
+                                    <th>IP Address</th>
+                                    <th>Type</th>
+                                    <th>Interface</th>
+                                    <th>VLAN</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ip in ips %}
+                                <tr>
+                                    <td>
+                                        <code>{{ ip.ip_address }}</code>
+                                        {% if ip.is_primary %}
+                                            <span class="badge bg-success ms-1">Primary</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="badge bg-secondary">{{ ip.ip_type|title }}</span></td>
+                                    <td>{{ ip.interface_name or '-' }}</td>
+                                    <td>
+                                        {% if ip.vlan_id %}
+                                            <span class="badge bg-info">{{ ip.vlan_id }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-globe fs-1"></i>
+                        <p class="mt-2">No IP addresses configured</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Latest Interfaces -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Interfaces</h5>
+                <a href="{{ url_for('devices.device_interfaces', device_name=device.device_name) }}" class="btn btn-outline-primary btn-sm">
+                    View All <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                {% if interfaces %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Interface</th>
+                                    <th>Status</th>
+                                    <th>Speed</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for interface in interfaces[:8] %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ interface.interface_name }}</strong>
+                                        {% if interface.description %}
+                                            <br><small class="text-muted">{{ interface.description[:30] }}{% if interface.description|length > 30 %}...{% endif %}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if interface.admin_status == 'enabled' and interface.oper_status == 'up' %}
+                                            <span class="status-badge status-online">
+                                                <i class="bi bi-check-circle me-1"></i>Up
+                                            </span>
+                                        {% elif interface.admin_status == 'disabled' %}
+                                            <span class="status-badge bg-secondary">
+                                                <i class="bi bi-dash-circle me-1"></i>Disabled
+                                            </span>
+                                        {% else %}
+                                            <span class="status-badge status-offline">
+                                                <i class="bi bi-x-circle me-1"></i>Down
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if interface.speed %}
+                                            {{ interface.speed|int }} Mbps
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% if interfaces|length > 8 %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">
+                                        ... and {{ interfaces|length - 8 }} more interfaces
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-ethernet fs-1"></i>
+                        <p class="mt-2">No interface data available</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- NEW: ARP Table and MAC Address Table Row -->
+<div class="row mb-4">
+    <!-- ARP Table -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">ARP Table</h5>
+                <span class="badge bg-primary">{{ arp_table|length if arp_table else 0 }}</span>
+            </div>
+            <div class="card-body">
+                {% if arp_table %}
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-dark table-sm">
+                            <thead class="sticky-top">
+                                <tr>
+                                    <th>IP Address</th>
+                                    <th>MAC Address</th>
+                                    <th>Interface</th>
+                                    <th>Age</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for arp in arp_table[:50] %}
+                                <tr>
+                                    <td><code>{{ arp.ip_address }}</code></td>
+                                    <td>
+                                        <code class="text-info">{{ arp.mac_address }}</code>
+                                    </td>
+                                    <td>{{ arp.interface_name or '-' }}</td>
+                                    <td>
+                                        {% if arp.age %}
+                                            {{ arp.age|int }}s
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% if arp_table|length > 50 %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">
+                                        ... and {{ arp_table|length - 50 }} more ARP entries
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-table fs-1"></i>
+                        <p class="mt-2">No ARP table data available</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- MAC Address Table -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">MAC Address Table</h5>
+                <span class="badge bg-primary">{{ mac_address_table|length if mac_address_table else 0 }}</span>
+            </div>
+            <div class="card-body">
+                {% if mac_address_table %}
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-dark table-sm">
+                            <thead class="sticky-top">
+                                <tr>
+                                    <th>MAC Address</th>
+                                    <th>VLAN</th>
+                                    <th>Interface</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mac in mac_address_table[:50] %}
+                                <tr>
+                                    <td><code class="text-info">{{ mac.mac_address }}</code></td>
+                                    <td>
+                                        {% if mac.vlan_id %}
+                                            <span class="badge bg-info">{{ mac.vlan_id }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ mac.interface_name or '-' }}</td>
+                                    <td>
+                                        {% if mac.entry_type %}
+                                            <span class="badge bg-secondary">{{ mac.entry_type|title }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% if mac_address_table|length > 50 %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">
+                                        ... and {{ mac_address_table|length - 50 }} more MAC entries
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-ethernet fs-1"></i>
+                        <p class="mt-2">No MAC address table data available</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LLDP Neighbors and Hardware -->
+<div class="row mb-4">
+    <!-- LLDP Neighbors -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">LLDP Neighbors</h5>
+                <span class="badge bg-primary">{{ lldp_neighbors|length }}</span>
+            </div>
+            <div class="card-body">
+                {% if lldp_neighbors %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Local Interface</th>
+                                    <th>Remote Device</th>
+                                    <th>Remote Port</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for neighbor in lldp_neighbors %}
+                                <tr>
+                                    <td><code>{{ neighbor.local_interface }}</code></td>
+                                    <td>
+                                        <strong>{{ neighbor.remote_hostname or 'Unknown' }}</strong>
+                                        {% if neighbor.remote_mgmt_ip %}
+                                            <br><small class="text-muted">{{ neighbor.remote_mgmt_ip }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td><code>{{ neighbor.remote_port or 'Unknown' }}</code></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-diagram-3 fs-1"></i>
+                        <p class="mt-2">No LLDP neighbors discovered</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Hardware Inventory -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Hardware Components</h5>
+                <span class="badge bg-primary">{{ hardware|length }}</span>
+            </div>
+            <div class="card-body">
+                {% if hardware %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Component</th>
+                                    <th>Slot</th>
+                                    <th>Status</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for hw in hardware %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ hw.component_type|title }}</strong>
+                                        {% if hw.description %}
+                                            <br><small class="text-muted">{{ hw.description[:25] }}{% if hw.description|length > 25 %}...{% endif %}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ hw.slot_position or '-' }}</td>
+                                    <td>
+                                        {% if hw.actual_status == 'operational' %}
+                                            <span class="status-badge status-online">
+                                                <i class="bi bi-check-circle me-1"></i>OK
+                                            </span>
+                                        {% elif hw.actual_status == 'failed' %}
+                                            <span class="status-badge status-offline">
+                                                <i class="bi bi-x-circle me-1"></i>Failed
+                                            </span>
+                                        {% else %}
+                                            <span class="status-badge status-warning">
+                                                <i class="bi bi-question-circle me-1"></i>{{ hw.actual_status|title }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if hw.component_type == 'psu' and hw.psu_capacity and hw.psu_capacity > 0 %}
+                                            <small class="text-muted">
+                                                {{ hw.psu_capacity }}W capacity
+                                                {% if hw.psu_output and hw.psu_output > 0 %}
+                                                    <br>{{ hw.psu_output }}W output
+                                                {% elif hw.psu_output == -1 %}
+                                                    <br>No output
+                                                {% endif %}
+                                            </small>
+                                        {% elif hw.component_type == 'fan' %}
+                                            <small class="text-muted">Cooling</small>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-cpu fs-1"></i>
+                        <p class="mt-2">No hardware inventory available</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Collection History and Configuration Changes -->
+<div class="row">
+    <!-- Collection History -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Collection History</h5>
+            </div>
+            <div class="card-body">
+                {% if collections %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                    <th>Duration</th>
+                                    <th>Driver</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for collection in collections %}
+                                <tr>
+                                    <td>
+                                        {{ collection.collection_time|datetime }}
+                                        <br><small class="text-muted">{{ collection.collection_time|relative_time }}</small>
+                                    </td>
+                                    <td>
+                                        {% if collection.success %}
+                                            <span class="status-badge status-online">
+                                                <i class="bi bi-check-circle me-1"></i>Success
+                                            </span>
+                                        {% else %}
+                                            <span class="status-badge status-offline">
+                                                <i class="bi bi-x-circle me-1"></i>Failed
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if collection.collection_duration %}
+                                            {{ "%.1f"|format(collection.collection_duration) }}s
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if collection.napalm_driver %}
+                                            <code>{{ collection.napalm_driver }}</code>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-clock-history fs-1"></i>
+                        <p class="mt-2">No collection history available</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Configuration Changes -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Config Changes</h5>
+                <a href="{{ url_for('search.device_configs', device_name=device.device_name) }}" class="btn btn-outline-primary btn-sm">
+                    View All <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                {% if config_changes %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Type</th>
+                                    <th>Config</th>
+                                    <th>Changes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for change in config_changes %}
+                                <tr>
+                                    <td>
+                                        {{ change.detected_at|datetime }}
+                                        <br><small class="text-muted">{{ change.detected_at|relative_time }}</small>
+                                    </td>
+                                    <td>
+                                        {% if change.change_type == 'added' %}
+                                            <span class="badge bg-success">Added</span>
+                                        {% elif change.change_type == 'modified' %}
+                                            <span class="badge bg-warning">Modified</span>
+                                        {% elif change.change_type == 'deleted' %}
+                                            <span class="badge bg-danger">Deleted</span>
+                                        {% else %}
+                                            <span class="badge bg-info">{{ change.change_type|title }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="badge bg-secondary">{{ change.config_type|title }}</span></td>
+                                    <td>
+                                        <a href="{{ url_for('search.view_config', config_id=change.new_config_id) }}" class="text-decoration-none">
+                                            {{ change.change_size }} lines
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-file-earmark-diff fs-1"></i>
+                        <p class="mt-2">No configuration changes recorded</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ENHANCED: Device Notes Section if notes exist -->
+{% if device.notes %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Device Notes</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    {{ device.notes }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-refresh device data every 5 minutes
+setInterval(function() {
+    // Add a small indicator that data is being refreshed
+    const refreshButton = document.querySelector('button[type="submit"]');
+    if (refreshButton) {
+        const originalHtml = refreshButton.innerHTML;
+        refreshButton.innerHTML = '<span class="loading"></span> Refreshing...';
+        refreshButton.disabled = true;
+
+        // Reset after 2 seconds (this would be replaced with actual refresh logic)
+        setTimeout(() => {
+            refreshButton.innerHTML = originalHtml;
+            refreshButton.disabled = false;
+        }, 2000);
+    }
+}, 300000); // 5 minutes
+
+// Add tooltips to truncated descriptions
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap tooltips if any
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Add search functionality to tables
+    function addTableSearch(tableId, searchInputId) {
+        const searchInput = document.getElementById(searchInputId);
+        const table = document.getElementById(tableId);
+
+        if (searchInput && table) {
+            searchInput.addEventListener('keyup', function() {
+                const filter = this.value.toUpperCase();
+                const rows = table.getElementsByTagName('tr');
+
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    const cells = row.getElementsByTagName('td');
+                    let found = false;
+
+                    for (let j = 0; j < cells.length; j++) {
+                        if (cells[j].textContent.toUpperCase().indexOf(filter) > -1) {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    row.style.display = found ? '' : 'none';
+                }
+            });
+        }
+    }
+});
+
+// NEW: Add copy functionality for MAC/IP addresses
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Show temporary success message
+        const toast = document.createElement('div');
+        toast.className = 'position-fixed top-0 end-0 p-3';
+        toast.style.zIndex = '1080';
+        toast.innerHTML = `
+            <div class="toast show" role="alert">
+                <div class="toast-body bg-success text-white">
+                    <i class="bi bi-check-circle me-2"></i>Copied: ${text}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    });
+}
+
+// Add click-to-copy functionality to code elements
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('code').forEach(function(codeElement) {
+        codeElement.style.cursor = 'pointer';
+        codeElement.title = 'Click to copy';
+        codeElement.addEventListener('click', function() {
+            copyToClipboard(this.textContent);
+        });
+    });
+});
+</script>
+
+<style>
+.metric-value {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.metric-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+}
+
+.status-online {
+    background-color: #22c55e;
+    color: white;
+}
+
+.status-offline {
+    background-color: #ef4444;
+    color: white;
+}
+
+.status-warning {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.loading {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Sticky table headers for scrollable tables */
+.table-responsive thead th {
+    position: sticky;
+    top: 0;
+    background-color: var(--bs-dark);
+    z-index: 10;
+}
+
+/* Click-to-copy styling */
+code:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+    transition: background-color 0.2s ease;
+}
+</style>
+{% endblock %}

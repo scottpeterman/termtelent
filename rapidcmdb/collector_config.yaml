@@ -1,0 +1,62 @@
+# NAPALM Device Collector Configuration
+capture_directory: 'captures'
+timeout: 60
+log_level: 'INFO'  # DEBUG, INFO, WARNING, ERROR
+
+# Credential sets - will be tried in priority order
+credentials:
+  - name: 'primary'
+    username: 'admin'
+    password: 'adpw'
+    enable_password: ''  # For devices requiring enable mode
+    priority: 1
+
+  - name: 'backup'
+    username: 'badmin'
+    password: 'nothisway'
+    enable_password: ''
+    priority: 2
+
+  - name: 'readonly'
+    username: 'readonly'
+    password: 'readonly_password'
+    enable_password: ''
+    priority: 3
+
+# What data to collect from each device
+collection_methods:
+  get_config: true          # Device configuration
+  get_facts: true           # Device facts (hostname, model, serial, etc.)
+  get_interfaces: true      # Interface status and configuration
+  get_interfaces_ip: true   # Interface IP configurations
+  get_arp_table: true      # ARP table
+  get_mac_address_table: true  # MAC address table
+  get_lldp_neighbors: true  # LLDP neighbor information
+  get_environment: true     # Environmental data (temperature, fans, etc.)
+  get_users: true          # Local user accounts
+  'get_optics': True,
+  'get_network_instances': True
+
+# Vendor-specific driver overrides
+# Use this to map specific device types to NAPALM drivers
+vendor_overrides:
+  'hp_procurve': 'procurve'
+  'hp_aruba_cx': 'arubaos'
+  'cisco_ios': 'ios'
+  'cisco_nxos': 'nxos'
+  'cisco_asa': 'asa'
+  'arista_eos': 'eos'
+  'paloalto_panos': 'panos'
+
+# Driver-specific optional arguments (if needed)
+driver_options:
+  ios:
+    transport: 'ssh'
+    ssh_config_file: ''
+  nxos:
+    transport: 'ssh'
+  eos:
+    transport: 'ssh'
+    port: 22
+  panos:
+    use_keys: false

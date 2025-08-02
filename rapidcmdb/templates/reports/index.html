@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - {{ app_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">Reports</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Scan Reports</h1>
+        <p class="text-muted">Analyze network discovery scan files and generate comprehensive reports</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.summary') }}" class="btn btn-outline-primary">
+            <i class="bi bi-bar-chart me-1"></i>
+            View Summary
+        </a>
+        <a href="{{ url_for('reports.compare_scans') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left-right me-1"></i>
+            Compare Scans
+        </a>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+{% if scan_files %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-primary">{{ scan_files|length }}</div>
+                <div class="metric-label">Available Scans</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-success">{{ scan_files|sum(attribute='devices_count')|number_format }}</div>
+                <div class="metric-label">Total Devices</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-info">{{ (scan_files|map(attribute='size')|sum / 1024 / 1024)|round(1) }} MB</div>
+                <div class="metric-label">Total Data Size</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                {% if scan_files %}
+                <div class="metric-value text-warning">{{ scan_files[0].modified|relative_time }}</div>
+                <div class="metric-label">Latest Scan</div>
+                {% else %}
+                <div class="metric-value text-muted">-</div>
+                <div class="metric-label">No Scans</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Scan Files Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="bi bi-file-earmark-text me-2"></i>
+            Scan Files
+        </h5>
+        <button class="btn btn-outline-secondary btn-sm" onclick="location.reload()">
+            <i class="bi bi-arrow-clockwise"></i>
+            Refresh
+        </button>
+    </div>
+    <div class="card-body">
+        {% if scan_files %}
+        <div class="table-responsive">
+            <table class="table table-dark table-hover">
+                <thead>
+                    <tr>
+                        <th>Scan File</th>
+                        <th class="text-center">Devices</th>
+                        <th class="text-center">Size</th>
+                        <th class="text-center">Modified</th>
+                        <th class="text-center">Scan Info</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for scan_file in scan_files %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-file-earmark-code text-primary me-2"></i>
+                                <div>
+                                    <div class="fw-semibold">{{ scan_file.filename }}</div>
+                                    <div class="small text-muted">
+                                        {% if scan_file.scan_metadata.get('target_networks') %}
+                                            Networks: {{ scan_file.scan_metadata.target_networks|join(', ') }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-primary">{{ scan_file.devices_count|number_format }}</span>
+                        </td>
+                        <td class="text-center">
+                            {{ scan_file.size|file_size }}
+                        </td>
+                        <td class="text-center">
+                            <div class="small">{{ scan_file.modified|datetime }}</div>
+                            <div class="small text-muted">{{ scan_file.modified|relative_time }}</div>
+                        </td>
+                        <td class="text-center">
+                            {% if scan_file.scan_metadata %}
+                            <div class="small">
+                                {% if scan_file.scan_metadata.get('scan_duration') %}
+                                    <div><i class="bi bi-clock me-1"></i>{{ "%.1f"|format(scan_file.scan_metadata.scan_duration) }}s</div>
+                                {% endif %}
+                                {% if scan_file.scan_metadata.get('scan_method') %}
+                                    <div><i class="bi bi-search me-1"></i>{{ scan_file.scan_metadata.scan_method|title }}</div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('reports.analyze_scan', filename=scan_file.filename) }}"
+                                   class="btn btn-primary" title="Analyze Scan">
+                                    <i class="bi bi-analytics"></i>
+                                    Analyze
+                                </a>
+                                <a href="{{ url_for('reports.download_report', filename=scan_file.filename) }}"
+                                   class="btn btn-outline-success" title="Download Report">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                                <button class="btn btn-outline-info"
+                                        onclick="previewScan('{{ scan_file.filename }}')"
+                                        title="Quick Preview">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-file-earmark-x fs-1 text-muted mb-3"></i>
+            <h4 class="text-muted">No Scan Files Found</h4>
+            <p class="text-muted mb-4">
+                Place your network discovery scan JSON files in the <code>scans/</code> folder to analyze them here.
+            </p>
+            <div class="alert alert-info text-start">
+                <h6><i class="bi bi-info-circle me-2"></i>Expected File Format:</h6>
+                <ul class="mb-0">
+                    <li>JSON files with <code>.json</code> extension</li>
+                    <li>Must contain a <code>devices</code> object with device data</li>
+                    <li>Each device should have <code>sys_descr</code>, <code>vendor</code>, and other metadata</li>
+                    <li>Optional <code>scan_metadata</code> for additional scan information</li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Scan Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="previewContent">
+                    <div class="text-center">
+                        <div class="loading mb-2"></div>
+                        <div>Loading scan data...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="analyzeFromPreview">
+                    Analyze Full Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPreviewFile = null;
+
+function previewScan(filename) {
+    currentPreviewFile = filename;
+
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+    modal.show();
+
+    // Reset content
+    document.getElementById('previewContent').innerHTML = `
+        <div class="text-center">
+            <div class="loading mb-2"></div>
+            <div>Loading scan data...</div>
+        </div>
+    `;
+
+    // Fetch preview data
+    fetch(`/reports/api/analyze/${filename}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            displayPreview(data);
+        })
+        .catch(error => {
+            console.error('Preview error:', error);
+            document.getElementById('previewContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Error loading preview: ${error.message}
+                </div>
+            `;
+        });
+}
+
+function displayPreview(data) {
+    // Calculate summary stats
+    const signatures = data.signatures;
+    const vendorCounts = {};
+    const deviceTypeCounts = {};
+    let highConfidenceCount = 0;
+    let napalmSupportedCount = 0;
+
+    Object.values(signatures).forEach(sig => {
+        vendorCounts[sig.enhanced_vendor] = (vendorCounts[sig.enhanced_vendor] || 0) + sig.count;
+        deviceTypeCounts[sig.device_type] = (deviceTypeCounts[sig.device_type] || 0) + sig.count;
+
+        if (sig.enhanced_confidence >= 80) {
+            highConfidenceCount += sig.count;
+        }
+        if (sig.napalm_supported) {
+            napalmSupportedCount += sig.count;
+        }
+    });
+
+    // Sort vendors and device types
+    const topVendors = Object.entries(vendorCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+    const topDeviceTypes = Object.entries(deviceTypeCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+    const content = `
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="card bg-dark">
+                    <div class="card-body text-center">
+                        <h5 class="text-primary">${data.total_devices.toLocaleString()}</h5>
+                        <small class="text-muted">Total Devices</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-dark">
+                    <div class="card-body text-center">
+                        <h5 class="text-success">${data.unique_signatures}</h5>
+                        <small class="text-muted">Unique Signatures</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="card bg-dark">
+                    <div class="card-body text-center">
+                        <h5 class="text-info">${highConfidenceCount.toLocaleString()}</h5>
+                        <small class="text-muted">High Confidence (≥80%)</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-dark">
+                    <div class="card-body text-center">
+                        <h5 class="text-warning">${napalmSupportedCount.toLocaleString()}</h5>
+                        <small class="text-muted">NAPALM Supported</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="mb-2">Top Vendors</h6>
+                <div class="list-group list-group-flush">
+                    ${topVendors.map(([vendor, count]) => `
+                        <div class="list-group-item bg-dark d-flex justify-content-between">
+                            <span>${vendor.charAt(0).toUpperCase() + vendor.slice(1)}</span>
+                            <span class="badge bg-primary">${count.toLocaleString()}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h6 class="mb-2">Top Device Types</h6>
+                <div class="list-group list-group-flush">
+                    ${topDeviceTypes.map(([type, count]) => `
+                        <div class="list-group-item bg-dark d-flex justify-content-between">
+                            <span>${type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                            <span class="badge bg-success">${count.toLocaleString()}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+
+        ${data.scan_metadata && Object.keys(data.scan_metadata).length > 0 ? `
+        <hr>
+        <h6 class="mb-2">Scan Metadata</h6>
+        <div class="small">
+            ${Object.entries(data.scan_metadata).map(([key, value]) => `
+                <div class="row mb-1">
+                    <div class="col-4 text-muted">${key}:</div>
+                    <div class="col-8">${Array.isArray(value) ? value.join(', ') : value}</div>
+                </div>
+            `).join('')}
+        </div>
+        ` : ''}
+    `;
+
+    document.getElementById('previewContent').innerHTML = content;
+}
+
+// Handle analyze from preview
+document.getElementById('analyzeFromPreview').addEventListener('click', function() {
+    if (currentPreviewFile) {
+        window.location.href = `/reports/analyze/${currentPreviewFile}`;
+    }
+});
+
+// Auto-refresh functionality
+function refreshScanList() {
+    location.reload();
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        refreshScanList();
+    }
+});
+
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

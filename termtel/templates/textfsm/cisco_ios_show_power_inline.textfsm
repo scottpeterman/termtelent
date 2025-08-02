@@ -1,0 +1,34 @@
+Value INTERFACE (\S+)
+Value ADMIN_STATUS (\S+)
+Value OPERATIONAL_STATUS (on|off)
+Value POWER (\d+\.\d+)
+Value DEVICE (\S+(\s\S+)*)
+Value CLASS (\d|n/a)
+Value MAX (\d+\.\d+)
+
+Start
+  ^Interface\s+Admin\s+Oper\s+Power\s+Device\s+Class\s+Max\s*$$ -> Interfaces
+  ^Interface\s+Admin\s+Oper\s+Power\(Watts\)\s+Device\s+Class\s*$$ -> Interfaces45xx
+  ^Available:
+  ^Module
+  ^\d+
+  ^-+
+  ^\s+\(Watts\)
+  ^\s*$$
+  ^. -> Error
+
+Interfaces
+  ^\s*${INTERFACE}\s+${ADMIN_STATUS}\s+${OPERATIONAL_STATUS}\s+${POWER}\s+${DEVICE}\s+${CLASS}\s+${MAX}\s*$$ -> Record
+  ^Totals.*
+  ^\s+\(Watts\)
+  ^-+
+  ^\s*$$ -> Start
+  ^. -> Error
+
+Interfaces45xx
+  ^\s*${INTERFACE}\s+${ADMIN_STATUS}\s+${OPERATIONAL_STATUS}\s+\d+\.\d+\s+${POWER}\s+${DEVICE}\s+${CLASS}\s*$$ -> Record
+  ^\s+From\s+PS\s+To\s+Device\s*$$
+  ^-+
+  ^\s*$$
+  ^Totals:.*
+  ^. -> Error

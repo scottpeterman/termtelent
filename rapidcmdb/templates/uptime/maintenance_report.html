@@ -1,0 +1,541 @@
+{% extends "base.html" %}
+
+{% block title %}Maintenance Report - {{ super() }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ super() }}
+    <li class="breadcrumb-item"><a href="{{ url_for('uptime.uptime_analysis') }}">Uptime Analysis</a></li>
+    <li class="breadcrumb-item active">Maintenance Report</li>
+{% endblock %}
+
+{% block content %}
+<style>
+    .maintenance-section {
+        margin-bottom: 2rem;
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .maintenance-header {
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        display: flex;
+        justify-content-between;
+        align-items: center;
+    }
+
+    .maintenance-immediate {
+        background-color: var(--error);
+        color: white;
+    }
+
+    .maintenance-urgent {
+        background-color: #fd7e14;
+        color: white;
+    }
+
+    .maintenance-planned {
+        background-color: #0dcaf0;
+        color: white;
+    }
+
+    .maintenance-monitor {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .maintenance-none {
+        background-color: var(--success);
+        color: white;
+    }
+
+    .device-card {
+        border: none;
+        border-bottom: 1px solid var(--border-light);
+        border-radius: 0;
+    }
+
+    .device-card:last-child {
+        border-bottom: none;
+    }
+
+    .uptime-display {
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .print-section {
+        page-break-inside: avoid;
+    }
+
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+
+        .maintenance-section {
+            page-break-inside: avoid;
+            margin-bottom: 1rem;
+        }
+    }
+
+    .summary-card {
+        text-align: center;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .summary-metric {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .maintenance-checklist {
+        font-size: 0.875rem;
+    }
+</style>
+
+<!-- Header -->
+<div class="row mb-4 no-print">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-5 mb-1">
+                    <i class="bi bi-tools text-primary me-2"></i>
+                    Network Maintenance Report
+                </h1>
+                <p class="text-muted mb-0">Device maintenance planning based on uptime analysis</p>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" onclick="window.print()">
+                    <i class="bi bi-printer"></i> Print Report
+                </button>
+                <a href="{{ url_for('uptime.uptime_analysis') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Analysis
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Header for Print -->
+<div class="row mb-4 d-print-block d-none">
+    <div class="col-12 text-center">
+        <h1>Network Maintenance Report</h1>
+        <p class="text-muted">Generated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}</p>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4 print-section">
+    <div class="col-md-2 col-sm-4 mb-3">
+        <div class="card summary-card">
+            <div class="card-body">
+                <div class="summary-metric text-danger">
+                    {{ maintenance_groups.get('immediate', []) | length }}
+                </div>
+                <div class="text-muted small">CRITICAL</div>
+                <div class="text-muted small">Immediate Action</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 mb-3">
+        <div class="card summary-card">
+            <div class="card-body">
+                <div class="summary-metric text-warning">
+                    {{ maintenance_groups.get('urgent', []) | length }}
+                </div>
+                <div class="text-muted small">HIGH</div>
+                <div class="text-muted small">Next Window</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 mb-3">
+        <div class="card summary-card">
+            <div class="card-body">
+                <div class="summary-metric text-info">
+                    {{ maintenance_groups.get('planned', []) | length }}
+                </div>
+                <div class="text-muted small">MEDIUM</div>
+                <div class="text-muted small">Planned</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 mb-3">
+        <div class="card summary-card">
+            <div class="card-body">
+                <div class="summary-metric text-secondary">
+                    {{ maintenance_groups.get('monitor', []) | length }}
+                </div>
+                <div class="text-muted small">LOW</div>
+                <div class="text-muted small">Monitor</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 mb-3">
+        <div class="card summary-card">
+            <div class="card-body">
+                <div class="summary-metric text-success">
+                    {{ maintenance_groups.get('none', []) | length }}
+                </div>
+                <div class="text-muted small">GOOD</div>
+                <div class="text-muted small">No Action</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-4 mb-3">
+        <div class="card summary-card">
+            <div class="card-body">
+                <div class="summary-metric text-primary">
+                    {{ analysis.devices_with_uptime_count }}
+                </div>
+                <div class="text-muted small">TOTAL</div>
+                <div class="text-muted small">Monitored</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Critical Priority - Immediate Action Required -->
+{% if maintenance_groups.get('immediate') %}
+<div class="maintenance-section print-section">
+    <div class="maintenance-header maintenance-immediate">
+        <div>
+            <h3 class="mb-0">
+                <i class="bi bi-exclamation-circle me-2"></i>
+                CRITICAL PRIORITY - Immediate Action Required
+            </h3>
+            <small>Devices with 3+ years uptime requiring immediate maintenance</small>
+        </div>
+        <div class="badge bg-light text-dark fs-6">
+            {{ maintenance_groups.immediate | length }} devices
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% for device in maintenance_groups.immediate %}
+        <div class="device-card card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <h6 class="mb-1 text-primary">{{ device.device_name }}</h6>
+                        <small class="text-muted">{{ device.vendor }} {{ device.model or '' }}</small>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="uptime-display text-danger">
+                            {{ "%.0f"|format(device.uptime_days) }} days
+                        </div>
+                        <small class="text-muted">{{ device.uptime_formatted }}</small>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>{{ device.site_code or 'Unknown' }}</strong>
+                        <br><small class="text-muted">{{ device.device_role or 'Unknown' }}</small>
+                    </div>
+                    <div class="col-md-2">
+                        {% if device.primary_ip %}
+                        <code>{{ device.primary_ip }}</code>
+                        {% else %}
+                        <span class="text-muted">No IP</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <div class="maintenance-checklist">
+                            <small class="text-muted">
+                                <i class="bi bi-square me-1"></i> Schedule maintenance window<br>
+                                <i class="bi bi-square me-1"></i> Notify stakeholders<br>
+                                <i class="bi bi-square me-1"></i> Prepare rollback plan
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- High Priority - Next Maintenance Window -->
+{% if maintenance_groups.get('urgent') %}
+<div class="maintenance-section print-section">
+    <div class="maintenance-header maintenance-urgent">
+        <div>
+            <h3 class="mb-0">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                HIGH PRIORITY - Next Maintenance Window
+            </h3>
+            <small>Devices with 2+ years uptime for planned maintenance</small>
+        </div>
+        <div class="badge bg-light text-dark fs-6">
+            {{ maintenance_groups.urgent | length }} devices
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% for device in maintenance_groups.urgent %}
+        <div class="device-card card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <h6 class="mb-1 text-primary">{{ device.device_name }}</h6>
+                        <small class="text-muted">{{ device.vendor }} {{ device.model or '' }}</small>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="uptime-display text-warning">
+                            {{ "%.0f"|format(device.uptime_days) }} days
+                        </div>
+                        <small class="text-muted">{{ device.uptime_formatted }}</small>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>{{ device.site_code or 'Unknown' }}</strong>
+                        <br><small class="text-muted">{{ device.device_role or 'Unknown' }}</small>
+                    </div>
+                    <div class="col-md-2">
+                        {% if device.primary_ip %}
+                        <code>{{ device.primary_ip }}</code>
+                        {% else %}
+                        <span class="text-muted">No IP</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <div class="maintenance-checklist">
+                            <small class="text-muted">
+                                <i class="bi bi-square me-1"></i> Include in next cycle<br>
+                                <i class="bi bi-square me-1"></i> Update documentation<br>
+                                <i class="bi bi-square me-1"></i> Test after reboot
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Medium Priority - Planned Maintenance -->
+{% if maintenance_groups.get('planned') %}
+<div class="maintenance-section print-section">
+    <div class="maintenance-header maintenance-planned">
+        <div>
+            <h3 class="mb-0">
+                <i class="bi bi-calendar-event me-2"></i>
+                MEDIUM PRIORITY - Planned Maintenance
+            </h3>
+            <small>Devices with 1+ years uptime for future planning</small>
+        </div>
+        <div class="badge bg-light text-dark fs-6">
+            {{ maintenance_groups.planned | length }} devices
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-dark mb-0">
+                <thead>
+                    <tr>
+                        <th>Device Name</th>
+                        <th>Vendor/Model</th>
+                        <th>Uptime</th>
+                        <th>Site/Role</th>
+                        <th>Primary IP</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for device in maintenance_groups.planned %}
+                    <tr>
+                        <td><strong>{{ device.device_name }}</strong></td>
+                        <td>{{ device.vendor }} {{ device.model or '' }}</td>
+                        <td>
+                            <strong>{{ "%.0f"|format(device.uptime_days) }} days</strong>
+                            <br><small class="text-muted">{{ device.uptime_formatted }}</small>
+                        </td>
+                        <td>
+                            {{ device.site_code or 'Unknown' }}
+                            <br><small class="text-muted">{{ device.device_role or 'Unknown' }}</small>
+                        </td>
+                        <td>
+                            {% if device.primary_ip %}
+                            <code>{{ device.primary_ip }}</code>
+                            {% else %}
+                            <span class="text-muted">No IP</span>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">Schedule within 6 months</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Low Priority - Monitor -->
+{% if maintenance_groups.get('monitor') %}
+<div class="maintenance-section print-section">
+    <div class="maintenance-header maintenance-monitor">
+        <div>
+            <h3 class="mb-0">
+                <i class="bi bi-eye me-2"></i>
+                LOW PRIORITY - Monitor
+            </h3>
+            <small>Devices with 6+ months uptime to monitor</small>
+        </div>
+        <div class="badge bg-light text-dark fs-6">
+            {{ maintenance_groups.monitor | length }} devices
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm table-dark mb-0">
+                <thead>
+                    <tr>
+                        <th>Device Name</th>
+                        <th>Vendor</th>
+                        <th>Uptime</th>
+                        <th>Site</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for device in maintenance_groups.monitor[:20] %}
+                    <tr>
+                        <td>{{ device.device_name }}</td>
+                        <td>{{ device.vendor }}</td>
+                        <td>{{ "%.0f"|format(device.uptime_days) }} days</td>
+                        <td>{{ device.site_code or 'Unknown' }}</td>
+                        <td><small class="text-success">Monitoring</small></td>
+                    </tr>
+                    {% endfor %}
+                    {% if maintenance_groups.monitor | length > 20 %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">
+                            <em>... and {{ maintenance_groups.monitor | length - 20 }} more devices</em>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Report Summary -->
+<div class="row mt-4 print-section">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Maintenance Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Key Actions Required:</h6>
+                        <ul class="list-unstyled">
+                            {% if maintenance_groups.get('immediate') %}
+                            <li><i class="bi bi-exclamation-circle text-danger me-2"></i>
+                                <strong>{{ maintenance_groups.immediate | length }} devices</strong> require immediate maintenance
+                            </li>
+                            {% endif %}
+                            {% if maintenance_groups.get('urgent') %}
+                            <li><i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                                <strong>{{ maintenance_groups.urgent | length }} devices</strong> should be included in next maintenance window
+                            </li>
+                            {% endif %}
+                            {% if maintenance_groups.get('planned') %}
+                            <li><i class="bi bi-calendar-event text-info me-2"></i>
+                                <strong>{{ maintenance_groups.planned | length }} devices</strong> for future planning
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Report Statistics:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-hdd-network text-primary me-2"></i>
+                                Total devices monitored: <strong>{{ analysis.devices_with_uptime_count }}</strong>
+                            </li>
+                            <li><i class="bi bi-clock text-secondary me-2"></i>
+                                Report generated: <strong>{{ now().strftime('%Y-%m-%d %H:%M:%S') }}</strong>
+                            </li>
+                            <li><i class="bi bi-database text-secondary me-2"></i>
+                                Last data collection: <strong>{{ analysis.analysis_timestamp[:19] }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Maintenance Guidelines:</h6>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="text-center p-2 border rounded">
+                                    <div class="text-danger">
+                                        <i class="bi bi-exclamation-circle display-6"></i>
+                                    </div>
+                                    <strong>3+ Years</strong>
+                                    <br><small>Immediate Action</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center p-2 border rounded">
+                                    <div class="text-warning">
+                                        <i class="bi bi-exclamation-triangle display-6"></i>
+                                    </div>
+                                    <strong>2+ Years</strong>
+                                    <br><small>Next Window</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center p-2 border rounded">
+                                    <div class="text-info">
+                                        <i class="bi bi-calendar-event display-6"></i>
+                                    </div>
+                                    <strong>1+ Years</strong>
+                                    <br><small>Plan Ahead</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center p-2 border rounded">
+                                    <div class="text-success">
+                                        <i class="bi bi-check-circle display-6"></i>
+                                    </div>
+                                    <strong>&lt; 1 Year</strong>
+                                    <br><small>Monitor</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Override the base.html exportData function
+    function exportData() {
+        window.location.href = "{{ url_for('uptime.export_uptime_csv') }}";
+    }
+
+    // Print-specific functionality
+    window.addEventListener('beforeprint', function() {
+        // Hide all no-print elements
+        document.querySelectorAll('.no-print').forEach(el => {
+            el.style.display = 'none';
+        });
+    });
+
+    window.addEventListener('afterprint', function() {
+        // Restore all no-print elements
+        document.querySelectorAll('.no-print').forEach(el => {
+            el.style.display = '';
+        });
+    });
+</script>
+{% endblock %}

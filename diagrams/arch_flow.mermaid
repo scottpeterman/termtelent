@@ -1,0 +1,39 @@
+sequenceDiagram
+    participant N as Network Device
+    participant S as SNMP Scanner
+    participant FE as Fingerprint Engine
+    participant R as Rules Database
+    participant I as Import Tool
+    participant DB as CMDB Database
+
+    Note over N,DB: Discovery Phase
+    S->>N: TCP Port Check (22,161,443)
+    N-->>S: Port Response/Timeout
+    
+    alt TCP Responsive
+        S->>N: SNMPv3 Request (sysDescr, sysName)
+        N-->>S: SNMP Response/Timeout
+        
+        alt SNMPv3 Failed
+            S->>N: SNMPv2c Request (multiple communities)
+            N-->>S: SNMP Response
+        end
+        
+        S->>FE: Raw SNMP Data
+        FE->>R: Query Detection Rules
+        R-->>FE: Vendor Patterns + OIDs
+        FE->>FE: Pattern Matching + OID Analysis
+        FE-->>S: Device Identity (Vendor/Model/Type)
+        
+        S->>S: Extract Fields (Serial/Firmware)
+        S-->>I: Structured Device Data
+    else TCP Unresponsive
+        S->>S: Skip SNMP (Performance Optimization)
+    end
+
+    Note over I,DB: Import Phase
+    I->>I: Domain Name Processing
+    I->>I: Apply Filters (Vendor/Type/Confidence)
+    I->>I: Deduplicate Devices
+    I->>DB: Bulk Insert/Update
+    DB-->>I: Import Statistics

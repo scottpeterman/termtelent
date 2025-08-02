@@ -1,0 +1,20 @@
+Value TOPOGROUP (\d+)
+Value TOPOHWINDEX (\d+)
+Value MASTERVLAN (\d+)
+Value L2PROTO (MRP|STP|RSTP|VSRP|ERP)
+Value VPLSVLANPRESENT (TRUE|FALSE)
+Value MEMBERVLANS ([0-9\ to]+)
+Value MEMBERGROUP ([0-9a-zA-Z\/\ ]+)
+Value CONTROLPORTS ([0-9\ \/eto]+)
+Value FREEPORTS ([0-9\ \/eto]+)
+
+Start
+  ^Topology Group\s+${TOPOGROUP}
+  ^Topo HW Index\s+${TOPOHWINDEX}
+  ^Master VLAN\s+:\s+${MASTERVLAN}
+  ^L2 Protocol\s+:\s+${L2PROTO}
+  ^VPLS VLAN exist\s+:\s+${VPLSVLANPRESENT}
+  ^Member VLAN\s+:\s+${MEMBERVLANS}
+  ^Member Group\s+:\s+${MEMBERGROUP}
+  ^Control Ports\s+:\s+${CONTROLPORTS}
+  ^Free -> Record

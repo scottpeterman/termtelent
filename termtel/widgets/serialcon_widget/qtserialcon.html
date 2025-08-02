@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Serial Terminal</title>
+    <!-- Load xterm.js and its addons -->
+    <link rel="stylesheet" href="xterm.min.css">
+    <script src="xterm.min.js"></script>
+    <script src="xterm-addon-fit.min.js"></script>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script src="terminal.js"></script>
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        #terminal-container {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #header {
+            width: 100%;
+            padding: 4px 8px;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #connection-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .status-disconnected {
+            background-color: #5a1a1a;
+            color: #ff9999;
+        }
+
+        .status-connected {
+            background-color: #1a5a1a;
+            color: #99ff99;
+        }
+
+        #controls {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #333;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .control-label {
+            color: #ccc;
+            margin-right: 4px;
+        }
+
+        select, input, button {
+            background-color: #333;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 3px;
+            padding: 5px 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        select:hover, button:hover {
+            background-color: #444;
+        }
+
+        button:active {
+            background-color: #222;
+        }
+
+        #terminal {
+            flex-grow: 1;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Make scrollbars more visible */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #111;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal-container">
+        <div id="header" style="display: none;">
+            <div id="connection-status" class="status-disconnected">Disconnected</div>
+        </div>
+        <div id="controls" style="display: none;">
+            <div class="control-group">
+                <span class="control-label">Port</span>
+                <select id="port-select"></select>
+
+                <span class="control-label">Baud Rate</span>
+                <select id="baud-select">
+                    <option value="9600">9600</option>
+                    <option value="19200">19200</option>
+                    <option value="38400">38400</option>
+                    <option value="57600">57600</option>
+                    <option value="115200">115200</option>
+                </select>
+
+                <span class="control-label">Data Bits</span>
+                <select id="databits-select">
+                    <option value="8">8</option>
+                    <option value="7">7</option>
+                    <option value="6">6</option>
+                    <option value="5">5</option>
+                </select>
+
+                <span class="control-label">Stop Bits</span>
+                <select id="stopbits-select">
+                    <option value="1">1</option>
+                    <option value="1.5">1.5</option>
+                    <option value="2">2</option>
+                </select>
+
+                <span class="control-label">Parity</span>
+                <select id="parity-select">
+                    <option value="N">None</option>
+                    <option value="E">Even</option>
+                    <option value="O">Odd</option>
+                    <option value="M">Mark</option>
+                    <option value="S">Space</option>
+                </select>
+
+                <button id="connect-btn">Connect</button>
+            </div>
+        </div>
+        <div id="terminal"></div>
+    </div>
+</body>
+</html>

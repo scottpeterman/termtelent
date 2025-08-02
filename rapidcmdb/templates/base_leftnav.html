@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ app_name }}{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.1/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <!-- Chart.js -->
+<!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>-->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+
+    <!-- Custom Styles -->
+    <style>
+        :root {
+            --bs-dark-rgb: 13, 17, 23;
+            --bs-body-bg: #0d1117;
+            --bs-body-color: #c9d1d9;
+            --sidebar-bg: #161b22;
+            --sidebar-border: #21262d;
+            --card-bg: #161b22;
+            --card-border: #21262d;
+            --accent-color: #238636;
+            --accent-hover: #2ea043;
+            --danger-color: #da3633;
+            --warning-color: #d29922;
+            --info-color: #1f6feb;
+        }
+
+        body {
+            background-color: var(--bs-body-bg);
+            color: var(--bs-body-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+        }
+
+        .sidebar {
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--sidebar-border);
+            min-height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            width: 70px;
+        }
+
+        .sidebar .nav-link {
+            color: var(--bs-body-color);
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin: 2px 8px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .sidebar .nav-link:hover {
+            background-color: rgba(177, 186, 196, 0.12);
+            color: var(--bs-body-color);
+        }
+
+        .sidebar .nav-link.active {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .sidebar .nav-link i {
+            width: 20px;
+            margin-right: 12px;
+        }
+
+        .main-content {
+            margin-left: 280px;
+            transition: all 0.3s ease;
+            min-height: 100vh;
+        }
+
+        .main-content.expanded {
+            margin-left: 70px;
+        }
+
+        .navbar {
+            background-color: var(--sidebar-bg) !important;
+            border-bottom: 1px solid var(--sidebar-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        }
+
+        .card-header {
+            background-color: transparent;
+            border-bottom: 1px solid var(--card-border);
+            font-weight: 600;
+        }
+
+        .table-dark {
+            --bs-table-bg: var(--card-bg);
+            --bs-table-border-color: var(--card-border);
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .btn-outline-primary {
+            color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .alert-success {
+            background-color: rgba(35, 134, 54, 0.15);
+            border-color: var(--accent-color);
+            color: #7bc96f;
+        }
+
+        .alert-danger {
+            background-color: rgba(218, 54, 51, 0.15);
+            border-color: var(--danger-color);
+            color: #ff7b72;
+        }
+
+        .alert-warning {
+            background-color: rgba(210, 153, 34, 0.15);
+            border-color: var(--warning-color);
+            color: #ffd700;
+        }
+
+        .alert-info {
+            background-color: rgba(31, 111, 235, 0.15);
+            border-color: var(--info-color);
+            color: #79c0ff;
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .status-online {
+            background-color: rgba(35, 134, 54, 0.2);
+            color: #7bc96f;
+            border: 1px solid var(--accent-color);
+        }
+
+        .status-offline {
+            background-color: rgba(218, 54, 51, 0.2);
+            color: #ff7b72;
+            border: 1px solid var(--danger-color);
+        }
+
+        .status-warning {
+            background-color: rgba(210, 153, 34, 0.2);
+            color: #ffd700;
+            border: 1px solid var(--warning-color);
+        }
+
+        .metric-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: #8b949e;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .breadcrumb {
+            background-color: transparent;
+            padding: 0;
+            margin-bottom: 1rem;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            color: #8b949e;
+        }
+
+        .form-control, .form-select {
+            background-color: var(--card-bg);
+            border-color: var(--card-border);
+            color: var(--bs-body-color);
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: var(--card-bg);
+            border-color: var(--accent-color);
+            color: var(--bs-body-color);
+            box-shadow: 0 0 0 0.2rem rgba(35, 134, 54, 0.25);
+        }
+
+        .sidebar-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            background-color: var(--sidebar-bg);
+            border: 1px solid var(--sidebar-border);
+            color: var(--bs-body-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background-color: rgba(177, 186, 196, 0.12);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--accent-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Toggle Button -->
+    <button class="sidebar-toggle d-md-none" onclick="toggleSidebar()">
+        <i class="bi bi-list"></i>
+    </button>
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <div class="d-flex flex-column h-100">
+            <!-- Logo/Brand -->
+            <div class="p-3 border-bottom border-secondary">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-hdd-network text-primary fs-3 me-2"></i>
+                    <div class="sidebar-text">
+                        <h5 class="mb-0">RapidCMDB</h5>
+                        <small class="text-muted">A Quick Source Of Truth</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="flex-grow-1 p-2">
+                <ul class="nav nav-pills flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" href="{{ url_for('dashboard.index') }}">
+                            <i class="bi bi-speedometer2"></i>
+                            <span class="sidebar-text">Dashboard</span>
+                        </a>
+                    </li>
+                                        <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and 'search' in request.endpoint %}active{% endif %}" href="{{ url_for('search.index') }}">
+                            <i class="bi bi-search"></i>
+                            <span class="sidebar-text">Search</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and 'devices' in request.endpoint %}active{% endif %}" href="{{ url_for('devices.list_devices') }}">
+                            <i class="bi bi-router"></i>
+                            <span class="sidebar-text">Devices</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and 'network' in request.endpoint %}active{% endif %}" href="{{ url_for('network.enhanced_topology') }}">
+                            <i class="bi bi-diagram-3"></i>
+                            <span class="sidebar-text">Network</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and 'reports' in request.endpoint %}active{% endif %}" href="{{ url_for('reports.index') }}">
+                            <i class="bi bi-graph-up"></i>
+                            <span class="sidebar-text">Reports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and 'pipeline' in request.endpoint %}active{% endif %}" href="{{ url_for('pipeline.index') }}">
+                            <i class="bi bi-gear-wide-connected"></i>
+                            <span class="sidebar-text">Pipeline</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <hr class="my-3">
+
+                <!-- Quick Actions -->
+                <div class="px-3 mb-3">
+                    <h6 class="text-muted text-uppercase small sidebar-text">Quick Actions</h6>
+                    <div class="d-grid gap-2 sidebar-text">
+                        <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
+                            <i class="bi bi-arrow-clockwise me-1"></i>
+                            Refresh Data
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="exportData()">
+                            <i class="bi bi-download me-1"></i>
+                            Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-3 border-top border-secondary sidebar-text">
+                <small class="text-muted">
+                    <div>Version {{ version }}</div>
+                    <div>&copy; {{ current_year }}</div>
+                </small>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <!-- Top Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+            <div class="container-fluid">
+                <button class="btn btn-outline-secondary d-none d-md-block me-3" onclick="toggleSidebar()">
+                    <i class="bi bi-list"></i>
+                </button>
+
+                <!-- Breadcrumb -->
+                <nav aria-label="breadcrumb" class="me-auto">
+                    <ol class="breadcrumb mb-0">
+                        {% block breadcrumb %}
+                        <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                        {% endblock %}
+                    </ol>
+                </nav>
+
+                <!-- Right side actions -->
+                <div class="d-flex align-items-center">
+                    <div class="me-3" id="lastUpdate">
+                        <small class="text-muted">
+                            <i class="bi bi-clock me-1"></i>
+                            Last updated: <span id="updateTime">Loading...</span>
+                        </small>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profile</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/health"><i class="bi bi-heart-pulse me-2"></i>System Health</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container-fluid mt-3">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            {% if category == 'success' %}
+                                <i class="bi bi-check-circle me-2"></i>
+                            {% elif category == 'error' or category == 'danger' %}
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                            {% elif category == 'warning' %}
+                                <i class="bi bi-exclamation-circle me-2"></i>
+                            {% elif category == 'info' %}
+                                <i class="bi bi-info-circle me-2"></i>
+                            {% endif %}
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Content -->
+        <div class="container-fluid p-4">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script>
+        // Sidebar toggle functionality
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const sidebarTexts = document.querySelectorAll('.sidebar-text');
+
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+
+            // Hide/show text in collapsed mode
+            sidebarTexts.forEach(text => {
+                text.style.display = sidebar.classList.contains('collapsed') ? 'none' : 'block';
+            });
+        }
+
+        // Mobile sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('show');
+            } else {
+                // Desktop toggle
+                const mainContent = document.getElementById('mainContent');
+                const sidebarTexts = document.querySelectorAll('.sidebar-text');
+
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+
+                sidebarTexts.forEach(text => {
+                    text.style.display = sidebar.classList.contains('collapsed') ? 'none' : 'block';
+                });
+            }
+        }
+
+        // Update last refresh time
+        function updateLastRefreshTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            const updateElement = document.getElementById('updateTime');
+            if (updateElement) {
+                updateElement.textContent = timeString;
+            }
+        }
+
+        // Refresh data function
+        async function refreshData() {
+            const refreshBtn = document.querySelector('[onclick="refreshData()"]');
+            const originalText = refreshBtn.innerHTML;
+
+            refreshBtn.innerHTML = '<span class="loading"></span> Refreshing...';
+            refreshBtn.disabled = true;
+
+            try {
+                // Simulate refresh - replace with actual API call
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                updateLastRefreshTime();
+
+                // Show success message
+                showAlert('Data refreshed successfully!', 'success');
+            } catch (error) {
+                showAlert('Failed to refresh data: ' + error.message, 'danger');
+            } finally {
+                refreshBtn.innerHTML = originalText;
+                refreshBtn.disabled = false;
+            }
+        }
+
+        // Export data function
+        function exportData() {
+            // This would typically trigger a download
+            showAlert('Export feature coming soon!', 'info');
+        }
+
+        // Show alert function
+        function showAlert(message, type = 'info') {
+            const alertsContainer = document.querySelector('.container-fluid .alert');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            if (alertsContainer) {
+                alertsContainer.parentNode.insertBefore(alertDiv, alertsContainer);
+            } else {
+                const container = document.querySelector('.container-fluid');
+                if (container) {
+                    container.insertBefore(alertDiv, container.firstChild);
+                }
+            }
+
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Auto-refresh functionality
+        function startAutoRefresh(interval = 300000) { // 5 minutes default
+            setInterval(updateLastRefreshTime, interval);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLastRefreshTime();
+            // startAutoRefresh(); // Uncomment to enable auto-refresh
+
+            // Close mobile sidebar when clicking outside
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth <= 768) {
+                    const sidebar = document.getElementById('sidebar');
+                    const toggleBtn = document.querySelector('.sidebar-toggle');
+
+                    if (!sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+                        sidebar.classList.remove('show');
+                    }
+                }
+            });
+        });
+
+        // Handle responsive behavior
+        window.addEventListener('resize', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('show');
+                if (!sidebar.classList.contains('collapsed')) {
+                    mainContent.classList.remove('expanded');
+                }
+            }
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,17 @@
+Value Filldown INTERFACE (.+) 
+Value ERRORCODE (.+)
+Value TIMESTAMP (.+)
+Value DESCRIPTION (.+)
+Value RECOMMENDATION (.+)
+
+Start
+  ^Interface:\s+${INTERFACE} -> Clear
+  ^Error Code:\s+${ERRORCODE}
+  ^Timestamp:\s+${TIMESTAMP}
+  ^Description:\s+${DESCRIPTION}
+  ^Recommendation:\s+${RECOMMENDATION} -> Record
+  ^\s*Global\s+Errors
+  ^\s*$$
+  ^. -> Error
+
+EOF

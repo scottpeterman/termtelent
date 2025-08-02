@@ -1,0 +1,17 @@
+Value INTERFACE (\S+)
+Value LINKSTATE (Up|Disable|Down|ERR-DIS)
+Value PORTSTATE ([a-zA-Z\/]+)
+Value DUPLEX ([a-zA-Z\/]+)
+Value SPEED ([a-zA-Z0-9\/]+)
+Value TRUNKID (\d+|None)
+Value TAGONLY (Yes|No|N\/A)
+Value PVID (\d+|N\/A|None)
+Value PRIORITY ([a-zA-Z0-9\/]+)
+Value MAC ([A-Fa-f0-9\.]{14})
+Value NAME (\S+)
+
+Start
+  ^Port\s+Link\s+State\s+Dupl\s+Speed\s+Trunk\s+Tag\s+Pvid\s+Pri\s+MAC\s+Name
+  ^${INTERFACE}\s+${LINKSTATE}\s+${PORTSTATE}\s+${DUPLEX}\s+${SPEED}\s+${TRUNKID}\s+${TAGONLY}\s+${PVID}\s+${PRIORITY}\s+${MAC}\s+${NAME} -> Next.Record
+  ^${INTERFACE}\s+${LINKSTATE}\s+${PORTSTATE}\s+${DUPLEX}\s+${SPEED}\s+${TRUNKID}\s+${TAGONLY}\s+${PVID}\s+${PRIORITY}\s+${MAC} -> Next.Record
+  ^. -> Error

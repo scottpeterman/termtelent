@@ -1,0 +1,12 @@
+Value TOPOGROUP (\d+)
+Value MASTERVLAN (\d+)
+Value L2PROTO (MRP|STP|RSTP|VSRP|ERP)
+Value MEMBERVLANS ([0-9\ to]+)
+Value CONTROLPORTS ([0-9\ \/eto]+)
+Value FREEPORTS ([0-9\ \/eto]+)
+
+Start
+  ^Topology Group\s+${TOPOGROUP} -> Continue
+  ^\s+master-vlan\s+${MASTERVLAN} -> Continue
+  ^\s+ethernet\s+([0-9\/]+)\s+${L2PROTO} -> Continue
+  ^\s+Per -> Record

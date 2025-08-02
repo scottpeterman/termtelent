@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+
+{% block title %}{{ device.device_name }} Interfaces - {{ app_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('devices.list_devices') }}">Devices</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('devices.device_detail', device_name=device.device_name) }}">{{ device.device_name }}</a></li>
+<li class="breadcrumb-item active">Interfaces</li>
+{% endblock %}
+
+{% block content %}
+<!-- Device Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-1">
+                            <i class="bi bi-ethernet text-primary me-2"></i>
+                            {{ device.device_name }} Interfaces
+                        </h2>
+                        <p class="text-muted mb-0">Network interface inventory and status</p>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('devices.device_detail', device_name=device.device_name) }}" class="btn btn-outline-secondary me-2">
+                            <i class="bi bi-arrow-left me-1"></i>
+                            Back to Device
+                        </a>
+                        <button class="btn btn-primary" onclick="refreshInterfaces()">
+                            <i class="bi bi-arrow-clockwise me-1"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Interface Statistics -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-primary">{{ interfaces|length }}</div>
+                <div class="metric-label">Total Interfaces</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-success">
+                    {{ interfaces|selectattr('admin_status', 'equalto', 'enabled')|selectattr('oper_status', 'equalto', 'up')|list|length }}
+                </div>
+                <div class="metric-label">Up/Up</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-warning">
+                    {{ interfaces|selectattr('admin_status', 'equalto', 'enabled')|selectattr('oper_status', 'equalto', 'down')|list|length }}
+                </div>
+                <div class="metric-label">Up/Down</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-secondary">
+                    {{ interfaces|selectattr('admin_status', 'equalto', 'disabled')|list|length }}
+                </div>
+                <div class="metric-label">Disabled</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="searchInterface" class="form-label">Search Interfaces</label>
+                        <input type="text" class="form-control" id="searchInterface" placeholder="Interface name or description">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterType" class="form-label">Type</label>
+                        <select class="form-select" id="filterType">
+                            <option value="">All Types</option>
+                            <option value="Physical">Physical</option>
+                            <option value="VLAN">VLAN</option>
+                            <option value="Loopback">Loopback</option>
+                            <option value="PortChannel">PortChannel</option>
+                            <option value="Tunnel">Tunnel</option>
+                            <option value="Management">Management</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterStatus" class="form-label">Status</label>
+                        <select class="form-select" id="filterStatus">
+                            <option value="">All Status</option>
+                            <option value="up-up">Up/Up</option>
+                            <option value="up-down">Up/Down</option>
+                            <option value="down">Admin Down</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterVlan" class="form-label">VLAN</label>
+                        <input type="number" class="form-control" id="filterVlan" placeholder="VLAN ID" min="1" max="4094">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterSpeed" class="form-label">Speed</label>
+                        <select class="form-select" id="filterSpeed">
+                            <option value="">All Speeds</option>
+                            <option value="10">10 Mbps</option>
+                            <option value="100">100 Mbps</option>
+                            <option value="1000">1 Gbps</option>
+                            <option value="10000">10 Gbps</option>
+                            <option value="25000">25 Gbps</option>
+                            <option value="40000">40 Gbps</option>
+                            <option value="100000">100 Gbps</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Interfaces Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Interface Details</h5>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-success btn-sm" onclick="exportInterfaces()">
+                        <i class="bi bi-download me-1"></i>
+                        Export
+                    </button>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="showOnlyActive" checked>
+                        <label class="form-check-label" for="showOnlyActive">
+                            Show only active
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if interfaces %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover" id="interfacesTable">
+                            <thead>
+                                <tr>
+                                    <th>Interface</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>Admin Status</th>
+                                    <th>Oper Status</th>
+                                    <th>Speed</th>
+                                    <th>MTU</th>
+                                    <th>MAC Address</th>
+                                    <th>VLAN</th>
+                                    <th>IP Addresses</th>
+                                    <th>Last Flapped</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for interface in interfaces %}
+                                <tr data-interface-type="{{ interface.interface_type }}"
+                                    data-admin-status="{{ interface.admin_status }}"
+                                    data-oper-status="{{ interface.oper_status }}"
+                                    data-vlan="{{ interface.vlan_id or '' }}"
+                                    data-speed="{{ interface.speed or '' }}">
+                                    <td>
+                                        <strong>{{ interface.interface_name }}</strong>
+                                        {% if interface.duplex %}
+                                            <br><small class="text-muted">{{ interface.duplex|title }} Duplex</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge
+                                            {% if interface.interface_type == 'Physical' %}bg-primary
+                                            {% elif interface.interface_type == 'VLAN' %}bg-info
+                                            {% elif interface.interface_type == 'Loopback' %}bg-success
+                                            {% elif interface.interface_type == 'PortChannel' %}bg-warning
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ interface.interface_type }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if interface.description %}
+                                            <span title="{{ interface.description }}">
+                                                {{ interface.description[:30] }}{% if interface.description|length > 30 %}...{% endif %}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">No description</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if interface.admin_status == 'enabled' %}
+                                            <span class="badge bg-success">Enabled</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Disabled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if interface.oper_status == 'up' %}
+                                            <span class="status-badge status-online">
+                                                <i class="bi bi-check-circle me-1"></i>Up
+                                            </span>
+                                        {% elif interface.oper_status == 'down' %}
+                                            <span class="status-badge status-offline">
+                                                <i class="bi bi-x-circle me-1"></i>Down
+                                            </span>
+                                        {% else %}
+                                            <span class="status-badge status-warning">
+                                                <i class="bi bi-question-circle me-1"></i>{{ interface.oper_status|title }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if interface.speed %}
+                                            {% if interface.speed >= 1000 %}
+                                                {{ (interface.speed / 1000)|int }} Gbps
+                                            {% else %}
+                                                {{ interface.speed|int }} Mbps
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if interface.mtu %}
+                                            {{ interface.mtu }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if interface.mac_address %}
+                                            <code>{{ interface.mac_address }}</code>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if interface.vlan_id %}
+                                            <span class="badge bg-info">{{ interface.vlan_id }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if interface.ip_addresses %}
+                                            {% for ip in interface.ip_addresses.split(',') %}
+                                                <code class="d-block">{{ ip.strip() }}</code>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="text-muted">No IPs</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if interface.last_flapped %}
+                                            {% if interface.last_flapped > 0 %}
+                                                {{ "%.1f"|format(interface.last_flapped / 3600) }}h ago
+                                            {% else %}
+                                                Never
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-3 d-flex justify-content-between align-items-center">
+                        <div class="text-muted">
+                            Showing <span id="visibleCount">{{ interfaces|length }}</span> of {{ interfaces|length }} interfaces
+                        </div>
+                        <div>
+                            <small class="text-muted">
+                                Last collected:
+                                {% if interfaces and interfaces[0].collection_time %}
+                                    {{ interfaces[0].collection_time|relative_time }}
+                                {% else %}
+                                    Unknown
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-ethernet fs-1"></i>
+                        <h4 class="mt-3">No Interfaces Found</h4>
+                        <p>No interface data is available for this device.</p>
+                        <button class="btn btn-primary" onclick="refreshInterfaces()">
+                            <i class="bi bi-arrow-clockwise me-1"></i>
+                            Refresh Data
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filter functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.getElementById('interfacesTable');
+    const searchInput = document.getElementById('searchInterface');
+    const typeFilter = document.getElementById('filterType');
+    const statusFilter = document.getElementById('filterStatus');
+    const vlanFilter = document.getElementById('filterVlan');
+    const speedFilter = document.getElementById('filterSpeed');
+    const showOnlyActive = document.getElementById('showOnlyActive');
+
+    if (!table) return;
+
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const typeValue = typeFilter.value;
+        const statusValue = statusFilter.value;
+        const vlanValue = vlanFilter.value;
+        const speedValue = speedFilter.value;
+        const onlyActive = showOnlyActive.checked;
+
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            let show = true;
+
+            // Search filter
+            if (searchTerm) {
+                const interfaceName = row.cells[0].textContent.toLowerCase();
+                const description = row.cells[2].textContent.toLowerCase();
+                if (!interfaceName.includes(searchTerm) && !description.includes(searchTerm)) {
+                    show = false;
+                }
+            }
+
+            // Type filter
+            if (typeValue && row.dataset.interfaceType !== typeValue) {
+                show = false;
+            }
+
+            // Status filter
+            if (statusValue) {
+                const adminStatus = row.dataset.adminStatus;
+                const operStatus = row.dataset.operStatus;
+
+                if (statusValue === 'up-up' && !(adminStatus === 'enabled' && operStatus === 'up')) {
+                    show = false;
+                } else if (statusValue === 'up-down' && !(adminStatus === 'enabled' && operStatus === 'down')) {
+                    show = false;
+                } else if (statusValue === 'down' && adminStatus !== 'disabled') {
+                    show = false;
+                }
+            }
+
+            // VLAN filter
+            if (vlanValue && row.dataset.vlan !== vlanValue) {
+                show = false;
+            }
+
+            // Speed filter
+            if (speedValue && row.dataset.speed !== speedValue) {
+                show = false;
+            }
+
+            // Active only filter
+            if (onlyActive) {
+                const adminStatus = row.dataset.adminStatus;
+                const operStatus = row.dataset.operStatus;
+                if (!(adminStatus === 'enabled' && operStatus === 'up')) {
+                    show = false;
+                }
+            }
+
+            row.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
+        });
+
+        // Update visible count
+        const visibleCountSpan = document.getElementById('visibleCount');
+        if (visibleCountSpan) {
+            visibleCountSpan.textContent = visibleCount;
+        }
+    }
+
+    // Add event listeners
+    searchInput.addEventListener('input', filterTable);
+    typeFilter.addEventListener('change', filterTable);
+    statusFilter.addEventListener('change', filterTable);
+    vlanFilter.addEventListener('input', filterTable);
+    speedFilter.addEventListener('change', filterTable);
+    showOnlyActive.addEventListener('change', filterTable);
+
+    // Initial filter (show only active by default)
+    filterTable();
+});
+
+function clearFilters() {
+    document.getElementById('searchInterface').value = '';
+    document.getElementById('filterType').value = '';
+    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterVlan').value = '';
+    document.getElementById('filterSpeed').value = '';
+    document.getElementById('showOnlyActive').checked = false;
+
+    // Trigger filter update
+    const event = new Event('change');
+    document.getElementById('showOnlyActive').dispatchEvent(event);
+}
+
+function refreshInterfaces() {
+    showAlert('Interface refresh functionality would trigger a new data collection.', 'info');
+}
+
+function exportInterfaces() {
+    // Get visible rows
+    const table = document.getElementById('interfacesTable');
+    const rows = Array.from(table.querySelectorAll('tbody tr')).filter(row => row.style.display !== 'none');
+
+    if (rows.length === 0) {
+        showAlert('No interfaces to export', 'warning');
+        return;
+    }
+
+    // Create CSV content
+    const headers = ['Interface', 'Type', 'Description', 'Admin Status', 'Oper Status', 'Speed', 'MTU', 'MAC Address', 'VLAN', 'IP Addresses'];
+    let csvContent = headers.join(',') + '\n';
+
+    rows.forEach(row => {
+        const cells = Array.from(row.cells).slice(0, 10); // First 10 columns
+        const rowData = cells.map(cell => {
+            let text = cell.textContent.trim();
+            // Clean up text and escape quotes
+            text = text.replace(/"/g, '""');
+            return `"${text}"`;
+        });
+        csvContent += rowData.join(',') + '\n';
+    });
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `{{ device.device_name }}_interfaces_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    showAlert('Interface data exported successfully', 'success');
+}
+
+// Auto-refresh every 5 minutes
+setInterval(refreshInterfaces, 300000);
+</script>
+{% endblock %}

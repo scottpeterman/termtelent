@@ -1,0 +1,649 @@
+{% extends "base.html" %}
+
+{% block title %}Device Uptime Analysis - {{ super() }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ super() }}
+    <li class="breadcrumb-item active">Uptime Analysis</li>
+{% endblock %}
+
+{% block content %}
+<style>
+    .uptime-card {
+        transition: transform 0.2s ease-in-out;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .uptime-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .uptime-metric {
+        font-size: 2.5rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .uptime-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+
+    .device-table {
+        font-size: 0.875rem;
+    }
+
+    .device-table th {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        font-weight: 600;
+        padding: 0.75rem 0.5rem;
+    }
+
+    .device-table td {
+        padding: 0.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--border-light);
+    }
+
+    .maintenance-priority-immediate {
+        background-color: var(--error) !important;
+        color: white !important;
+    }
+
+    .maintenance-priority-urgent {
+        background-color: #fd7e14 !important;
+        color: white !important;
+    }
+
+    .maintenance-priority-planned {
+        background-color: #0dcaf0 !important;
+        color: white !important;
+    }
+
+    .maintenance-priority-monitor {
+        background-color: #6c757d !important;
+        color: white !important;
+    }
+
+    .maintenance-priority-none {
+        background-color: var(--success) !important;
+        color: white !important;
+    }
+
+    .recommendation-card {
+        border-left: 4px solid;
+        margin-bottom: 1rem;
+    }
+
+    .recommendation-critical {
+        border-left-color: var(--error);
+        background-color: rgba(239, 68, 68, 0.1);
+    }
+
+    .recommendation-high {
+        border-left-color: #fd7e14;
+        background-color: rgba(253, 126, 20, 0.1);
+    }
+
+    .recommendation-info {
+        border-left-color: #0dcaf0;
+        background-color: rgba(13, 202, 240, 0.1);
+    }
+
+    .device-count-badge {
+        display: inline-block;
+        min-width: 24px;
+        text-align: center;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 2rem;
+    }
+
+    /* Sortable table styles */
+    .sortable-header {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        padding-right: 20px !important;
+    }
+
+    .sortable-header:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .sort-indicator {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0.5;
+    }
+
+    .sort-indicator.active {
+        opacity: 1;
+    }
+
+    .sort-asc::after {
+        content: "▲";
+    }
+
+    .sort-desc::after {
+        content: "▼";
+    }
+</style>
+
+<!-- Header Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-5 mb-1">
+                    <i class="bi bi-clock text-primary me-2"></i>
+                    Device Uptime Analysis
+                </h1>
+                <p class="text-muted mb-0">Network infrastructure uptime monitoring and maintenance planning</p>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" onclick="refreshData()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+                <a href="{{ url_for('uptime.export_uptime_csv') }}" class="btn btn-outline-success">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+                </a>
+                <a href="{{ url_for('uptime.maintenance_report') }}" class="btn btn-outline-info">
+                    <i class="bi bi-tools"></i> Maintenance Report
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Uptime Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card uptime-card text-center">
+            <div class="card-body">
+                <div class="uptime-metric text-primary">{{ analysis.total_devices }}</div>
+                <div class="text-muted">Total Devices</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card uptime-card text-center bg-success text-white">
+            <div class="card-body">
+                <div class="uptime-metric">{{ analysis.category_counts.get('recent', 0) }}</div>
+                <div class="small">Recent</div>
+                <div class="small opacity-75">&lt; 30 days</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card uptime-card text-center bg-warning text-dark">
+            <div class="card-body">
+                <div class="uptime-metric">{{ analysis.category_counts.get('moderate', 0) }}</div>
+                <div class="small">Moderate</div>
+                <div class="small opacity-75">30-180 days</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card uptime-card text-center bg-info text-white">
+            <div class="card-body">
+                <div class="uptime-metric">{{ analysis.category_counts.get('extended', 0) }}</div>
+                <div class="small">Extended</div>
+                <div class="small opacity-75">180-365 days</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card uptime-card text-center bg-danger text-white">
+            <div class="card-body">
+                <div class="uptime-metric">{{ analysis.category_counts.get('excessive', 0) }}</div>
+                <div class="small">Excessive</div>
+                <div class="small opacity-75">&gt; 365 days</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card uptime-card text-center bg-dark text-white">
+            <div class="card-body">
+                <div class="uptime-metric">{{ analysis.category_counts.get('critical', 0) }}</div>
+                <div class="small">Critical Risk</div>
+                <div class="small opacity-75">Immediate action</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recommendations Section -->
+{% if analysis.recommendations %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h3><i class="bi bi-exclamation-triangle text-warning me-2"></i>Recommendations</h3>
+        {% for rec in analysis.recommendations %}
+        <div class="recommendation-card recommendation-{{ rec.level.lower() }} card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="card-title mb-1">
+                            <span class="badge bg-{{ rec.color }} me-2">{{ rec.level }}</span>
+                            {{ rec.title }}
+                        </h6>
+                        <p class="card-text text-muted mb-2">{{ rec.description }}</p>
+                        <p class="card-text"><strong>Action:</strong> {{ rec.action }}</p>
+                        {% if rec.affected_devices %}
+                        <p class="card-text small text-muted">
+                            <strong>Affects:</strong> {{ rec.affected_devices | join(', ') }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Vendor and Platform Breakdown -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-building me-2"></i>Vendor Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Vendor</th>
+                                <th class="text-center">Devices</th>
+                                <th class="text-end">Avg Uptime</th>
+                                <th class="text-center">Critical</th>
+                                <th class="text-center">High</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vendor, stats in analysis.vendor_stats.items() %}
+                            {% if stats.count > 0 %}
+                            <tr>
+                                <td><strong>{{ vendor.title() }}</strong></td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary device-count-badge">{{ stats.count }}</span>
+                                </td>
+                                <td class="text-end">{{ "%.0f"|format(stats.avg_uptime) }} days</td>
+                                <td class="text-center">
+                                    {% set critical_count = stats.devices | selectattr('maintenance_priority.priority', 'equalto', 'immediate') | list | length %}
+                                    {% if critical_count > 0 %}
+                                    <span class="badge bg-danger">{{ critical_count }}</span>
+                                    {% else %}
+                                    <span class="text-muted">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% set high_count = stats.devices | selectattr('maintenance_priority.priority', 'equalto', 'urgent') | list | length %}
+                                    {% if high_count > 0 %}
+                                    <span class="badge bg-warning">{{ high_count }}</span>
+                                    {% else %}
+                                    <span class="text-muted">0</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Role Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Role</th>
+                                <th class="text-center">Devices</th>
+                                <th class="text-end">Avg Uptime</th>
+                                <th class="text-center">Critical</th>
+                                <th class="text-center">High</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for role, stats in analysis.role_stats.items() %}
+                            {% if stats.count > 0 %}
+                            <tr>
+                                <td><strong>{{ role.title() or 'Unknown' }}</strong></td>
+                                <td class="text-center">
+                                    <span class="badge bg-info device-count-badge">{{ stats.count }}</span>
+                                </td>
+                                <td class="text-end">{{ "%.0f"|format(stats.avg_uptime) }} days</td>
+                                <td class="text-center">
+                                    {% set critical_count = stats.devices | selectattr('maintenance_priority.priority', 'equalto', 'immediate') | list | length %}
+                                    {% if critical_count > 0 %}
+                                    <span class="badge bg-danger">{{ critical_count }}</span>
+                                    {% else %}
+                                    <span class="text-muted">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% set high_count = stats.devices | selectattr('maintenance_priority.priority', 'equalto', 'urgent') | list | length %}
+                                    {% if high_count > 0 %}
+                                    <span class="badge bg-warning">{{ high_count }}</span>
+                                    {% else %}
+                                    <span class="text-muted">0</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Device List -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-list me-2"></i>Device Uptime Details</h5>
+                    <div>
+                        <input type="text" id="deviceFilter" class="form-control form-control-sm"
+                               placeholder="Filter devices..." style="width: 250px;">
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table device-table table-dark mb-0" id="deviceTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable-header" data-sort="device_name">
+                                    Device Name
+                                    <span class="sort-indicator"></span>
+                                </th>
+                                <th class="sortable-header" data-sort="vendor">
+                                    Vendor
+                                    <span class="sort-indicator"></span>
+                                </th>
+                                <th class="sortable-header" data-sort="device_role">
+                                    Role
+                                    <span class="sort-indicator"></span>
+                                </th>
+                                <th class="sortable-header" data-sort="site_code">
+                                    Site
+                                    <span class="sort-indicator"></span>
+                                </th>
+                                <th class="sortable-header" data-sort="primary_ip">
+                                    Primary IP
+                                    <span class="sort-indicator"></span>
+                                </th>
+                                <th class="sortable-header text-end" data-sort="uptime_days">
+                                    Uptime
+                                    <span class="sort-indicator"></span>
+                                </th>
+                                <th class="sortable-header text-center" data-sort="uptime_category">
+                                    Category
+                                    <span class="sort-indicator"></span>
+                                </th>
+                                <th class="sortable-header text-center" data-sort="maintenance_priority">
+                                    Priority
+                                    <span class="sort-indicator"></span>
+                                </th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for device in analysis.devices_with_uptime %}
+                            <tr class="device-row">
+                                <td>
+                                    <strong>{{ device.device_name }}</strong>
+                                    {% if device.hostname %}
+                                    <br><small class="text-muted">{{ device.hostname }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ device.vendor or 'Unknown' }}</span>
+                                    {% if device.model %}
+                                    <br><small class="text-muted">{{ device.model }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ device.device_role or 'Unknown' }}</td>
+                                <td>{{ device.site_code or 'Unknown' }}</td>
+                                <td>
+                                    {% if device.primary_ip %}
+                                    <code>{{ device.primary_ip }}</code>
+                                    {% else %}
+                                    <span class="text-muted">No IP</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <strong>{{ "%.1f"|format(device.uptime_days) }} days</strong>
+                                    <br><small class="text-muted">{{ device.uptime_formatted }}</small>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-{{ device.uptime_category.color }} uptime-badge">
+                                        {{ device.uptime_category.label }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge maintenance-priority-{{ device.maintenance_priority.priority }} uptime-badge">
+                                        {{ device.maintenance_priority.level }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        {% if device.primary_ip %}
+                                        <button class="btn btn-outline-secondary btn-sm"
+                                                onclick="copyToClipboard('{{ device.primary_ip }}')"
+                                                title="Copy IP">
+                                            <i class="bi bi-clipboard"></i>
+                                        </button>
+                                        {% endif %}
+                                        <a href="{{ url_for('device_crud.view_device', device_id=device.id) }}"
+                                           class="btn btn-outline-info btn-sm"
+                                           title="View Device Details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer text-muted">
+                <div class="row">
+                    <div class="col-md-6">
+                        Showing {{ analysis.devices_with_uptime_count }} devices with uptime data
+                    </div>
+                    <div class="col-md-6 text-end">
+                        Last updated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Table sorting functionality
+    let currentSort = { column: 'uptime_days', direction: 'desc' };
+    let originalData = [];
+
+    // Store original data for sorting
+    document.addEventListener('DOMContentLoaded', function() {
+        const tableBody = document.querySelector('#deviceTable tbody');
+        const rows = Array.from(tableBody.querySelectorAll('tr'));
+
+        originalData = rows.map(row => {
+            const cells = row.querySelectorAll('td');
+            return {
+                element: row,
+                device_name: cells[0]?.textContent?.trim() || '',
+                vendor: cells[1]?.querySelector('.badge')?.textContent?.trim() || '',
+                device_role: cells[2]?.textContent?.trim() || '',
+                site_code: cells[3]?.textContent?.trim() || '',
+                primary_ip: cells[4]?.querySelector('code')?.textContent?.trim() || cells[4]?.textContent?.trim() || '',
+                uptime_days: parseFloat(cells[5]?.textContent?.match(/[\d.]+/)?.[0] || '0'),
+                uptime_category: cells[6]?.querySelector('.badge')?.textContent?.trim() || '',
+                maintenance_priority: cells[7]?.querySelector('.badge')?.textContent?.trim() || ''
+            };
+        });
+
+        // Set initial sort indicator
+        updateSortIndicator('uptime_days', 'desc');
+    });
+
+    // Add click handlers to sortable headers
+    document.querySelectorAll('.sortable-header').forEach(header => {
+        header.addEventListener('click', function() {
+            const column = this.getAttribute('data-sort');
+            const currentDirection = currentSort.column === column ? currentSort.direction : 'asc';
+            const newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+
+            sortTable(column, newDirection);
+            updateSortIndicator(column, newDirection);
+
+            currentSort = { column, direction: newDirection };
+        });
+    });
+
+    function sortTable(column, direction) {
+        const sortedData = [...originalData].sort((a, b) => {
+            let aVal = a[column];
+            let bVal = b[column];
+
+            // Handle different data types
+            if (column === 'uptime_days') {
+                // Numeric sort
+                return direction === 'asc' ? aVal - bVal : bVal - aVal;
+            } else if (column === 'primary_ip') {
+                // IP address sort
+                const aIP = aVal ? ipToNumber(aVal) : 0;
+                const bIP = bVal ? ipToNumber(bVal) : 0;
+                return direction === 'asc' ? aIP - bIP : bIP - aIP;
+            } else {
+                // String sort
+                aVal = aVal.toLowerCase();
+                bVal = bVal.toLowerCase();
+                if (direction === 'asc') {
+                    return aVal.localeCompare(bVal);
+                } else {
+                    return bVal.localeCompare(aVal);
+                }
+            }
+        });
+
+        // Re-render table
+        const tableBody = document.querySelector('#deviceTable tbody');
+        tableBody.innerHTML = '';
+        sortedData.forEach(item => {
+            tableBody.appendChild(item.element);
+        });
+    }
+
+    function updateSortIndicator(column, direction) {
+        // Remove all existing indicators
+        document.querySelectorAll('.sort-indicator').forEach(indicator => {
+            indicator.className = 'sort-indicator';
+        });
+
+        // Add indicator to current column
+        const header = document.querySelector(`[data-sort="${column}"] .sort-indicator`);
+        if (header) {
+            header.className = `sort-indicator active sort-${direction}`;
+        }
+    }
+
+    function ipToNumber(ip) {
+        // Convert IP address to number for sorting
+        const parts = ip.split('.');
+        if (parts.length !== 4) return 0;
+
+        return parts.reduce((acc, part, index) => {
+            return acc + (parseInt(part, 10) || 0) * Math.pow(256, 3 - index);
+        }, 0);
+    }
+
+    // Device filtering (updated to work with sorted data)
+    document.getElementById('deviceFilter').addEventListener('keyup', function() {
+        const filter = this.value.toLowerCase();
+        const tableBody = document.querySelector('#deviceTable tbody');
+        const rows = tableBody.querySelectorAll('tr');
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(filter) ? '' : 'none';
+        });
+    });
+
+    // Copy to clipboard function
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            showAlert(`Copied ${text} to clipboard`, 'success');
+        }).catch(function() {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showAlert(`Copied ${text} to clipboard`, 'success');
+        });
+    }
+
+    // Override the base.html refreshData function for this page
+    async function refreshData() {
+        const refreshBtn = document.querySelector('[onclick="refreshData()"]');
+        const originalHtml = refreshBtn.innerHTML;
+
+        refreshBtn.innerHTML = '<span class="loading"></span> Refreshing...';
+        refreshBtn.disabled = true;
+
+        try {
+            // Reload the page to get fresh data
+            window.location.reload();
+        } catch (error) {
+            showAlert('Failed to refresh data: ' + error.message, 'danger');
+            refreshBtn.innerHTML = originalHtml;
+            refreshBtn.disabled = false;
+        }
+    }
+
+    // Override the base.html exportData function
+    function exportData() {
+        window.location.href = "{{ url_for('uptime.export_uptime_csv') }}";
+    }
+
+    // Auto-refresh every 5 minutes
+    setInterval(() => {
+        if (document.visibilityState === 'visible') {
+            updateLastRefreshTime();
+        }
+    }, 300000);
+</script>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Server Error - {{ app_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">500 Error</li>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="text-center">
+            <div class="mb-4">
+                <i class="bi bi-bug-fill text-danger" style="font-size: 5rem;"></i>
+            </div>
+            <h1 class="display-4 mb-3">500</h1>
+            <h2 class="mb-3">Internal Server Error</h2>
+            <p class="lead mb-4">
+                Something went wrong on our end. We're working to fix it.
+            </p>
+            <div class="d-grid gap-2 d-md-block">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">
+                    <i class="bi bi-house me-1"></i>
+                    Go to Dashboard
+                </a>
+                <button onclick="window.location.reload()" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise me-1"></i>
+                    Try Again
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,931 @@
+{% extends "base.html" %}
+
+{% block title %}Compare Configurations - {{ old_config.device_name }} - {{ app_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('config.index') }}">Configurations</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('config.device_configs', device_name=old_config.device_name) }}">{{ old_config.device_name }}</a></li>
+<li class="breadcrumb-item active">Compare Configurations</li>
+{% endblock %}
+
+{% block content %}
+<!-- Comparison Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h4 class="mb-0">
+                            <i class="bi bi-files me-2"></i>
+                            Configuration Comparison - {{ old_config.device_name }}
+                        </h4>
+                        <small class="text-muted">
+                            {{ old_config.config_type|title }} Configuration Changes
+                        </small>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-secondary" onclick="downloadDiff()" title="Download diff">
+                                <i class="bi bi-download me-1"></i>Download Diff
+                            </button>
+                            <button class="btn btn-outline-info" onclick="toggleSideBySide()" title="Toggle view mode">
+                                <i class="bi bi-layout-split me-1"></i>Side by Side
+                            </button>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-warning dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="bi bi-gear"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-dark">
+                                    <li><h6 class="dropdown-header">View Options</h6></li>
+                                    <li><a class="dropdown-item" href="#" onclick="toggleWhitespace()">
+                                        <i class="bi bi-eye me-2"></i>Show Whitespace
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="toggleLineNumbers()">
+                                        <i class="bi bi-list-ol me-2"></i>Toggle Line Numbers
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('config.view_config', config_id=old_config.id) }}">
+                                        <i class="bi bi-file-text me-2"></i>View Old Config
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('config.view_config', config_id=new_config.id) }}">
+                                        <i class="bi bi-file-text me-2"></i>View New Config
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-danger me-2">OLD</span>
+                            <strong>{{ old_config.collection_time|datetime }}</strong>
+                        </div>
+                        <div class="text-muted small">
+                            Size: {{ old_config.size_bytes|file_size }} |
+                            Lines: {{ old_config.line_count or 'N/A' }} |
+                            Hash: <code>{{ old_config.config_hash[:12] }}...</code>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-success me-2">NEW</span>
+                            <strong>{{ new_config.collection_time|datetime }}</strong>
+                        </div>
+                        <div class="text-muted small">
+                            Size: {{ new_config.size_bytes|file_size }} |
+                            Lines: {{ new_config.line_count or 'N/A' }} |
+                            Hash: <code>{{ new_config.config_hash[:12] }}...</code>
+                        </div>
+                    </div>
+                </div>
+
+                {% if change %}
+                <div class="mt-3">
+                    <div class="alert alert-info">
+                        <strong>Change Summary:</strong> {{ change.change_summary or 'Configuration modified' }}
+                        <br>
+                        <small>
+                            <strong>Change Type:</strong> {{ change.change_type|title }} |
+                            <strong>Size Change:</strong> {{ change.change_size or 'Unknown' }} lines |
+                            <strong>Detected:</strong> {{ change.detected_at|relative_time }}
+                        </small>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Diff Statistics -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-success" id="addedLines">0</div>
+                <div class="metric-label">Lines Added</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-danger" id="removedLines">0</div>
+                <div class="metric-label">Lines Removed</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-warning" id="modifiedLines">0</div>
+                <div class="metric-label">Lines Modified</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <div class="metric-value text-info" id="totalChanges">0</div>
+                <div class="metric-label">Total Changes</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Navigation Controls -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <span class="me-3">Navigate changes:</span>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-outline-secondary" onclick="previousChange()" disabled id="prevBtn">
+                                    <i class="bi bi-chevron-up"></i> Previous
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="nextChange()" disabled id="nextBtn">
+                                    <i class="bi bi-chevron-down"></i> Next
+                                </button>
+                            </div>
+                            <span class="ms-3 text-muted" id="changePosition">No changes</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <div class="d-flex align-items-center justify-content-end">
+                            <div class="form-check form-switch me-3">
+                                <input class="form-check-input" type="checkbox" id="showOnlyChanges" onchange="toggleOnlyChanges()">
+                                <label class="form-check-label" for="showOnlyChanges">Show only changes</label>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="showLineNumbers" checked onchange="toggleLineNumbers()">
+                                <label class="form-check-label" for="showLineNumbers">Line numbers</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Configuration Diff Display -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-code-square me-2"></i>
+                    Configuration Diff
+                </h5>
+                <div class="diff-legend">
+                    <span class="badge bg-success me-2">+ Added</span>
+                    <span class="badge bg-danger me-2">- Removed</span>
+                    <span class="badge bg-warning me-2">~ Modified</span>
+                    <span class="badge bg-secondary">= Unchanged</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <!-- Unified Diff View (Default) -->
+                <div id="unifiedView" class="diff-container">
+                    <div class="d-flex" style="height: 70vh;">
+                        <!-- Line numbers -->
+                        <div id="lineNumbersColumn" class="diff-line-numbers bg-dark text-muted border-end" style="width: 100px; overflow: hidden; font-family: 'Courier New', monospace; font-size: 0.875rem; padding: 12px 8px; flex-shrink: 0;">
+                            <div id="lineNumbers"></div>
+                        </div>
+
+                        <!-- Diff content -->
+                        <div class="flex-grow-1 position-relative">
+                            <pre id="diffContent" class="bg-black text-light m-0 p-3" style="height: 100%; overflow: auto; font-family: 'Courier New', monospace; font-size: 0.875rem; line-height: 1.4;"></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Side by Side View (Hidden by default) -->
+                <div id="sideBySideView" class="diff-container d-none">
+                    <div class="d-flex" style="height: 70vh;">
+                        <!-- Old Configuration -->
+                        <div class="flex-fill border-end">
+                            <div class="bg-danger text-white text-center py-2">
+                                <strong>OLD - {{ old_config.collection_time|datetime }}</strong>
+                            </div>
+                            <div class="d-flex" style="height: calc(100% - 40px);">
+                                <div class="diff-line-numbers bg-dark text-muted border-end" style="width: 50px; font-family: 'Courier New', monospace; font-size: 0.875rem; padding: 8px 4px; text-align: right;">
+                                    <div id="oldLineNumbers"></div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <pre id="oldContent" class="bg-black text-light m-0 p-3" style="height: 100%; overflow: auto; font-family: 'Courier New', monospace; font-size: 0.875rem; line-height: 1.4;">{{ old_config.config_content }}</pre>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- New Configuration -->
+                        <div class="flex-fill">
+                            <div class="bg-success text-white text-center py-2">
+                                <strong>NEW - {{ new_config.collection_time|datetime }}</strong>
+                            </div>
+                            <div class="d-flex" style="height: calc(100% - 40px);">
+                                <div class="diff-line-numbers bg-dark text-muted border-end" style="width: 50px; font-family: 'Courier New', monospace; font-size: 0.875rem; padding: 8px 4px; text-align: right;">
+                                    <div id="newLineNumbers"></div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <pre id="newContent" class="bg-black text-light m-0 p-3" style="height: 100%; overflow: auto; font-family: 'Courier New', monospace; font-size: 0.875rem; line-height: 1.4;">{{ new_config.config_content }}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading indicator -->
+                <div id="diffLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Generating diff...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Calculating differences...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let oldConfig = `{{ old_config.config_content|safe }}`;
+let newConfig = `{{ new_config.config_content|safe }}`;
+let diffData = null;
+let currentChangeIndex = -1;
+let changeBlocks = [];
+let isSideBySide = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    generateDiff();
+});
+
+function generateDiff() {
+    const loading = document.getElementById('diffLoading');
+    const diffContent = document.getElementById('diffContent');
+
+    loading.style.display = 'block';
+    diffContent.style.display = 'none';
+
+    // Use a more sophisticated diff algorithm
+    setTimeout(() => {
+        // First try to use a unified diff approach
+        const diff = createUnifiedDiff(oldConfig, newConfig);
+        displayUnifiedDiff(diff);
+        generateSideBySideLineNumbers();
+        updateDiffStatistics(diff);
+
+        loading.style.display = 'none';
+        diffContent.style.display = 'block';
+    }, 500);
+}
+
+function createUnifiedDiff(oldText, newText) {
+    const oldLines = oldText.split('\n');
+    const newLines = newText.split('\n');
+
+    // Create a hash map for faster lookups
+    const oldLineMap = new Map();
+    const newLineMap = new Map();
+
+    oldLines.forEach((line, index) => {
+        const trimmed = line.trim();
+        if (trimmed) {
+            if (!oldLineMap.has(trimmed)) {
+                oldLineMap.set(trimmed, []);
+            }
+            oldLineMap.get(trimmed).push(index);
+        }
+    });
+
+    newLines.forEach((line, index) => {
+        const trimmed = line.trim();
+        if (trimmed) {
+            if (!newLineMap.has(trimmed)) {
+                newLineMap.set(trimmed, []);
+            }
+            newLineMap.get(trimmed).push(index);
+        }
+    });
+
+    // Find matching lines
+    const matches = [];
+    const usedOldLines = new Set();
+    const usedNewLines = new Set();
+
+    newLines.forEach((newLine, newIndex) => {
+        const trimmed = newLine.trim();
+        if (trimmed && oldLineMap.has(trimmed)) {
+            const oldIndices = oldLineMap.get(trimmed);
+            const availableOldIndex = oldIndices.find(oldIndex => !usedOldLines.has(oldIndex));
+
+            if (availableOldIndex !== undefined) {
+                matches.push({ oldIndex: availableOldIndex, newIndex: newIndex });
+                usedOldLines.add(availableOldIndex);
+                usedNewLines.add(newIndex);
+            }
+        }
+    });
+
+    // Sort matches by old index
+    matches.sort((a, b) => a.oldIndex - b.oldIndex);
+
+    // Build diff result
+    const diff = [];
+    let oldIndex = 0;
+    let newIndex = 0;
+    let oldLineNum = 1;
+    let newLineNum = 1;
+
+    matches.forEach(match => {
+        // Add removed lines before this match
+        while (oldIndex < match.oldIndex) {
+            diff.push({
+                type: 'removed',
+                oldLineNum: oldLineNum,
+                newLineNum: null,
+                content: oldLines[oldIndex],
+                oldContent: oldLines[oldIndex],
+                newContent: ''
+            });
+            oldIndex++;
+            oldLineNum++;
+        }
+
+        // Add added lines before this match
+        while (newIndex < match.newIndex) {
+            diff.push({
+                type: 'added',
+                oldLineNum: null,
+                newLineNum: newLineNum,
+                content: newLines[newIndex],
+                oldContent: '',
+                newContent: newLines[newIndex]
+            });
+            newIndex++;
+            newLineNum++;
+        }
+
+        // Add the matching line
+        diff.push({
+            type: 'unchanged',
+            oldLineNum: oldLineNum,
+            newLineNum: newLineNum,
+            content: oldLines[oldIndex],
+            oldContent: oldLines[oldIndex],
+            newContent: newLines[newIndex]
+        });
+        oldIndex++;
+        newIndex++;
+        oldLineNum++;
+        newLineNum++;
+    });
+
+    // Add remaining removed lines
+    while (oldIndex < oldLines.length) {
+        diff.push({
+            type: 'removed',
+            oldLineNum: oldLineNum,
+            newLineNum: null,
+            content: oldLines[oldIndex],
+            oldContent: oldLines[oldIndex],
+            newContent: ''
+        });
+        oldIndex++;
+        oldLineNum++;
+    }
+
+    // Add remaining added lines
+    while (newIndex < newLines.length) {
+        diff.push({
+            type: 'added',
+            oldLineNum: null,
+            newLineNum: newLineNum,
+            content: newLines[newIndex],
+            oldContent: '',
+            newContent: newLines[newIndex]
+        });
+        newIndex++;
+        newLineNum++;
+    }
+
+    return diff;
+}
+
+function createDiff(oldText, newText) {
+    const oldLines = oldText.split('\n');
+    const newLines = newText.split('\n');
+
+    // Use a proper diff algorithm (Myers algorithm implementation)
+    const diffResult = computeLineDiff(oldLines, newLines);
+    return diffResult;
+}
+
+function computeLineDiff(oldLines, newLines) {
+    // Longest Common Subsequence (LCS) based diff
+    const lcs = computeLCS(oldLines, newLines);
+    const diff = [];
+
+    let oldIndex = 0;
+    let newIndex = 0;
+    let oldLineNum = 1;
+    let newLineNum = 1;
+
+    while (oldIndex < oldLines.length || newIndex < newLines.length) {
+        const oldLine = oldLines[oldIndex];
+        const newLine = newLines[newIndex];
+
+        // Check if current lines are in LCS (unchanged)
+        if (oldIndex < oldLines.length && newIndex < newLines.length &&
+            isInLCS(lcs, oldIndex, newIndex, oldLines, newLines)) {
+
+            diff.push({
+                type: 'unchanged',
+                oldLineNum: oldLineNum,
+                newLineNum: newLineNum,
+                content: oldLine,
+                oldContent: oldLine,
+                newContent: newLine
+            });
+            oldIndex++;
+            newIndex++;
+            oldLineNum++;
+            newLineNum++;
+
+        } else if (oldIndex < oldLines.length &&
+                   (newIndex >= newLines.length ||
+                    !isLineInNewArray(oldLine, newLines, newIndex))) {
+            // Line was removed
+            diff.push({
+                type: 'removed',
+                oldLineNum: oldLineNum,
+                newLineNum: null,
+                content: oldLine,
+                oldContent: oldLine,
+                newContent: ''
+            });
+            oldIndex++;
+            oldLineNum++;
+
+        } else if (newIndex < newLines.length) {
+            // Line was added
+            diff.push({
+                type: 'added',
+                oldLineNum: null,
+                newLineNum: newLineNum,
+                content: newLine,
+                oldContent: '',
+                newContent: newLine
+            });
+            newIndex++;
+            newLineNum++;
+        }
+    }
+
+    return diff;
+}
+
+function computeLCS(oldLines, newLines) {
+    const m = oldLines.length;
+    const n = newLines.length;
+    const dp = Array(m + 1).fill().map(() => Array(n + 1).fill(0));
+
+    // Build LCS table
+    for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+            if (oldLines[i - 1].trim() === newLines[j - 1].trim()) {
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+            } else {
+                dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        }
+    }
+
+    // Backtrack to find LCS
+    const lcs = [];
+    let i = m, j = n;
+    while (i > 0 && j > 0) {
+        if (oldLines[i - 1].trim() === newLines[j - 1].trim()) {
+            lcs.unshift({ oldIndex: i - 1, newIndex: j - 1 });
+            i--;
+            j--;
+        } else if (dp[i - 1][j] > dp[i][j - 1]) {
+            i--;
+        } else {
+            j--;
+        }
+    }
+
+    return lcs;
+}
+
+function isInLCS(lcs, oldIndex, newIndex, oldLines, newLines) {
+    return lcs.some(item =>
+        item.oldIndex === oldIndex &&
+        item.newIndex === newIndex &&
+        oldLines[oldIndex].trim() === newLines[newIndex].trim()
+    );
+}
+
+function isLineInNewArray(line, newLines, startIndex) {
+    const trimmedLine = line.trim();
+    for (let i = startIndex; i < newLines.length; i++) {
+        if (newLines[i].trim() === trimmedLine) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function displayUnifiedDiff(diff) {
+    const diffContent = document.getElementById('diffContent');
+    const lineNumbers = document.getElementById('lineNumbers');
+
+    // Group consecutive changes for better readability
+    const groupedDiff = groupConsecutiveChanges(diff);
+
+    let diffHtml = '';
+    let lineNumHtml = '';
+    changeBlocks = [];
+
+    groupedDiff.forEach((item, index) => {
+        if (item.type === 'context-separator') {
+            // Add context separator
+            diffHtml += `<div class="diff-context-separator">...</div>`;
+            lineNumHtml += `<div class="diff-context-separator" style="line-height: 1.4; height: 1.4em;">...</div>`;
+        } else {
+            const lineClass = getDiffLineClass(item.type);
+            const prefix = getDiffPrefix(item.type);
+
+            if (item.type !== 'unchanged') {
+                changeBlocks.push(index);
+            }
+
+            const oldNum = item.oldLineNum || '';
+            const newNum = item.newLineNum || '';
+            const lineNumDisplay = `${oldNum.toString().padStart(4)} ${newNum.toString().padStart(4)}`;
+
+            diffHtml += `<div class="${lineClass}" data-change-index="${index}">${prefix}${escapeHtml(item.content)}</div>`;
+            lineNumHtml += `<div class="${lineClass}" style="line-height: 1.4; height: 1.4em;">${lineNumDisplay}</div>`;
+        }
+    });
+
+    diffContent.innerHTML = diffHtml;
+    lineNumbers.innerHTML = lineNumHtml;
+
+    diffData = groupedDiff;
+    updateNavigationButtons();
+}
+
+function groupConsecutiveChanges(diff) {
+    const grouped = [];
+    const contextLines = 3; // Number of context lines to show around changes
+
+    let i = 0;
+    while (i < diff.length) {
+        const item = diff[i];
+
+        if (item.type === 'unchanged') {
+            // Look ahead to see if there are changes within contextLines
+            let hasNearbyChanges = false;
+            for (let j = i + 1; j < Math.min(i + contextLines + 1, diff.length); j++) {
+                if (diff[j].type !== 'unchanged') {
+                    hasNearbyChanges = true;
+                    break;
+                }
+            }
+
+            // Look behind to see if we just had changes
+            let hadRecentChanges = false;
+            for (let j = Math.max(0, i - contextLines); j < i; j++) {
+                if (diff[j].type !== 'unchanged') {
+                    hadRecentChanges = true;
+                    break;
+                }
+            }
+
+            if (hasNearbyChanges || hadRecentChanges) {
+                // Include this context line
+                grouped.push(item);
+            } else if (grouped.length > 0 && grouped[grouped.length - 1].type !== 'context-separator') {
+                // Add a context separator if we're skipping lines
+                grouped.push({ type: 'context-separator' });
+            }
+        } else {
+            // Always include changes
+            grouped.push(item);
+        }
+        i++;
+    }
+
+    return grouped;
+}
+
+function getDiffLineClass(type) {
+    switch (type) {
+        case 'added': return 'diff-line-added';
+        case 'removed': return 'diff-line-removed';
+        case 'modified': return 'diff-line-modified';
+        default: return 'diff-line-unchanged';
+    }
+}
+
+function getDiffPrefix(type) {
+    switch (type) {
+        case 'added': return '+ ';
+        case 'removed': return '- ';
+        case 'modified': return '~ ';
+        default: return '  ';
+    }
+}
+
+function generateSideBySideLineNumbers() {
+    const oldLines = oldConfig.split('\n');
+    const newLines = newConfig.split('\n');
+
+    const oldLineNumbers = document.getElementById('oldLineNumbers');
+    const newLineNumbers = document.getElementById('newLineNumbers');
+
+    const oldNumHtml = oldLines.map((_, i) =>
+        `<div style="line-height: 1.4; height: 1.4em;">${i + 1}</div>`
+    ).join('');
+
+    const newNumHtml = newLines.map((_, i) =>
+        `<div style="line-height: 1.4; height: 1.4em;">${i + 1}</div>`
+    ).join('');
+
+    oldLineNumbers.innerHTML = oldNumHtml;
+    newLineNumbers.innerHTML = newNumHtml;
+}
+
+function updateDiffStatistics(diff) {
+    const stats = {
+        added: 0,
+        removed: 0,
+        modified: 0,
+        total: 0
+    };
+
+    diff.forEach(line => {
+        if (line.type === 'added') stats.added++;
+        else if (line.type === 'removed') stats.removed++;
+        else if (line.type === 'modified') stats.modified++;
+
+        if (line.type !== 'unchanged') stats.total++;
+    });
+
+    document.getElementById('addedLines').textContent = stats.added;
+    document.getElementById('removedLines').textContent = stats.removed;
+    document.getElementById('modifiedLines').textContent = stats.modified;
+    document.getElementById('totalChanges').textContent = stats.total;
+}
+
+function toggleSideBySide() {
+    const unifiedView = document.getElementById('unifiedView');
+    const sideBySideView = document.getElementById('sideBySideView');
+    const button = event.target.closest('button');
+
+    isSideBySide = !isSideBySide;
+
+    if (isSideBySide) {
+        unifiedView.classList.add('d-none');
+        sideBySideView.classList.remove('d-none');
+        button.innerHTML = '<i class="bi bi-list me-1"></i>Unified';
+    } else {
+        unifiedView.classList.remove('d-none');
+        sideBySideView.classList.add('d-none');
+        button.innerHTML = '<i class="bi bi-layout-split me-1"></i>Side by Side';
+    }
+}
+
+function toggleOnlyChanges() {
+    const showOnly = document.getElementById('showOnlyChanges').checked;
+    const diffLines = document.querySelectorAll('#diffContent div, #lineNumbers div');
+
+    diffLines.forEach((line, index) => {
+        const isUnchanged = line.classList.contains('diff-line-unchanged');
+        if (showOnly && isUnchanged) {
+            line.style.display = 'none';
+        } else {
+            line.style.display = '';
+        }
+    });
+}
+
+function toggleLineNumbers() {
+    const showNumbers = document.getElementById('showLineNumbers').checked;
+    const lineNumbersColumns = document.querySelectorAll('.diff-line-numbers');
+
+    lineNumbersColumns.forEach(column => {
+        column.style.display = showNumbers ? 'block' : 'none';
+    });
+}
+
+function toggleWhitespace() {
+    // Toggle whitespace visibility
+    const diffContent = document.getElementById('diffContent');
+    const showWhitespace = diffContent.classList.contains('show-whitespace');
+
+    if (showWhitespace) {
+        diffContent.classList.remove('show-whitespace');
+    } else {
+        diffContent.classList.add('show-whitespace');
+    }
+}
+
+function nextChange() {
+    if (changeBlocks.length === 0) return;
+
+    currentChangeIndex = currentChangeIndex >= changeBlocks.length - 1 ? 0 : currentChangeIndex + 1;
+    scrollToChange();
+    updateChangePosition();
+}
+
+function previousChange() {
+    if (changeBlocks.length === 0) return;
+
+    currentChangeIndex = currentChangeIndex <= 0 ? changeBlocks.length - 1 : currentChangeIndex - 1;
+    scrollToChange();
+    updateChangePosition();
+}
+
+function scrollToChange() {
+    if (currentChangeIndex < 0 || currentChangeIndex >= changeBlocks.length) return;
+
+    const changeIndex = changeBlocks[currentChangeIndex];
+    const changeLine = document.querySelector(`[data-change-index="${changeIndex}"]`);
+
+    if (changeLine) {
+        changeLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Highlight current change
+        document.querySelectorAll('.current-change').forEach(el => el.classList.remove('current-change'));
+        changeLine.classList.add('current-change');
+    }
+}
+
+function updateChangePosition() {
+    const position = document.getElementById('changePosition');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    if (changeBlocks.length === 0) {
+        position.textContent = 'No changes';
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+    } else {
+        position.textContent = `Change ${currentChangeIndex + 1} of ${changeBlocks.length}`;
+        prevBtn.disabled = false;
+        nextBtn.disabled = false;
+    }
+}
+
+function updateNavigationButtons() {
+    updateChangePosition();
+    if (changeBlocks.length > 0) {
+        currentChangeIndex = 0;
+        updateChangePosition();
+    }
+}
+
+function downloadDiff() {
+    if (!diffData) return;
+
+    let diffText = `Configuration Diff: {{ old_config.device_name }}\n`;
+    diffText += `Old: {{ old_config.collection_time|datetime }}\n`;
+    diffText += `New: {{ new_config.collection_time|datetime }}\n`;
+    diffText += `${'='.repeat(60)}\n\n`;
+
+    diffData.forEach(line => {
+        const prefix = getDiffPrefix(line.type);
+        diffText += `${prefix}${line.content}\n`;
+    });
+
+    const blob = new Blob([diffText], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    a.href = url;
+    a.download = `{{ old_config.device_name }}_config_diff_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    showAlert('Diff downloaded successfully', 'success');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set initial state
+    if (changeBlocks.length > 0) {
+        currentChangeIndex = 0;
+        updateChangePosition();
+    }
+});
+</script>
+
+<style>
+.diff-context-separator {
+    background-color: rgba(108, 117, 125, 0.2);
+    color: #6c757d;
+    text-align: center;
+    font-style: italic;
+    border-top: 1px solid #495057;
+    border-bottom: 1px solid #495057;
+    margin: 0.5rem 0;
+    padding: 0.25rem;
+}
+
+.diff-line-added {
+    background-color: rgba(40, 167, 69, 0.2);
+    border-left: 4px solid #28a745;
+    color: #28a745;
+}
+
+.diff-line-removed {
+    background-color: rgba(220, 53, 69, 0.2);
+    border-left: 4px solid #dc3545;
+    color: #dc3545;
+}
+
+.diff-line-modified {
+    background-color: rgba(255, 193, 7, 0.2);
+    border-left: 4px solid #ffc107;
+    color: #ffc107;
+}
+
+.diff-line-unchanged {
+    background-color: transparent;
+    border-left: 4px solid transparent;
+    color: #f8f9fa;
+}
+
+.current-change {
+    background-color: rgba(13, 110, 253, 0.3) !important;
+    border: 1px solid #0d6efd;
+}
+
+.diff-container {
+    position: relative;
+}
+
+.diff-line-numbers {
+    user-select: none;
+    border-right: 1px solid #495057;
+}
+
+.show-whitespace {
+    white-space: pre-wrap;
+}
+
+.show-whitespace .diff-line-unchanged::before,
+.show-whitespace .diff-line-added::before,
+.show-whitespace .diff-line-removed::before,
+.show-whitespace .diff-line-modified::before {
+    content: '·';
+    color: #6c757d;
+    position: absolute;
+    margin-left: 0.2em;
+}
+
+.metric-card {
+    transition: transform 0.2s;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #sideBySideView .flex-fill {
+        min-width: 50%;
+    }
+
+    .diff-line-numbers {
+        width: 40px !important;
+        font-size: 0.75rem !important;
+    }
+
+    #diffContent, #oldContent, #newContent {
+        font-size: 0.75rem !important;
+    }
+}
+</style>
+{% endblock %}

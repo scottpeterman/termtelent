@@ -1,0 +1,56 @@
+{
+  "primary": "#282828",
+  "secondary": "#3C3836",
+  "background": "#282828",
+  "darker_bg": "#1d2021",
+  "lighter_bg": "#3C3836",
+  "text": "#EBDBB2",
+  "grid": "rgba(184, 187, 38, 0.1)",
+  "line": "#B8BB26",
+  "border": "#B8BB26",
+  "success": "#B8BB26",
+  "error": "#CC241D",
+  "border_light": "rgba(235, 219, 178, 0.4)",
+  "corner_gap": "#282828",
+  "corner_bright": "#B8BB26",
+  "panel_bg": "rgba(40, 40, 40, 0.95)",
+  "scrollbar_bg": "rgba(235, 219, 178, 0.1)",
+  "selected_bg": "rgba(235, 219, 178, 0.2)",
+  "button_hover": "#3C3836",
+  "button_pressed": "#1d2021",
+  "chart_bg": "rgba(40, 40, 40, 0.25)",
+  "terminal": {
+    "theme": {
+      "foreground": "#EBDBB2",
+      "background": "#282828",
+      "cursor": "#EBDBB2",
+      "cursorAccent": "#282828",
+      "selection": "#504945",
+      "selectionForeground": "#000000",
+
+      "black": "#282828",
+      "red": "#CC241D",
+      "green": "#98971A",
+      "yellow": "#D79921",
+      "blue": "#458588",
+      "magenta": "#B16286",
+      "cyan": "#689D6A",
+      "white": "#A89984",
+
+      "brightBlack": "#928374",
+      "brightRed": "#FB4934",
+      "brightGreen": "#B8BB26",
+      "brightYellow": "#FABD2F",
+      "brightBlue": "#83A598",
+      "brightMagenta": "#D3869B",
+      "brightCyan": "#8EC07C",
+      "brightWhite": "#EBDBB2",
+
+      "scrollbar": {
+        "background": "#282828",
+        "thumb": "rgba(235, 219, 178, 0.3)",
+        "thumb_hover": "rgba(235, 219, 178, 0.5)"
+      }
+    }
+  }
+}

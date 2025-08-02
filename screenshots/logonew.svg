@@ -1,0 +1,164 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Grid pattern for background -->
+    <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#e0e0e0" stroke-width="0.5" opacity="0.3"/>
+    </pattern>
+
+    <!-- Fine grid pattern -->
+    <pattern id="fine-grid" width="2" height="2" patternUnits="userSpaceOnUse">
+      <path d="M 2 0 L 0 0 0 2" fill="none" stroke="#f0f0f0" stroke-width="0.25" opacity="0.5"/>
+    </pattern>
+
+    <!-- Filters for technical effects -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="200" height="200" fill="white"/>
+
+  <!-- Grid backgrounds -->
+  <rect width="200" height="200" fill="url(#fine-grid)"/>
+  <rect width="200" height="200" fill="url(#grid)"/>
+
+  <!-- Corner reference marks -->
+  <g stroke="#666" stroke-width="0.5" fill="none" opacity="0.6">
+    <path d="M5,5 L15,5 M5,5 L5,15"/>
+    <path d="M195,5 L185,5 M195,5 L195,15"/>
+    <path d="M5,195 L15,195 M5,195 L5,185"/>
+    <path d="M195,195 L185,195 M195,195 L195,185"/>
+  </g>
+
+  <!-- Center point reference -->
+  <circle cx="100" cy="100" r="1" fill="#333" opacity="0.5"/>
+  <g stroke="#666" stroke-width="0.3" opacity="0.4">
+    <line x1="95" y1="100" x2="105" y2="100"/>
+    <line x1="100" y1="95" x2="100" y2="105"/>
+  </g>
+
+  <!-- Main triangle construction lines -->
+  <g stroke="#ccc" stroke-width="0.5" fill="none" opacity="0.3">
+    <!-- Vertical center line -->
+    <line x1="100" y1="20" x2="100" y2="180">
+      <animate attributeName="stroke-dasharray" values="0,360;180,180;360,0;0,360" dur="8s" repeatCount="indefinite"/>
+    </line>
+
+    <!-- Horizontal construction lines -->
+    <line x1="20" y1="100" x2="180" y2="100" opacity="0.2"/>
+    <line x1="30" y1="150" x2="170" y2="150" opacity="0.2"/>
+
+    <!-- Radial construction lines -->
+    <line x1="100" y1="100" x2="100" y2="30" opacity="0.2"/>
+    <line x1="100" y1="100" x2="170" y2="150" opacity="0.2"/>
+    <line x1="100" y1="100" x2="30" y2="150" opacity="0.2"/>
+  </g>
+
+  <!-- Main triangle -->
+  <path d="M100,30 L170,150 L30,150 Z"
+        stroke="black"
+        stroke-width="2"
+        fill="none"
+        filter="url(#glow)">
+    <animate attributeName="stroke-dasharray" values="0,400;200,200;400,0;0,400" dur="6s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Inner triangle guides -->
+  <path d="M100,50 L150,130 L50,130 Z"
+        stroke="#666"
+        stroke-width="0.8"
+        fill="none"
+        opacity="0.4">
+    <animate attributeName="opacity" values="0.4;0.8;0.4" dur="4s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Central circle -->
+  <circle cx="100" cy="100" r="35"
+          stroke="black"
+          stroke-width="2.5"
+          fill="none"
+          filter="url(#glow)">
+    <animate attributeName="r" values="35;38;35" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="stroke-width" values="2.5;3.5;2.5" dur="3s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Inner circle construction -->
+  <circle cx="100" cy="100" r="25"
+          stroke="#666"
+          stroke-width="1"
+          fill="none"
+          opacity="0.5">
+    <animate attributeName="stroke-dasharray" values="0,157;78.5,78.5;157,0;0,157" dur="5s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Central cross -->
+  <g stroke="black" stroke-width="1.5" opacity="0.8">
+    <line x1="85" y1="100" x2="115" y2="100">
+      <animate attributeName="x1" values="85;90;85" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="x2" values="115;110;115" dur="2s" repeatCount="indefinite"/>
+    </line>
+    <line x1="100" y1="85" x2="100" y2="115">
+      <animate attributeName="y1" values="85;90;85" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="y2" values="115;110;115" dur="2s" repeatCount="indefinite"/>
+    </line>
+  </g>
+
+  <!-- Technical details and measurements -->
+  <g stroke="#888" stroke-width="0.3" fill="none" opacity="0.5">
+    <!-- Dimension lines -->
+    <line x1="25" y1="30" x2="25" y2="150"/>
+    <line x1="20" y1="30" x2="30" y2="30"/>
+    <line x1="20" y1="150" x2="30" y2="150"/>
+
+    <!-- Arc indicators -->
+    <path d="M70,70 A30,30 0 0,1 130,70" stroke-dasharray="2,2"/>
+    <path d="M70,130 A30,30 0 0,0 130,130" stroke-dasharray="2,2"/>
+  </g>
+
+  <!-- Corner detail elements -->
+  <g stroke="#666" stroke-width="0.8" fill="none" opacity="0.6">
+    <!-- Top corner details -->
+    <path d="M95,35 L100,30 L105,35" stroke-linecap="square"/>
+
+    <!-- Bottom left corner -->
+    <path d="M35,145 L30,150 L35,155" stroke-linecap="square"/>
+
+    <!-- Bottom right corner -->
+    <path d="M165,145 L170,150 L165,155" stroke-linecap="square"/>
+  </g>
+
+  <!-- Scanning line effect -->
+  <line x1="0" y1="0" x2="200" y2="0"
+        stroke="black"
+        stroke-width="0.5"
+        opacity="0.3">
+    <animateTransform
+      attributeName="transform"
+      type="translate"
+      values="0,0;0,200;0,0"
+      dur="4s"
+      repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0;0.8;0" dur="4s" repeatCount="indefinite"/>
+  </line>
+
+  <!-- Technical annotations -->
+  <g font-family="monospace" font-size="6" fill="#666" opacity="0.4">
+    <text x="15" y="90">SSH°</text>
+    <text x="175" y="90">SNMP°</text>
+    <text x="95" y="170">Netmiko°</text>
+    <text x="15" y="180">Napalm</text>
+    <text x="170" y="20">TextFSM</text>
+  </g>
+
+  <!-- Outer frame -->
+  <rect x="5" y="5" width="190" height="190"
+        stroke="#333"
+        stroke-width="1"
+        fill="none"
+        opacity="0.3"/>
+</svg>

@@ -1,0 +1,222 @@
+<!-- templates/devices/crud_form.html -->
+{% extends "base.html" %}
+
+{% block title %}{% if action == 'edit' %}Edit Device{% else %}Add Device{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h4>{% if action == 'edit' %}Edit Device: {{ device.device_name }}{% else %}Add New Device{% endif %}</h4>
+                </div>
+
+                <form method="POST" action="{% if action == 'edit' %}{{ url_for('device_crud.update_device', device_id=device.id) }}{% else %}{{ url_for('device_crud.create_device') }}{% endif %}">
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Basic Information -->
+                            <div class="col-md-6">
+                                <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-info-circle"></i> Basic Information</h5>
+
+                                <div class="mb-3">
+                                    <label for="device_name" class="form-label">Device Name *</label>
+                                    <input type="text" class="form-control" id="device_name" name="device_name"
+                                           value="{{ device.device_name if device else '' }}" required>
+                                    <div class="form-text">Unique device identifier (e.g., core-01, access-switch-floor2)</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="hostname" class="form-label">Hostname</label>
+                                    <input type="text" class="form-control" id="hostname" name="hostname"
+                                           value="{{ device.hostname if device else '' }}">
+                                    <div class="form-text">Device's configured hostname</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="fqdn" class="form-label">FQDN</label>
+                                    <input type="text" class="form-control" id="fqdn" name="fqdn"
+                                           value="{{ device.fqdn if device else '' }}">
+                                    <div class="form-text">Fully qualified domain name</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="primary_ip" class="form-label">Primary IP Address</label>
+                                    <input type="text" class="form-control" id="primary_ip" name="primary_ip"
+                                           value="{{ device.primary_ip if device else '' }}">
+                                    <div class="form-text">Management IP address</div>
+                                </div>
+
+                                {% if action == 'edit' %}
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+                                               {% if device.is_active %}checked{% endif %}>
+                                        <label class="form-check-label" for="is_active">
+                                            Device is active
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Hardware Information -->
+                            <div class="col-md-6">
+                                <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-microchip"></i> Hardware Information</h5>
+
+                                <div class="mb-3">
+                                    <label for="vendor" class="form-label">Vendor *</label>
+                                    <select class="form-select" id="vendor" name="vendor" required>
+                                        <option value="">Select vendor...</option>
+                                        {% for vendor_option in vendors %}
+                                        <option value="{{ vendor_option }}"
+                                                {% if device and device.vendor == vendor_option %}selected{% endif %}>
+                                            {{ vendor_option }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="model" class="form-label">Model</label>
+                                    <input type="text" class="form-control" id="model" name="model"
+                                           value="{{ device.model if device else '' }}">
+                                    <div class="form-text">Device model number</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="serial_number" class="form-label">Serial Number *</label>
+                                    <input type="text" class="form-control" id="serial_number" name="serial_number"
+                                           value="{{ device.serial_number if device else '' }}" required>
+                                    <div class="form-text">Hardware serial number</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="os_version" class="form-label">OS Version</label>
+                                    <input type="text" class="form-control" id="os_version" name="os_version"
+                                           value="{{ device.os_version if device else '' }}">
+                                    <div class="form-text">Operating system version</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Site and Role Information -->
+                            <div class="col-md-6">
+                                <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-map-marker-alt"></i> Site and Role</h5>
+
+                                <div class="mb-3">
+                                    <label for="site_code" class="form-label">Site Code *</label>
+                                    <input type="text" class="form-control" id="site_code" name="site_code"
+                                           value="{{ device.site_code if device else '' }}"
+                                           pattern="[A-Z]{3,}" title="3+ uppercase letters" required>
+                                    <div class="form-text">Site identifier (e.g., FRC, USC, TWT)</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="device_role" class="form-label">Device Role *</label>
+                                    <select class="form-select" id="device_role" name="device_role" required>
+                                        <option value="">Select role...</option>
+                                        {% for role_option in roles %}
+                                        <option value="{{ role_option }}"
+                                                {% if device and device.device_role == role_option %}selected{% endif %}>
+                                            {{ role_option.title() }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Notes -->
+                            <div class="col-md-6">
+                                <h5 class="border-bottom pb-2 mb-3"><i class="fas fa-sticky-note"></i> Additional Information</h5>
+
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label">Notes</label>
+                                    <textarea class="form-control" id="notes" name="notes" rows="4">{{ device.notes if device else '' }}</textarea>
+                                    <div class="form-text">Additional notes or comments</div>
+                                </div>
+
+                                {% if device %}
+                                <div class="mb-3">
+                                    <small class="text-muted">
+                                        <strong>Created:</strong> {{ device.first_discovered | datetime }}<br>
+                                        <strong>Last Updated:</strong> {{ device.last_updated | datetime }}<br>
+                                        <strong>Device Key:</strong> <code>{{ device.device_key }}</code>
+                                    </small>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between">
+                            <a href="{% if device %}{{ url_for('device_crud.view_device', device_id=device.id) }}{% else %}{{ url_for('device_crud.list_devices') }}{% endif %}"
+                               class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                {% if action == 'edit' %}Update Device{% else %}Create Device{% endif %}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-uppercase site code
+    document.getElementById('site_code').addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+
+    // Auto-populate hostname from device name if empty
+    document.getElementById('device_name').addEventListener('input', function() {
+        const hostnameField = document.getElementById('hostname');
+        if (!hostnameField.value.trim()) {
+            hostnameField.value = this.value;
+        }
+    });
+
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const requiredFields = ['device_name', 'vendor', 'serial_number', 'site_code', 'device_role'];
+        let isValid = true;
+
+        requiredFields.forEach(field => {
+            const input = document.getElementById(field);
+            if (!input.value.trim()) {
+                input.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        });
+
+        // Validate site code format
+        const siteCode = document.getElementById('site_code').value;
+        if (siteCode && !/^[A-Z]{3,}$/.test(siteCode)) {
+            document.getElementById('site_code').classList.add('is-invalid');
+            isValid = false;
+        }
+
+        // Validate IP address if provided
+        const primaryIp = document.getElementById('primary_ip').value;
+        if (primaryIp && !/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(primaryIp)) {
+            document.getElementById('primary_ip').classList.add('is-invalid');
+            isValid = false;
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fix the highlighted fields before submitting.');
+        }
+    });
+});
+</script>
+{% endblock %}

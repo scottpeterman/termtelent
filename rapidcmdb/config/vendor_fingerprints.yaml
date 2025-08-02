@@ -1,0 +1,1380 @@
+version: '2.2'
+metadata:
+  description: Enhanced SNMP vendor fingerprinting with complete OID research and
+    definitive matching
+  last_updated: '2025-07-27'
+  contributors:
+  - team
+  - community
+common_oids:
+  system_description: 1.3.6.1.2.1.1.1.0
+  system_object_id: 1.3.6.1.2.1.1.2.0
+  system_uptime: 1.3.6.1.2.1.1.3.0
+  system_contact: 1.3.6.1.2.1.1.4.0
+  system_name: 1.3.6.1.2.1.1.5.0
+  system_location: 1.3.6.1.2.1.1.6.0
+  system_services: 1.3.6.1.2.1.1.7.0
+generic_oids:
+- name: Entity Model Name
+  oid: 1.3.6.1.2.1.47.1.1.1.1.13.1
+  priority: 1
+  description: Standard Entity MIB model name
+- name: Entity Serial Number
+  oid: 1.3.6.1.2.1.47.1.1.1.1.11.1
+  priority: 1
+  description: Standard Entity MIB serial number
+- name: Entity Hardware Revision
+  oid: 1.3.6.1.2.1.47.1.1.1.1.8.1
+  priority: 2
+  description: Standard Entity MIB hardware revision
+detection_rules:
+  priority_order:
+  - ion
+  - dell_idrac
+  - hp_ilo
+  - cisco_cimc
+  - bluecat
+  - lexmark
+  - zebra
+  - apc
+  - fortinet
+  - palo_alto
+  - aruba
+  - cisco
+  - arista
+  - dell
+  - hp_printer
+  - hp_network
+  - windows_ce
+  confidence_levels:
+    high: Multiple vendor-specific OIDs successful
+    medium: Basic detection + some vendor OIDs
+    low: Basic detection only
+    none: No vendor detected
+vendors:
+  lexmark:
+    display_name: Lexmark International
+    enterprise_oid: 1.3.6.1.4.1.641
+    definitive_patterns:
+    - pattern: lexmark
+      confidence: 100
+      description: Lexmark identification
+    - pattern: lexmark cx522
+      confidence: 100
+      description: Lexmark CX522 series
+    - pattern: lexmark cx532
+      confidence: 100
+      description: Lexmark CX532 series
+    - pattern: cxtzj.
+      confidence: 95
+      description: Lexmark CX522 firmware signature
+    - pattern: cxtgv.
+      confidence: 95
+      description: Lexmark CX532 firmware signature
+    detection_patterns:
+    - lexmark
+    - mx822ade
+    - mx820
+    - cx943adxse
+    - cx410de
+    - cx820
+    - ms823dn
+    - mxtgw
+    - cxtpc
+    - cxtpp
+    - msngw
+    - nh41
+    - cx522ade
+    - cx532adwe
+    - cx532adw
+    - cxtzj.
+    - cxtgv.
+    - yocto-standard
+    oid_patterns:
+    - 1.3.6.1.4.1.641.
+    - lexmark
+    - mxtgw
+    - cxtpc
+    - cxtpp
+    - msngw
+    exclusion_patterns:
+    - aruba
+    - cisco
+    - hp
+    - apc
+    device_type_rules:
+      multifunction_printer:
+        priority: 1
+        definitive_patterns:
+        - all-n-1
+        - cx532adwe
+        - cx522ade
+        - cx532adw
+        description: Lexmark multifunction printers
+      printer:
+        priority: 2
+        definitive_patterns:
+        - lexmark
+        - cx522
+        - cx532
+        - mx822
+        - ms823
+        description: Lexmark printers
+    device_types:
+    - printer
+    - multifunction_printer
+    fingerprint_oids:
+    - name: Lexmark Model
+      oid: 1.3.6.1.4.1.641.2.1.2.1.2.1
+      priority: 1
+      description: Lexmark printer model
+      definitive: true
+    - name: Lexmark Firmware Version
+      oid: 1.3.6.1.4.1.641.2.1.2.1.3.1
+      priority: 1
+      description: Lexmark firmware version
+      definitive: true
+    - name: Lexmark Serial Number
+      oid: 1.3.6.1.4.1.641.2.1.2.1.6.1
+      priority: 1
+      description: Lexmark serial number
+    - name: Printer Status
+      oid: 1.3.6.1.2.1.25.3.2.1.5.1
+      priority: 2
+      description: Standard printer status
+    model_extraction:
+    - regex: lexmark ([a-z0-9]+)
+      priority: 1
+      capture_group: 1
+      description: Lexmark model
+    - regex: lexmark (cx5[0-9]+\w+)
+      priority: 1
+      capture_group: 1
+      description: Lexmark CX5xx series model
+    - regex: lexmark (mx[0-9]+\w+)
+      priority: 1
+      capture_group: 1
+      description: Lexmark MX series model
+    serial_extraction:
+    - regex: 'serial number: ([a-z0-9-]+)'
+      priority: 1
+      capture_group: 1
+      description: Lexmark serial number
+    firmware_extraction:
+    - regex: version\s+(CXTZJ\.[0-9]+\.[0-9]+)
+      priority: 1
+      capture_group: 1
+      description: Lexmark CX522 firmware
+    - regex: version\s+(CXTGV\.[0-9]+\.[0-9]+)
+      priority: 1
+      capture_group: 1
+      description: Lexmark CX532 firmware
+    - regex: version\s+(MX[A-Z]+\.[0-9]+\.[0-9]+)
+      priority: 1
+      capture_group: 1
+      description: Lexmark MX series firmware
+  zebra:
+    display_name: Zebra Technologies
+    enterprise_oid: 1.3.6.1.4.1.10642
+    definitive_patterns:
+    - pattern: zebra
+      confidence: 100
+      description: Zebra identification
+    detection_patterns:
+    - zebra
+    - zt231
+    - zt610
+    - zt411
+    - zd410
+    - zd420
+    - thermal printer
+    - label printer
+    oid_patterns:
+    - 1.3.6.1.4.1.10642.
+    - zebra
+    exclusion_patterns:
+    - lexmark
+    - hp
+    - cisco
+    - aruba
+    device_type_rules:
+      label_printer:
+        priority: 1
+        definitive_patterns:
+        - zebra
+        - thermal printer
+        - label printer
+        description: Zebra label/thermal printers
+      thermal_printer:
+        priority: 2
+        definitive_patterns:
+        - zebra
+        - thermal printer
+        - zt231
+        - zt610
+        - zt411
+        - zd410
+        - zd420
+        description: Zebra thermal printers
+    device_types:
+    - thermal_printer
+    - label_printer
+    fingerprint_oids:
+    - name: Zebra Model
+      oid: 1.3.6.1.4.1.10642.1.1.1.0
+      priority: 1
+      description: Zebra printer model
+      definitive: true
+    - name: Zebra Serial Number
+      oid: 1.3.6.1.4.1.10642.1.1.2.0
+      priority: 1
+      description: Zebra printer serial number
+    - name: Zebra Firmware Version
+      oid: 1.3.6.1.4.1.10642.1.1.3.0
+      priority: 1
+      description: Zebra firmware version
+    - name: Zebra Status
+      oid: 1.3.6.1.2.1.25.3.2.1.5.1
+      priority: 2
+      description: Standard printer status
+  apc:
+    display_name: APC (Schneider Electric)
+    enterprise_oid: 1.3.6.1.4.1.318
+    definitive_patterns:
+    - pattern: apc web/snmp management card
+      confidence: 100
+      description: APC management card
+    - pattern: smart-ups
+      confidence: 100
+      description: APC Smart-UPS
+    - pattern: apc
+      confidence: 100
+      description: APC identification
+    detection_patterns:
+    - apc
+    - schneider
+    - powerware
+    - smart-ups
+    oid_patterns:
+    - 1.3.6.1.4.1.318.
+    - apc
+    exclusion_patterns:
+    - aruba
+    - cisco
+    - lexmark
+    - palo alto
+    device_type_rules:
+      ups:
+        priority: 1
+        definitive_patterns:
+        - smart-ups
+        - su_
+        description: APC UPS devices
+      pdu:
+        priority: 2
+        definitive_patterns:
+        - rpdu
+        - ap7920b
+        description: APC PDU devices
+    device_types:
+    - ups
+    - pdu
+    fingerprint_oids:
+    - name: APC Model Number
+      oid: 1.3.6.1.4.1.318.1.1.1.1.1.1.0
+      priority: 1
+      description: APC UPS model
+      definitive: true
+    - name: APC Model Number Alt
+      oid: 1.3.6.1.4.1.318.1.1.1.1.1.1.0
+      priority: 1
+      description: APC UPS model Alt
+    - name: APC Version
+      oid: 1.3.6.1.4.1.318.1.1.12.1.3.0
+      priority: 1
+      description: APC UPS OS Version
+      definitive: true
+    model_extraction:
+    - regex: mn:([a-z0-9]+)
+      priority: 1
+      capture_group: 1
+      description: APC model from description
+    serial_extraction:
+    - regex: 'sn: ([a-z0-9]+)'
+      priority: 1
+      capture_group: 1
+      description: APC serial from description
+    firmware_extraction:
+    - regex: af1:v([0-9.]+)
+      priority: 1
+      capture_group: 1
+      description: APC firmware version
+  palo_alto:
+    display_name: Palo Alto Networks
+    enterprise_oid: 1.3.6.1.4.1.25461
+    definitive_patterns:
+    - pattern: palo alto networks
+      confidence: 100
+      description: Palo Alto Networks identification
+    - pattern: pa-[0-9]+ series
+      confidence: 100
+      description: Palo Alto PA-series devices
+    - pattern: pan-os
+      confidence: 100
+      description: PAN-OS operating system
+    detection_patterns:
+    - palo alto
+    - pan-os
+    - panorama
+    - pa-220
+    - pa-850
+    - pa-3020
+    - pa-5220
+    oid_patterns:
+    - 1.3.6.1.4.1.25461.
+    - palo alto
+    - pan-os
+    exclusion_patterns:
+    - ion 1000
+    - ion 2000
+    - ion 3000
+    - ion 5000
+    - ion 7000
+    - ion 9000
+    - cloudgenix
+    - aruba
+    - cisco
+    device_type_rules:
+      firewall:
+        priority: 1
+        definitive_patterns:
+        - firewall
+        - pa-[0-9]+ series
+        mandatory_patterns:
+        - palo alto
+        description: Palo Alto firewall devices
+      management:
+        priority: 2
+        definitive_patterns:
+        - panorama
+        - management
+        mandatory_patterns:
+        - palo alto
+        description: Palo Alto management devices
+    device_types:
+    - firewall
+    - management
+    fingerprint_oids:
+    - name: Palo Alto Device Identifier
+      oid: 1.3.6.1.4.1.25461.2.3.36
+      priority: 1
+      description: Palo Alto device identifier
+      definitive: true
+    - name: Palo Alto OS Version
+      oid: 1.3.6.1.4.1.25461.2.1.2.1.1.0
+      priority: 1
+      description: Palo Alto PAN-OS version
+      definitive: true
+    - name: Palo Alto Verification
+      oid: 1.3.6.1.4.1.25461.2.1.2.1.14.0
+      priority: 1
+      description: Palo Alto vendor verification (should return 'paloaltonetworks')
+      expected_values:
+      - paloaltonetworks
+      definitive: true
+    - name: PAN Model
+      oid: 1.3.6.1.4.1.25461.2.1.2.1.1.0
+      priority: 1
+      description: Palo Alto model
+    - name: PAN Serial Number
+      oid: 1.3.6.1.4.1.25461.2.1.2.1.3.0
+      priority: 1
+      description: Palo Alto serial number
+    model_extraction:
+    - regex: pa-([0-9]+)
+      priority: 1
+      capture_group: 1
+      description: Palo Alto model extraction
+    - regex: pa-([0-9]+) series
+      priority: 2
+      capture_group: 1
+      description: Palo Alto series model extraction
+    serial_extraction:
+    - regex: 'serial number: ([a-z0-9]+)'
+      priority: 1
+      capture_group: 1
+      description: Palo Alto serial number
+    firmware_extraction:
+    - regex: pan-os ([0-9]+\.[0-9]+[^\s]*)
+      priority: 1
+      capture_group: 1
+      description: PAN-OS version
+  aruba:
+    display_name: Aruba Networks (HPE)
+    enterprise_oid: 1.3.6.1.4.1.11
+    definitive_patterns:
+    - pattern: aruba j
+      confidence: 100
+      description: Aruba J-series switches
+    - pattern: procurve switch
+      confidence: 100
+      description: ProCurve is HP/Aruba networking brand
+    - pattern: instant
+      confidence: 100
+      description: Aruba Instant APs
+    detection_patterns:
+    - aruba
+    - procurve switch
+    - aruba networks
+    - jl
+    - jg
+    - jx
+    - cx
+    - instant
+    oid_patterns:
+    - 1.3.6.1.4.1.11.2.14.11.
+    - 1.3.6.1.4.1.47196.
+    - 1.3.6.1.4.1.14823.
+    - aruba
+    - procurve switch
+    - arubaos
+    exclusion_patterns:
+    - ion 1200
+    - ion 2000
+    - ion 3000
+    - 'entity model name: ion'
+    - 'cisco model: ion'
+    - lexmark
+    - mxtgw
+    - cxtpc
+    - cxtpp
+    - msngw
+    - nh41
+    - ilo
+    - integrated lights-out
+    - apc web/snmp
+    - palo alto
+    device_type_rules:
+      access_point:
+        priority: 1
+        definitive_patterns:
+        - arubaos
+        - 'model:'
+        - ) ssr
+        mandatory_patterns:
+        - arubaos
+        description: Aruba wireless access points
+      switch:
+        priority: 2
+        definitive_patterns:
+        - aruba j
+        - procurve
+        - swch
+        - '6100'
+        - '6200'
+        - '6300'
+        - '6400'
+        description: Aruba switches
+      wireless_controller:
+        priority: 3
+        definitive_patterns:
+        - wireless lan controller
+        - mobility controller
+        - '7005'
+        - '7210'
+        - '7240'
+        - '9004'
+        - '9012'
+        description: Aruba wireless controllers
+    device_types:
+    - switch
+    - access_point
+    - wireless_controller
+    fingerprint_oids:
+    - name: HP Entity Module Description
+      oid: 1.3.6.1.4.1.11.2.14.11.1.2.3.1.4.1
+      priority: 1
+      description: HP networking module description
+      definitive: true
+    - name: Aruba CX Model
+      oid: 1.3.6.1.4.1.47196.4.1.1.3.8.2.1.1.1.4.1
+      priority: 1
+      description: Aruba CX switch model
+    model_extraction:
+    - regex: aruba (jl[0-9]+a?)
+      priority: 2
+      capture_group: 1
+      description: Aruba switch model
+    serial_extraction:
+    - regex: 'entity serial number: ([a-z0-9]+)'
+      priority: 1
+      capture_group: 1
+      description: Entity MIB serial number
+    firmware_extraction:
+    - regex: version ([0-9]+\.[0-9]+\.[0-9]+[^\s]*)
+      priority: 1
+      capture_group: 1
+      description: ArubaOS version
+    device_rules:
+    - conditions: []
+      description: ''
+      name: AP
+      priority: 1
+  ion:
+    display_name: ION Networks
+    enterprise_oid: 1.3.6.1.4.1.50114
+    definitive_patterns:
+    - pattern: ion 1200
+      confidence: 100
+      description: ION 1200 model (any variant)
+    - pattern: ion 2000
+      confidence: 100
+      description: ION 2000 model (any variant)
+    - pattern: ion 3000
+      confidence: 100
+      description: ION 3000 model (any variant)
+    - pattern: 'entity model name: ion 1200'
+      confidence: 100
+      description: ION 1200 via Entity MIB
+    - pattern: 'entity model name: ion 2000'
+      confidence: 100
+      description: ION 2000 via Entity MIB
+    - pattern: 'entity model name: ion 3000'
+      confidence: 100
+      description: ION 3000 via Entity MIB
+    - pattern: 'cisco model: ion'
+      confidence: 100
+      description: ION via Cisco MIB
+    detection_patterns:
+    - ion 1000
+    - ion 2000
+    - ion 3000
+    - ion 5000
+    - ion 7000
+    - ion 9000
+    oid_patterns:
+    - 1.3.6.1.4.1.50114.
+    - ion 3000
+    - ion 1000
+    - ion 2000
+    exclusion_patterns:
+    - arubaos
+    - aruba networks
+    - 'model: 515'
+    - 'model: 505'
+    - 'model: 325'
+    - ) ssr
+    - instant
+    - procurve
+    - jl675a
+    - palo alto
+    - pan-os
+    - firewall
+    device_type_rules:
+      sdwan_gateway:
+        priority: 1
+        definitive_patterns:
+        - ion 1200
+        - ion 2000
+        - ion 3000
+        mandatory_patterns:
+        - ion
+        description: ION SD-WAN gateway devices
+      edge_device:
+        priority: 2
+        definitive_patterns:
+        - ion
+        - edge
+        description: ION edge devices
+      wan_optimizer:
+        priority: 3
+        definitive_patterns:
+        - ion
+        - wan
+        - optimizer
+        description: ION WAN optimization devices
+    device_types:
+    - sdwan_gateway
+    - edge_device
+    - wan_optimizer
+    fingerprint_oids:
+    - name: ION Model
+      oid: 1.3.6.1.4.1.50114.11.1.10.3000
+      priority: 1
+      description: ION device model identifier
+      definitive: true
+    - name: ION 2000 Model
+      oid: 1.3.6.1.4.1.50114.11.1.10.2000
+      priority: 1
+      description: ION 2000 model identifier
+      definitive: true
+    - name: ION System Info
+      oid: 1.3.6.1.4.1.50114.11.1.10.3000
+      priority: 1
+      description: ION 3000 system information
+    model_extraction:
+    - regex: ion ([0-9]+)
+      priority: 1
+      capture_group: 1
+      description: ION model number extraction
+    - regex: ion ([0-9]+-[a-z]+)
+      priority: 2
+      capture_group: 1
+      description: ION model with suffix extraction
+    - regex: 'entity model name: ion ([0-9]+)'
+      priority: 3
+      capture_group: 1
+      description: ION model from Entity MIB
+    serial_extraction:
+    - regex: 'entity serial number: ([0-9-]+)'
+      priority: 1
+      capture_group: 1
+      description: ION serial from Entity MIB
+    firmware_extraction:
+    - regex: \( ([0-9]+\.[0-9]+\.[0-9]+-[a-z0-9]+) \)
+      priority: 1
+      capture_group: 1
+      description: ION firmware version from parentheses
+  cisco:
+    display_name: Cisco Systems
+    enterprise_oid: 1.3.6.1.4.1.9
+    definitive_patterns:
+    - pattern: cisco ios software
+      confidence: 100
+      description: Cisco IOS
+    - pattern: cisco systems
+      confidence: 100
+      description: Cisco identification
+    detection_patterns:
+    - cisco
+    - ios
+    - nx-os
+    - asa
+    - catalyst
+    - nexus
+    - cupertino
+    oid_patterns:
+    - 1.3.6.1.4.1.9.
+    - cisco
+    - ios
+    - nx-os
+    - catalyst
+    exclusion_patterns:
+    - 'entity model name: ion'
+    - 'cisco model: ion'
+    - ion 1200
+    - ion 2000
+    - ion 3000
+    - arubaos
+    - aruba networks
+    - palo alto
+    device_type_rules:
+      switch:
+        priority: 1
+        definitive_patterns:
+        - catalyst
+        - vios_l2
+        description: Cisco switches
+      router:
+        priority: 2
+        definitive_patterns:
+        - ios
+        - router
+        - vios_l3
+        description: Cisco routers
+      firewall:
+        priority: 3
+        definitive_patterns:
+        - asa
+        - firewall
+        description: Cisco firewalls
+    device_types:
+    - switch
+    - router
+    - firewall
+    fingerprint_oids:
+    - name: Cisco Catalyst Model
+      oid: 1.3.6.1.4.1.9.1.2694
+      priority: 1
+      description: Cisco Catalyst switch model
+      definitive: true
+    - name: Cisco Catalyst Old Model
+      oid: 1.3.6.1.4.1.9.1.2137
+      priority: 1
+      description: Cisco Catalyst switch (older model)
+      definitive: true
+    - name: IOS Version
+      oid: 1.3.6.1.2.1.47.1.1.1.1.9.1001
+      priority: 1
+      description: Cisco IOS version from Entity MIB
+    - name: IOS Average CPU (5 Minutes)
+      oid: 1.3.6.1.4.1.9.2.1.58.0
+      priority: 2
+      description: Cisco IOS CPU utilization (5 minute average)
+    - name: Total Flash Old IOS
+      oid: 1.3.6.1.4.1.9.2.10.1.0
+      priority: 2
+      description: Total flash memory (older IOS)
+    - name: Free Flash Old IOS
+      oid: 1.3.6.1.4.1.9.2.10.2.0
+      priority: 2
+      description: Free flash memory (older IOS)
+    - name: Cisco Software Version
+      oid: 1.3.6.1.4.1.9.9.25.1.1.1.2.2
+      priority: 1
+      description: Cisco-specific software version
+    - name: Cisco Platform
+      oid: 1.3.6.1.4.1.9.3.6.11.0
+      priority: 1
+      description: Cisco platform identifier
+    - name: Cisco IOS Version String
+      oid: 1.3.6.1.4.1.9.9.25.1.1.1.2.5
+      priority: 1
+      description: IOS version string
+    - name: Cisco Model
+      oid: 1.3.6.1.2.1.47.1.1.1.1.13.1
+      priority: 5
+      description: Entity MIB model (lower priority)
+    model_extraction:
+    - regex: catalyst ([a-z0-9-]+)
+      priority: 1
+      capture_group: 1
+      description: Cisco Catalyst model
+  cisco_cimc:
+    display_name: Cisco Integrated Management Controller (CIMC)
+    enterprise_oid: 1.3.6.1.4.1.9
+    definitive_patterns:
+    - pattern: cisco integrated management controller
+      confidence: 100
+      description: CIMC identification
+    - pattern: cimc
+      confidence: 100
+      description: CIMC identification
+    detection_patterns:
+    - cisco integrated management controller
+    - cimc
+    - ucs c-series
+    - ucs c220
+    - ucs c240
+    - ucs c480
+    - cisco ucs
+    oid_patterns:
+    - 1.3.6.1.4.1.9.9.719.
+    - 1.3.6.1.4.1.9.9.685.
+    - cimc
+    - ucs c-series
+    device_type_rules:
+      server_management:
+        priority: 1
+        definitive_patterns:
+        - cisco integrated management controller
+        - cimc
+        description: Cisco server management controllers
+      bmc:
+        priority: 2
+        definitive_patterns:
+        - integrated management controller
+        - ucs
+        description: Baseboard management controllers
+      server:
+        priority: 3
+        definitive_patterns:
+        - ucs c-series
+        - c220
+        - c240
+        - c480
+        description: Cisco UCS servers
+    device_types:
+    - server_management
+    - bmc
+    - server
+    fingerprint_oids:
+    - name: CIMC Version
+      oid: 1.3.6.1.4.1.9.9.719.1.9.1.0
+      priority: 1
+      description: Cisco CIMC firmware version
+      definitive: true
+    - name: UCS Chassis Model
+      oid: 1.3.6.1.4.1.9.9.719.1.1.1.1.2.1
+      priority: 1
+      description: UCS server chassis model
+    - name: UCS Serial Number
+      oid: 1.3.6.1.4.1.9.9.719.1.1.1.1.3.1
+      priority: 1
+      description: UCS server serial number
+    - name: CIMC Model
+      oid: 1.3.6.1.4.1.9.9.685.1.1.0
+      priority: 1
+      description: CIMC model identifier
+  fortinet:
+    display_name: Fortinet
+    enterprise_oid: 1.3.6.1.4.1.12356
+    definitive_patterns:
+    - pattern: fortinet
+      confidence: 100
+      description: Fortinet identification
+    - pattern: fortigate
+      confidence: 100
+      description: FortiGate firewall
+    detection_patterns:
+    - fortinet
+    - fortigate
+    - fortiswitch
+    - fortiap
+    - fortiwifi
+    - sd-wan hub
+    - fgt_101f
+    - fgt_60f
+    - fgt_80f
+    - fgt_100f
+    oid_patterns:
+    - 1.3.6.1.4.1.12356.
+    - fortinet
+    - fortigate
+    - fgt_
+    exclusion_patterns:
+    - cisco
+    - aruba
+    - palo alto
+    - ion
+    device_type_rules:
+      firewall:
+        priority: 1
+        definitive_patterns:
+        - fortigate
+        description: Fortinet firewalls
+      switch:
+        priority: 2
+        definitive_patterns:
+        - fortiswitch
+        description: Fortinet switches
+      access_point:
+        priority: 3
+        definitive_patterns:
+        - fortiap
+        description: Fortinet access points
+      sdwan_gateway:
+        priority: 4
+        definitive_patterns:
+        - fortinet
+        - sd-wan hub
+        description: Fortinet SD-WAN gateways
+    device_types:
+    - firewall
+    - switch
+    - access_point
+    - sdwan_gateway
+    fingerprint_oids:
+    - name: Fortinet Model
+      oid: 1.3.6.1.4.1.12356.101.1.2.1.0
+      priority: 1
+      description: Fortinet device model
+      definitive: true
+    - name: Fortinet Serial Number
+      oid: 1.3.6.1.4.1.12356.101.1.2.2.0
+      priority: 1
+      description: Fortinet serial number
+    - name: FortiOS Version
+      oid: 1.3.6.1.4.1.12356.101.4.1.1.0
+      priority: 1
+      description: FortiOS firmware version
+      definitive: true
+    - name: Fortinet System Status
+      oid: 1.3.6.1.4.1.12356.101.4.1.3.0
+      priority: 2
+      description: Fortinet system operational status
+  arista:
+    display_name: Arista Networks
+    enterprise_oid: 1.3.6.1.4.1.30065
+    detection_patterns:
+    - arista
+    - eos
+    oid_patterns:
+    - 1.3.6.1.4.1.30065.
+    - arista
+    - eos
+    device_type_rules:
+      switch:
+        priority: 1
+        definitive_patterns:
+        - eos version
+        - arista networks
+        description: Arista switches running EOS
+      router:
+        priority: 2
+        definitive_patterns:
+        - arista
+        - eos
+        - router
+        description: Arista routers running EOS
+    device_types:
+    - switch
+    - router
+    fingerprint_oids:
+    - name: Arista EOS Version
+      oid: 1.3.6.1.4.1.30065.3.1.1.0
+      priority: 1
+      description: Arista EOS software version
+    - name: Arista EOS Build
+      oid: 1.3.6.1.4.1.30065.3.1.2.0
+      priority: 1
+      description: Arista EOS build information
+  dell:
+    display_name: Dell Technologies
+    enterprise_oid: 1.3.6.1.4.1.674
+    definitive_patterns:
+    - pattern: dell
+      confidence: 100
+      description: Dell identification
+    detection_patterns:
+    - dell
+    - powerconnect
+    - force10
+    - poweredge
+    oid_patterns:
+    - 1.3.6.1.4.1.674.
+    - dell
+    exclusion_patterns:
+    - idrac
+    - integrated dell remote access
+    device_type_rules:
+      server:
+        priority: 1
+        definitive_patterns:
+        - poweredge
+        - dell server
+        description: Dell servers
+      switch:
+        priority: 2
+        definitive_patterns:
+        - powerconnect
+        - force10
+        - dell switch
+        description: Dell switches
+      storage:
+        priority: 3
+        definitive_patterns:
+        - dell storage
+        - compellent
+        - equallogic
+        description: Dell storage systems
+    device_types:
+    - server
+    - switch
+    - storage
+    fingerprint_oids:
+    - name: Dell Chassis Service Tag
+      oid: 1.3.6.1.4.1.674.10892.5.1.3.2.0
+      priority: 1
+      description: Dell service tag
+    - name: Dell Chassis Model
+      oid: 1.3.6.1.4.1.674.10892.5.1.3.12.0
+      priority: 1
+      description: Dell chassis model
+  dell_idrac:
+    display_name: Dell Integrated Dell Remote Access Controller (iDRAC)
+    enterprise_oid: 1.3.6.1.4.1.674
+    definitive_patterns:
+    - pattern: idrac
+      confidence: 100
+      description: iDRAC identification
+    - pattern: integrated dell remote access
+      confidence: 100
+      description: Dell Remote Access Controller
+    detection_patterns:
+    - idrac
+    - integrated dell remote access
+    - dell remote access controller
+    - OpenManage Enterprise Modular
+    - idrac6
+    - idrac7
+    - idrac8
+    - idrac9
+    oid_patterns:
+    - 1.3.6.1.4.1.674.10892.
+    - idrac
+    - integrated dell remote access
+    device_type_rules:
+      idrac:
+        priority: 1
+        definitive_patterns:
+        - idrac
+        - integrated dell remote access
+        description: Dell iDRAC controllers
+      bmc:
+        priority: 2
+        definitive_patterns:
+        - integrated dell remote access
+        - dell remote access controller
+        description: Baseboard management controllers
+      server:
+        priority: 3
+        definitive_patterns:
+        - poweredge
+        - dell server
+        description: Dell servers with iDRAC
+    device_types:
+    - idrac
+    - bmc
+    - server
+    fingerprint_oids:
+    - name: iDRAC Version
+      oid: 1.3.6.1.4.1.674.10892.5.1.1.12.0
+      priority: 1
+      description: iDRAC firmware version
+      definitive: true
+    - name: Dell Server Model
+      oid: 1.3.6.1.4.1.674.10892.5.1.3.12.0
+      priority: 1
+      description: Dell PowerEdge server model
+    - name: Dell Server Service Tag
+      oid: 1.3.6.1.4.1.674.10892.5.1.3.2.0
+      priority: 1
+      description: Dell server service tag
+    - name: iDRAC System Status
+      oid: 1.3.6.1.4.1.674.10892.5.2.1.0
+      priority: 2
+      description: iDRAC overall system status
+    - name: Server Power State
+      oid: 1.3.6.1.4.1.674.10892.5.4.200.10.1.4.1
+      priority: 2
+      description: Server power state
+  hp_ilo:
+    display_name: HP Integrated Lights-Out (iLO)
+    enterprise_oid: 1.3.6.1.4.1.232
+    definitive_patterns:
+    - pattern: integrated lights-out
+      confidence: 100
+      description: HP iLO identification
+    - pattern: ilo
+      confidence: 100
+      description: iLO identification
+    detection_patterns:
+    - integrated lights-out
+    - ilo
+    - ilo2
+    - ilo3
+    - ilo4
+    - ilo5
+    - hp proliant
+    - hpe proliant
+    oid_patterns:
+    - 1.3.6.1.4.1.232.
+    - ilo
+    - integrated lights-out
+    - proliant
+    device_type_rules:
+      server_management:
+        priority: 1
+        definitive_patterns:
+        - integrated lights-out
+        - ilo
+        description: HP/HPE server management controllers
+      bmc:
+        priority: 2
+        definitive_patterns:
+        - integrated lights-out
+        - ilo
+        description: Baseboard management controllers
+      server:
+        priority: 3
+        definitive_patterns:
+        - proliant
+        - hp server
+        - hpe server
+        description: HP/HPE servers
+    device_types:
+    - server_management
+    - bmc
+    - server
+    fingerprint_oids:
+    - name: iLO Version
+      oid: 1.3.6.1.4.1.232.9.2.9.1.1.0
+      priority: 1
+      description: HP iLO firmware version
+      definitive: true
+    - name: Server Model
+      oid: 1.3.6.1.4.1.232.2.2.4.2.0
+      priority: 1
+      description: HP/HPE server model
+    - name: Server Serial Number
+      oid: 1.3.6.1.4.1.232.2.2.2.1.0
+      priority: 1
+      description: HP/HPE server serial number
+    - name: iLO Management Engine Status
+      oid: 1.3.6.1.4.1.232.9.2.2.1.1.0
+      priority: 2
+      description: iLO management engine status
+    - name: Server Health Status
+      oid: 1.3.6.1.4.1.232.6.2.6.1.0
+      priority: 2
+      description: Overall server health status
+  hp_network:
+    display_name: HP Network Interfaces
+    enterprise_oid: 1.3.6.1.4.1.11
+    definitive_patterns:
+    - pattern: hp ethernet multi-environment
+      confidence: 100
+      description: HP Ethernet identification
+    - pattern: jetdirect
+      confidence: 100
+      description: HP JetDirect identification
+    detection_patterns:
+    - hp ethernet multi-environment
+    - hp ethernet
+    - hp jetdirect
+    - jetdirect
+    - hp network
+    - hewlett-packard ethernet
+    - hpbea
+    - hpjet
+    oid_patterns:
+    - 1.3.6.1.4.1.11.2.4.3.
+    - 1.3.6.1.4.1.11.2.3.7.
+    - jetdirect
+    - hp ethernet
+    exclusion_patterns:
+    - ilo
+    - integrated lights-out
+    - proliant
+    - aruba
+    - procurve
+    device_type_rules:
+      print_server:
+        priority: 1
+        definitive_patterns:
+        - jetdirect
+        - hp jetdirect
+        description: HP JetDirect print servers
+      network_interface:
+        priority: 2
+        definitive_patterns:
+        - hp ethernet
+        - hp network
+        - hewlett-packard ethernet
+        description: HP network interfaces
+    device_types:
+    - print_server
+    - network_interface
+    fingerprint_oids:
+    - name: JetDirect Model
+      oid: 1.3.6.1.4.1.11.2.4.3.1.1.3.1.0
+      priority: 1
+      description: HP JetDirect model identification
+      definitive: true
+    - name: JetDirect Firmware
+      oid: 1.3.6.1.4.1.11.2.4.3.1.1.3.2.0
+      priority: 1
+      description: HP JetDirect firmware version
+    - name: Network Interface Status
+      oid: 1.3.6.1.4.1.11.2.4.3.1.1.2.1.0
+      priority: 2
+      description: HP network interface status
+  hp_printer:
+    display_name: HP Printers
+    enterprise_oid: 1.3.6.1.4.1.11
+    definitive_patterns:
+    - pattern: laserjet
+      confidence: 100
+      description: HP LaserJet identification
+    - pattern: officejet
+      confidence: 100
+      description: HP OfficeJet identification
+    detection_patterns:
+    - laserjet
+    - officejet
+    - deskjet
+    - envy
+    - photosmart
+    - pagewide
+    - latex
+    - designjet
+    - printer
+    oid_patterns:
+    - 1.3.6.1.4.1.11.2.3.9.
+    - 1.3.6.1.4.1.11.2.4.3.
+    - laserjet
+    - officejet
+    - printer
+    exclusion_patterns:
+    - switch
+    - router
+    - aruba
+    - procurve
+    - lexmark
+    - ilo
+    - integrated lights-out
+    device_type_rules:
+      printer:
+        priority: 1
+        definitive_patterns:
+        - laserjet
+        - officejet
+        - deskjet
+        - envy
+        - photosmart
+        - pagewide
+        - latex
+        - designjet
+        description: HP printers
+    device_types:
+    - printer
+    fingerprint_oids:
+    - name: HP Printer Model
+      oid: 1.3.6.1.4.1.11.2.3.9.4.2.1.1.3.3.0
+      priority: 1
+      description: HP printer model name
+      definitive: true
+    - name: Printer Status
+      oid: 1.3.6.1.2.1.25.3.2.1.5.1
+      priority: 2
+      description: Standard printer status
+  bluecat:
+    display_name: BlueCat Networks
+    enterprise_oid: 1.3.6.1.4.1.13315
+    definitive_patterns:
+    - pattern: bluecat
+      confidence: 100
+      description: BlueCat identification
+    detection_patterns:
+    - bluecat
+    - adonis
+    - proteus
+    oid_patterns:
+    - 1.3.6.1.4.1.13315.
+    - bluecat
+    device_type_rules:
+      dns_server:
+        priority: 1
+        definitive_patterns:
+        - bluecat
+        - dns
+        - adonis
+        description: BlueCat DNS servers
+      dhcp_server:
+        priority: 2
+        definitive_patterns:
+        - bluecat
+        - dhcp
+        - proteus
+        description: BlueCat DHCP servers
+      ipam:
+        priority: 3
+        definitive_patterns:
+        - bluecat
+        - ipam
+        - address manager
+        description: BlueCat IPAM systems
+    device_types:
+    - dns_server
+    - dhcp_server
+    - ipam
+    fingerprint_oids:
+    - name: BlueCat System Info
+      oid: 1.3.6.1.4.1.13315.2.1
+      priority: 1
+      description: BlueCat system information
+      definitive: true
+    - name: BlueCat Version
+      oid: 1.3.6.1.4.1.13315.2.1.1.0
+      priority: 1
+      description: BlueCat software version
+      definitive: true
+  aruba_ap:
+    display_name: Aruba Ap
+    enterprise_oid: 1.3.6.1.4.1.11
+    definitive_patterns:
+    - pattern: arubaos
+      confidence: 100
+      description: ArubaOS is unique to Aruba devices
+    detection_patterns:
+    - aruba
+    - arubaos
+    - aos
+    - aruba networks
+    oid_patterns:
+    - 1.3.6.1.4.1.11.2.14.11.
+    - 1.3.6.1.4.1.47196.
+    - 1.3.6.1.4.1.14823.
+    - aruba
+    - procurve switch
+    - arubaos
+    exclusion_patterns:
+    - ion 1200
+    - ion 2000
+    - ion 3000
+    - 'entity model name: ion'
+    - 'cisco model: ion'
+    - lexmark
+    - mxtgw
+    - cxtpc
+    - cxtpp
+    - msngw
+    - nh41
+    - ilo
+    - integrated lights-out
+    - apc web/snmp
+    - palo alto
+    device_type_rules:
+      access_point:
+        priority: 1
+        definitive_patterns:
+        - arubaos
+        - 'model:'
+        - ) ssr
+        mandatory_patterns:
+        - arubaos
+        description: Aruba wireless access points
+      wireless_ap:
+        priority: 2
+        definitive_patterns:
+        - arubaos
+        - wireless
+        description: Aruba wireless access points (alternate classification)
+    device_types:
+    - access_point
+    - wireless_ap
+    fingerprint_oids:
+    - name: Aruba OS Version
+      oid: 1.3.6.1.4.1.14823.2.3.3.1.1.4.0
+      priority: 1
+      description: Aruba AOS Version
+      definitive: true
+    model_extraction:
+    - regex: 'model: ([0-9]+)'
+      priority: 1
+      capture_group: 1
+      description: Aruba AP model number
+    serial_extraction:
+    - regex: 'entity serial number: ([a-z0-9]+)'
+      priority: 1
+      capture_group: 1
+      description: Entity MIB serial number
+    firmware_extraction:
+    - regex: version ([0-9]+\.[0-9]+\.[0-9]+[^\s]*)
+      priority: 1
+      capture_group: 1
+      description: ArubaOS version
+scanning:
+  default_timeout: 30
+  oid_query_timeout: 10
+  delay_between_queries: 100
+  max_concurrent_queries: 5
+  retry_failed_oids: true
+  retry_count: 2
+global_field_extraction:
+  serial_patterns:
+  - regex: 'serial number: ([a-z0-9-]+)'
+    priority: 90
+    description: Generic serial format
+  - regex: 'sn: ([a-z0-9]+)'
+    priority: 91
+    description: Generic SN format
+  model_patterns:
+  - regex: 'model: ([a-z0-9]+)'
+    priority: 90
+    description: Generic model format
+  version_patterns:
+  - regex: version ([0-9]+\.[0-9]+\.[0-9]+[^\s]*)
+    priority: 90
+    description: Generic version format

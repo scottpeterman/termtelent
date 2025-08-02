@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+
+{% block title %}Network Search - {{ app_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">Network Search</li>
+{% endblock %}
+
+{% block content %}
+<!-- Enhanced Search Interface -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-search me-2"></i>
+                    Network Discovery Search
+                </h5>
+                <small class="text-muted">Search across configurations, interfaces, routing, hardware, and topology data</small>
+            </div>
+            <div class="card-body">
+                <form id="unifiedSearchForm" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="searchTerm" class="form-label">Search Query</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="searchTerm" name="search"
+                                   placeholder="IP, MAC, circuit ID, interface, VLAN..."
+                                   value="{{ request.args.get('search', '') }}">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-search me-1"></i>Search
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label for="searchCategory" class="form-label">Category</label>
+                        <select class="form-select" id="searchCategory" name="category">
+                            <option value="all">All Data</option>
+                            <option value="network">Network (IP/MAC/VLAN)</option>
+                            <option value="config">Configurations</option>
+                            <option value="interfaces">Interfaces</option>
+                            <option value="routing">Routing & BGP</option>
+                            <option value="hardware">Hardware & Optics</option>
+                            <option value="topology">Topology & LLDP</option>
+                            <option value="environment">Environment</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label for="deviceFilter" class="form-label">Device</label>
+                        <select class="form-select" id="deviceFilter" name="device">
+                            <option value="">All Devices</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label for="siteFilter" class="form-label">Site</label>
+                        <select class="form-select" id="siteFilter" name="site">
+                            <option value="">All Sites</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label for="searchMode" class="form-label">Mode</label>
+                        <select class="form-select" id="searchMode" name="mode">
+                            <option value="smart">Smart Search</option>
+                            <option value="contains">Contains</option>
+                            <option value="exact">Exact Match</option>
+                            <option value="regex">Regex</option>
+                        </select>
+                    </div>
+                </form>
+
+                <!-- Quick Search Shortcuts -->
+                <div class="mt-3">
+                    <small class="text-muted me-3">Quick searches:</small>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('10.', 'network', 'Find 10.x networks')">
+                            <i class="bi bi-globe me-1"></i>10.x Networks
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('GigabitEthernet', 'interfaces', 'Gigabit interfaces')">
+                            <i class="bi bi-ethernet me-1"></i>Gigabit Ports
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('vlan', 'network', 'VLAN configurations')">
+                            <i class="bi bi-hdd-network me-1"></i>VLANs
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('transceiver', 'hardware', 'Optical transceivers')">
+                            <i class="bi bi-cpu me-1"></i>Optics
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('bgp', 'routing', 'BGP configuration')">
+                            <i class="bi bi-diagram-3 me-1"></i>BGP
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="quickSearch('down', 'interfaces', 'Down interfaces')">
+                            <i class="bi bi-exclamation-triangle me-1"></i>Down Ports
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Advanced Search Toggle -->
+                <div class="mt-3">
+                    <button class="btn btn-outline-info btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#advancedSearch">
+                        <i class="bi bi-gear me-1"></i>Advanced Search Options
+                    </button>
+                </div>
+
+                <!-- Advanced Search Panel -->
+                <div class="collapse mt-3" id="advancedSearch">
+                    <div class="card border-secondary">
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="timeRange" class="form-label">Time Range</label>
+                                    <select class="form-select" id="timeRange" name="time_range">
+                                        <option value="">All Time</option>
+                                        <option value="1h">Last Hour</option>
+                                        <option value="24h">Last 24 Hours</option>
+                                        <option value="7d">Last 7 Days</option>
+                                        <option value="30d">Last 30 Days</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="vendorFilter" class="form-label">Vendor</label>
+                                    <select class="form-select" id="vendorFilter" name="vendor">
+                                        <option value="">All Vendors</option>
+                                        <option value="cisco">Cisco</option>
+                                        <option value="arista">Arista</option>
+                                        <option value="juniper">Juniper</option>
+                                        <option value="fortinet">Fortinet</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="statusFilter" class="form-label">Status</label>
+                                    <select class="form-select" id="statusFilter" name="status">
+                                        <option value="">All Status</option>
+                                        <option value="up">Up/Active</option>
+                                        <option value="down">Down/Inactive</option>
+                                        <option value="unknown">Unknown</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check mt-4">
+                                        <input class="form-check-input" type="checkbox" id="includeInactive" name="include_inactive">
+                                        <label class="form-check-label" for="includeInactive">
+                                            Include inactive devices
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Statistics -->
+<div class="row mb-4" id="searchStats" style="display: none;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-2">
+                        <div class="metric-value text-primary" id="totalResults">0</div>
+                        <div class="metric-label">Total Results</div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="metric-value text-success" id="deviceCount">0</div>
+                        <div class="metric-label">Devices Found</div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="metric-value text-info" id="dataTypes">0</div>
+                        <div class="metric-label">Data Types</div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="metric-value text-warning" id="configMatches">0</div>
+                        <div class="metric-label">Config Matches</div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="metric-value text-danger" id="networkMatches">0</div>
+                        <div class="metric-label">Network Matches</div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="metric-value text-secondary" id="searchTime">0ms</div>
+                        <div class="metric-label">Search Time</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Results Tabs -->
+<div class="row" id="searchResults" style="display: none;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="resultTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab">
+                            <i class="bi bi-list-ul me-1"></i>Summary <span class="badge bg-primary ms-1" id="summaryCount">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="configs-tab" data-bs-toggle="tab" data-bs-target="#configs" type="button" role="tab">
+                            <i class="bi bi-file-earmark-code me-1"></i>Configurations <span class="badge bg-secondary ms-1" id="configsCount">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="network-tab" data-bs-toggle="tab" data-bs-target="#network" type="button" role="tab">
+                            <i class="bi bi-globe me-1"></i>Network Data <span class="badge bg-secondary ms-1" id="networkCount">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="interfaces-tab" data-bs-toggle="tab" data-bs-target="#interfaces" type="button" role="tab">
+                            <i class="bi bi-ethernet me-1"></i>Interfaces <span class="badge bg-secondary ms-1" id="interfacesCount">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="topology-tab" data-bs-toggle="tab" data-bs-target="#topology" type="button" role="tab">
+                            <i class="bi bi-diagram-3 me-1"></i>Topology <span class="badge bg-secondary ms-1" id="topologyCount">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="hardware-tab" data-bs-toggle="tab" data-bs-target="#hardware" type="button" role="tab">
+                            <i class="bi bi-cpu me-1"></i>Hardware <span class="badge bg-secondary ms-1" id="hardwareCount">0</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="resultTabContent">
+                    <!-- Summary Tab -->
+                    <div class="tab-pane fade show active" id="summary" role="tabpanel">
+                        <div id="summaryContent">
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-search fs-1"></i>
+                                <p class="mt-2">Enter a search term to see results</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Configurations Tab -->
+                    <div class="tab-pane fade" id="configs" role="tabpanel">
+                        <div id="configsContent"></div>
+                    </div>
+
+                    <!-- Network Data Tab -->
+                    <div class="tab-pane fade" id="network" role="tabpanel">
+                        <div id="networkContent"></div>
+                    </div>
+
+                    <!-- Interfaces Tab -->
+                    <div class="tab-pane fade" id="interfaces" role="tabpanel">
+                        <div id="interfacesContent"></div>
+                    </div>
+
+                    <!-- Topology Tab -->
+                    <div class="tab-pane fade" id="topology" role="tabpanel">
+                        <div id="topologyContent"></div>
+                    </div>
+
+                    <!-- Hardware Tab -->
+                    <div class="tab-pane fade" id="hardware" role="tabpanel">
+                        <div id="hardwareContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Export Search Results</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Export Format</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="exportFormat" id="exportCSV" value="csv" checked>
+                        <label class="form-check-label" for="exportCSV">CSV (Comma Separated)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="exportFormat" id="exportJSON" value="json">
+                        <label class="form-check-label" for="exportJSON">JSON (Structured Data)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="exportFormat" id="exportXLSX" value="xlsx">
+                        <label class="form-check-label" for="exportXLSX">Excel (XLSX)</label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Include Data Types</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="includeConfigs" checked>
+                        <label class="form-check-label" for="includeConfigs">Configurations</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="includeNetwork" checked>
+                        <label class="form-check-label" for="includeNetwork">Network Data</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="includeInterfaces" checked>
+                        <label class="form-check-label" for="includeInterfaces">Interfaces</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="includeHardware">
+                        <label class="form-check-label" for="includeHardware">Hardware</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="performExport()">
+                    <i class="bi bi-download me-1"></i>Export
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detail View Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailModalTitle">Detail View</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detailContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+{% endblock %}

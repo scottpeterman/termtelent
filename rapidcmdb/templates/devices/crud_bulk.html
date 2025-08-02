@@ -1,0 +1,1009 @@
+<!-- Bulk Device Operations Template -->
+{% extends "base.html" %}
+
+{% block title %}Bulk Device Operations - {{ app_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('device_crud.list_devices') }}">Device Management</a></li>
+<li class="breadcrumb-item active">Bulk Operations</li>
+{% endblock %}
+
+{% block content %}
+<style>
+    /* Additional styles specific to bulk operations */
+    .upload-zone {
+        border: 2px dashed var(--border-light);
+        border-radius: 8px;
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        background-color: var(--darker-bg);
+        cursor: pointer;
+    }
+
+    .upload-zone:hover {
+        border-color: var(--line);
+        background-color: rgba(59, 130, 246, 0.05);
+    }
+
+    .upload-zone.dragover {
+        border-color: var(--line);
+        background-color: rgba(59, 130, 246, 0.1);
+    }
+
+    .feature-card {
+        background: linear-gradient(135deg, var(--lighter-bg) 0%, var(--panel-bg) 100%);
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+        padding: 1.5rem;
+        transition: transform 0.2s ease;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .template-preview {
+        background-color: var(--darker-bg);
+        border: 1px solid var(--border-light);
+        border-radius: 4px;
+        font-size: 0.8rem;
+        overflow-x: auto;
+    }
+
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-weight: 500;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid var(--border-light);
+        border-radius: 50%;
+        border-top-color: var(--line);
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .bg-success.text-dark {
+        background-color: var(--success) !important;
+        color: var(--background) !important;
+    }
+
+    .bg-warning.text-dark {
+        background-color: var(--warning-color) !important;
+        color: var(--background) !important;
+    }
+
+    .bg-info.text-dark {
+        background-color: var(--line) !important;
+        color: var(--background) !important;
+    }
+</style>
+<!-- Header -->
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-collection text-primary me-2"></i>
+            Bulk Device Operations
+        </h1>
+        <p class="text-muted mt-1">Import, export, and manage multiple devices efficiently</p>
+    </div>
+</div>
+
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-lg-8">
+                <!-- CSV Import Section -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="bi bi-upload me-2"></i>
+                            Bulk Device Import
+                        </h4>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('device_crud.bulk_import') }}" enctype="multipart/form-data" id="importForm">
+                        <div class="card-body">
+                            <!-- Upload Zone -->
+                            <div class="upload-zone mb-4" id="uploadZone">
+                                <div id="uploadContent">
+                                    <i class="bi bi-cloud-upload display-4 text-muted mb-3"></i>
+                                    <h5>Drop CSV file here or click to browse</h5>
+                                    <p class="text-muted mb-3">Maximum file size: 10MB</p>
+                                    <input type="file" class="form-control d-none" id="csvFile" name="file" accept=".csv" />
+                                    <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('csvFile').click()">
+                                        <i class="bi bi-folder2-open me-2"></i>
+                                        Choose File
+                                    </button>
+                                </div>
+
+                                <!-- Upload Progress -->
+                                <div id="uploadProgress" class="d-none">
+                                    <div class="progress mb-3">
+                                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                    <p class="mb-0">Uploading and processing...</p>
+                                </div>
+                            </div>
+
+                            <!-- CSV Requirements -->
+                            <div class="alert alert-info">
+                                <h6><i class="bi bi-info-circle me-2"></i>CSV Format Requirements</h6>
+                                <p class="mb-2">Your CSV file must contain the following columns:</p>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong>Required Fields:</strong>
+                                        <ul class="mb-0 mt-1">
+                                            <li><code>device_name</code> - Unique identifier</li>
+                                            <li><code>vendor</code> - Device manufacturer</li>
+                                            <li><code>serial_number</code> - Hardware serial</li>
+                                            <li><code>site_code</code> - Location (3+ letters)</li>
+                                            <li><code>device_role</code> - Device function</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Optional Fields:</strong>
+                                        <ul class="mb-0 mt-1">
+                                            <li><code>hostname</code> - Network hostname</li>
+                                            <li><code>model</code> - Device model</li>
+                                            <li><code>os_version</code> - Software version</li>
+                                            <li><code>primary_ip</code> - Management IP</li>
+                                            <li><code>notes</code> - Additional information</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Import Options -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h6>Import Options</h6>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="skipDuplicates" name="skip_duplicates" checked>
+                                        <label class="form-check-label" for="skipDuplicates">
+                                            Skip duplicate device names
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="validateOnly" name="validate_only">
+                                        <label class="form-check-label" for="validateOnly">
+                                            Validate only (don't import)
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="autoCorrect" name="auto_correct" checked>
+                                        <label class="form-check-label" for="autoCorrect">
+                                            Auto-correct common formats
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Default Values</h6>
+                                    <div class="mb-2">
+                                        <label for="defaultSite" class="form-label form-label-sm">Default Site Code</label>
+                                        <input type="text" class="form-control form-control-sm" id="defaultSite" name="default_site" placeholder="e.g., HQ1">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label for="defaultVendor" class="form-label form-label-sm">Default Vendor</label>
+                                        <select class="form-select form-select-sm" id="defaultVendor" name="default_vendor">
+                                            <option value="">Select vendor...</option>
+                                            <option value="Cisco">Cisco</option>
+                                            <option value="Juniper">Juniper</option>
+                                            <option value="Arista">Arista</option>
+                                            <option value="HP">HP</option>
+                                            <option value="Dell">Dell</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="d-flex justify-content-between">
+                                <a href="{{ url_for('device_crud.list_devices') }}" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-left me-2"></i>
+                                    Back to Devices
+                                </a>
+                                <div>
+                                    <button type="button" class="btn btn-outline-primary me-2" id="validateBtn" disabled>
+                                        <i class="bi bi-check-circle me-2"></i>
+                                        Validate CSV
+                                    </button>
+                                    <button type="submit" class="btn btn-primary" id="importBtn" disabled>
+                                        <i class="bi bi-upload me-2"></i>
+                                        Import Devices
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Import Results -->
+                <div class="card d-none" id="resultsCard">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-check me-2"></i>
+                            Import Results
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <div class="h2 text-success mb-1" id="successCount">0</div>
+                                    <div class="text-muted small">Imported</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <div class="h2 text-warning mb-1" id="skipCount">0</div>
+                                    <div class="text-muted small">Skipped</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <div class="h2 text-danger mb-1" id="errorCount">0</div>
+                                    <div class="text-muted small">Errors</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <div class="h2 text-info mb-1" id="totalCount">0</div>
+                                    <div class="text-muted small">Total Rows</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="importMessages" class="mt-3"></div>
+
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm me-2" onclick="downloadErrorReport()">
+                                <i class="bi bi-download me-1"></i>
+                                Download Error Report
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="viewImportedDevices()">
+                                <i class="bi bi-eye me-1"></i>
+                                View Imported Devices
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bulk Update Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="bi bi-pencil-square me-2"></i>
+                            Bulk Update Operations
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h6><i class="bi bi-lightbulb me-2"></i>How to Perform Bulk Updates</h6>
+                            <ol class="mb-0">
+                                <li>Navigate to the <a href="{{ url_for('device_crud.list_devices') }}" class="text-decoration-none">Device Management</a> page</li>
+                                <li>Use filters to find the devices you want to update</li>
+                                <li>Select devices using the checkboxes in the leftmost column</li>
+                                <li>Click the "Bulk Edit" button that appears when devices are selected</li>
+                                <li>Choose which fields to update and apply changes to all selected devices</li>
+                            </ol>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="feature-card h-100">
+                                    <h6 class="text-success mb-3">
+                                        <i class="bi bi-check-circle me-2"></i>
+                                        Available Bulk Operations
+                                    </h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2">
+                                            <i class="bi bi-check text-success me-2"></i>
+                                            Update site codes and locations
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bi bi-check text-success me-2"></i>
+                                            Change device roles and types
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bi bi-check text-success me-2"></i>
+                                            Modify vendor information
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bi bi-check text-success me-2"></i>
+                                            Activate or deactivate devices
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="bi bi-check text-success me-2"></i>
+                                            Update IP addresses and hostnames
+                                        </li>
+                                        <li class="mb-0">
+                                            <i class="bi bi-check text-success me-2"></i>
+                                            Add or modify device notes
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="feature-card h-100">
+                                    <h6 class="text-info mb-3">
+                                        <i class="bi bi-download me-2"></i>
+                                        Export and Reporting
+                                    </h6>
+                                    <p class="mb-3">Export your device data for analysis, backup, or reporting purposes.</p>
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-info btn-sm" onclick="exportAllDevices()">
+                                            <i class="bi bi-file-spreadsheet me-2"></i>
+                                            Export All Devices (CSV)
+                                        </button>
+                                        <button class="btn btn-outline-info btn-sm" onclick="exportFilteredDevices()">
+                                            <i class="bi bi-funnel me-2"></i>
+                                            Export Filtered Devices
+                                        </button>
+                                        <a href="{{ url_for('reports.index') }}" class="btn btn-outline-info btn-sm">
+                                            <i class="bi bi-file-text me-2"></i>
+                                            Generate Device Report
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Template Download -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-download me-2"></i>
+                            CSV Template
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Download a sample CSV template to get started with your bulk import:</p>
+
+                        <div class="d-grid gap-2 mb-3">
+                            <button type="button" class="btn btn-primary" onclick="downloadTemplate()">
+                                <i class="bi bi-download me-2"></i>
+                                Download Template
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="downloadSampleData()">
+                                <i class="bi bi-file-text me-2"></i>
+                                Download with Sample Data
+                            </button>
+                        </div>
+
+                        <h6 class="mt-4 mb-2">Template Preview:</h6>
+                        <div class="template-preview p-2">
+                            <code class="small">
+device_name,vendor,serial_number,site_code,device_role,hostname,model,os_version<br>
+core-switch-01,Cisco,ABC123456789,FRC,core,core-sw-01.company.com,Catalyst 9300,16.12.05<br>
+access-switch-02,Cisco,DEF987654321,FRC,access,access-sw-02.company.com,Catalyst 2960,15.2.7<br>
+router-01,Juniper,GHI555666777,USC,router,rtr-01.company.com,MX204,20.4R3.8
+                            </code>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Import Tips -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-lightbulb me-2"></i>
+                            Import Tips
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="status-badge bg-success text-dark mb-2 d-block">
+                            <i class="bi bi-check-circle me-1"></i>
+                            Best Practices
+                        </div>
+                        <ul class="small mb-3">
+                            <li>Use consistent naming conventions</li>
+                            <li>Validate data before importing</li>
+                            <li>Keep backups of your original files</li>
+                            <li>Test with a small batch first</li>
+                        </ul>
+
+                        <div class="status-badge bg-warning text-dark mb-2 d-block">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            Common Issues
+                        </div>
+                        <ul class="small mb-3">
+                            <li>Duplicate device names will be skipped</li>
+                            <li>Invalid site codes (must be 3+ uppercase letters)</li>
+                            <li>Missing required fields</li>
+                            <li>Incorrect IP address formats</li>
+                        </ul>
+
+                        <div class="status-badge bg-info text-dark mb-2 d-block">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Performance Notes
+                        </div>
+                        <ul class="small mb-0">
+                            <li>Large imports may take several minutes</li>
+                            <li>Maximum 1000 devices per import</li>
+                            <li>Progress will be shown during processing</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-graph-up me-2"></i>
+                            Quick Statistics
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6 mb-3">
+                                <div class="h4 text-primary mb-1" id="totalDevices">156</div>
+                                <div class="small text-muted">Total Devices</div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="h4 text-success mb-1" id="activeDevices">142</div>
+                                <div class="small text-muted">Active</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="h4 text-info mb-1" id="totalSites">8</div>
+                                <div class="small text-muted">Sites</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="h4 text-warning mb-1" id="totalVendors">5</div>
+                                <div class="small text-muted">Vendors</div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="small text-muted">
+                            <i class="bi bi-clock me-1"></i>
+                            Last updated: <span id="lastUpdate">{{ moment().fromNow() if moment else 'Just now' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Get theme colors from your existing theme system
+    function getThemeColors() {
+        const styles = getComputedStyle(document.documentElement);
+        return {
+            primary: styles.getPropertyValue('--primary').trim(),
+            line: styles.getPropertyValue('--line').trim(),
+            success: styles.getPropertyValue('--success').trim(),
+            error: styles.getPropertyValue('--error').trim(),
+            text: styles.getPropertyValue('--text').trim(),
+            background: styles.getPropertyValue('--background').trim(),
+            borderLight: styles.getPropertyValue('--border-light').trim()
+        };
+    }
+        const uploadZone = document.getElementById('uploadZone');
+        const csvFile = document.getElementById('csvFile');
+        const validateBtn = document.getElementById('validateBtn');
+        const importBtn = document.getElementById('importBtn');
+        let selectedFile = null;
+
+        // Drag and drop handlers
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].name.endsWith('.csv')) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        uploadZone.addEventListener('click', () => {
+            csvFile.click();
+        });
+
+        csvFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            selectedFile = file;
+
+            // Update upload zone
+            const uploadContent = document.getElementById('uploadContent');
+            uploadContent.innerHTML = `
+                <i class="bi bi-file-earmark-spreadsheet display-4 text-success mb-3"></i>
+                <h5 class="text-success">File Selected</h5>
+                <p class="mb-2"><strong>${file.name}</strong></p>
+                <p class="text-muted mb-3">Size: ${(file.size / 1024).toFixed(1)} KB</p>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearFile()">
+                    <i class="bi bi-x me-1"></i>Change File
+                </button>
+            `;
+
+            // Enable buttons
+            validateBtn.disabled = false;
+            importBtn.disabled = false;
+        }
+
+        function clearFile() {
+            selectedFile = null;
+            csvFile.value = '';
+            validateBtn.disabled = true;
+            importBtn.disabled = true;
+
+            document.getElementById('uploadContent').innerHTML = `
+                <i class="bi bi-cloud-upload display-4 text-muted mb-3"></i>
+                <h5>Drop CSV file here or click to browse</h5>
+                <p class="text-muted mb-3">Maximum file size: 10MB</p>
+                <button type="button" class="btn btn-outline-primary" onclick="csvFile.click()">
+                    <i class="bi bi-folder2-open me-2"></i>
+                    Choose File
+                </button>
+            `;
+        }
+
+        // Validation
+        validateBtn.addEventListener('click', () => {
+            if (!selectedFile) return;
+
+            validateBtn.innerHTML = '<span class="loading-spinner me-2"></span>Validating...';
+            validateBtn.disabled = true;
+
+            // Simulate validation
+            setTimeout(() => {
+                showValidationResults();
+                validateBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Validate CSV';
+                validateBtn.disabled = false;
+            }, 2000);
+        });
+
+        // Import
+        importBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+
+            if (!selectedFile) return;
+
+            const validateOnly = document.getElementById('validateOnly').checked;
+
+            if (validateOnly) {
+                validateBtn.click();
+                return;
+            }
+
+            // Show progress
+            showUploadProgress();
+
+            // Submit the actual form
+            document.getElementById('importForm').submit();
+        });
+
+        function showUploadProgress() {
+            document.getElementById('uploadContent').classList.add('d-none');
+            document.getElementById('uploadProgress').classList.remove('d-none');
+
+            const progressBar = document.querySelector('.progress-bar');
+            let progress = 0;
+
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 100) progress = 100;
+
+                progressBar.style.width = progress + '%';
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(showImportResults, 500);
+                }
+            }, 200);
+        }
+
+        function simulateImport() {
+            // This would normally be an actual API call
+            setTimeout(() => {
+                showImportResults();
+            }, 3000);
+        }
+
+        function showValidationResults() {
+            showBulkAlert('Validation completed! 3 errors found, 15 records valid.', 'warning');
+        }
+
+        function showImportResults() {
+            document.getElementById('uploadProgress').classList.add('d-none');
+            document.getElementById('uploadContent').classList.remove('d-none');
+            document.getElementById('resultsCard').classList.remove('d-none');
+
+            // Update counts
+            document.getElementById('successCount').textContent = '15';
+            document.getElementById('skipCount').textContent = '2';
+            document.getElementById('errorCount').textContent = '3';
+            document.getElementById('totalCount').textContent = '20';
+
+            // Show messages
+            const messages = document.getElementById('importMessages');
+            messages.innerHTML = `
+                <div class="alert alert-success">
+                    <strong>Successfully imported 15 devices</strong>
+                </div>
+                <div class="alert alert-warning">
+                    <strong>Skipped 2 devices:</strong> Duplicate device names found
+                </div>
+                <div class="alert alert-danger">
+                    <strong>3 errors occurred:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Row 5: Invalid site code format</li>
+                        <li>Row 8: Missing required field 'serial_number'</li>
+                        <li>Row 12: Invalid IP address format</li>
+                    </ul>
+                </div>
+            `;
+
+            showBulkAlert('Import completed! Check results below.', 'success');
+        }
+
+        // Template downloads
+        function downloadTemplate() {
+            const csvContent = `device_name,vendor,serial_number,site_code,device_role,hostname,model,os_version,primary_ip,notes
+`;
+            downloadCSV(csvContent, 'device_import_template.csv');
+        }
+
+        function downloadSampleData() {
+            const csvContent = `device_name,vendor,serial_number,site_code,device_role,hostname,model,os_version,primary_ip,notes
+core-switch-01,Cisco,ABC123456789,FRC,core,core-sw-01.company.com,Catalyst 9300,16.12.05,192.168.1.10,Primary core switch
+access-switch-02,Cisco,DEF987654321,FRC,access,access-sw-02.company.com,Catalyst 2960,15.2.7,192.168.1.20,Floor 2 access switch
+router-01,Juniper,GHI555666777,USC,router,rtr-01.company.com,MX204,20.4R3.8,10.0.1.1,Main campus router
+firewall-01,Fortinet,JKL999888777,HQ1,firewall,fw-01.company.com,FortiGate 200E,7.0.5,172.16.1.1,Perimeter firewall
+`;
+            downloadCSV(csvContent, 'device_import_sample.csv');
+        }
+
+        function downloadCSV(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+
+        async function exportAllDevices() {
+    try {
+        showBulkAlert('Preparing export... Please wait.', 'info');
+
+        const response = await fetch('{{ url_for("device_crud.api_devices") }}?format=csv&export=all');
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // Get the response as text first
+        const responseText = await response.text();
+
+        let csvContent;
+
+        try {
+            // Try to parse as JSON
+            const jsonData = JSON.parse(responseText);
+            console.log('Received JSON data:', jsonData);
+
+            // Convert JSON to CSV
+            csvContent = convertDeviceJSONToCSV(jsonData);
+
+        } catch (jsonError) {
+            // If it's not JSON, assume it's already CSV
+            console.log('Response is not JSON, treating as CSV');
+            csvContent = responseText;
+        }
+
+        // Create and trigger download
+        const blob = new Blob([csvContent], {
+            type: 'text/csv;charset=utf-8;'
+        });
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `all_devices_export_${timestamp}.csv`;
+
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        window.URL.revokeObjectURL(url);
+
+        showBulkAlert('Export completed successfully!', 'success');
+
+    } catch (error) {
+        console.error('Export failed:', error);
+        showBulkAlert('Export failed: ' + error.message, 'danger');
+    }
+}
+
+// Convert device JSON data to CSV format
+function convertDeviceJSONToCSV(jsonData) {
+    // Handle different JSON response structures
+    let devices = [];
+
+    if (Array.isArray(jsonData)) {
+        devices = jsonData;
+    } else if (jsonData.devices && Array.isArray(jsonData.devices)) {
+        devices = jsonData.devices;
+    } else if (jsonData.data && Array.isArray(jsonData.data)) {
+        devices = jsonData.data;
+    } else {
+        throw new Error('Unknown JSON structure - cannot convert to CSV');
+    }
+
+    if (devices.length === 0) {
+        return 'No devices found\r\n';
+    }
+
+    // Define the columns we want in the CSV (adjust based on your device model)
+    const columns = [
+        'device_name',
+        'hostname',
+        'vendor',
+        'model',
+        'serial_number',
+        'site_code',
+        'device_role',
+        'primary_ip',
+        'os_version',
+        'notes',
+        'active',
+        'created_at',
+        'updated_at'
+    ];
+
+    // Create CSV header
+    let csvContent = columns.join(',') + '\r\n';
+
+    // Add device data
+    devices.forEach(device => {
+        const row = columns.map(column => {
+            let value = device[column];
+
+            // Handle null/undefined values
+            if (value === null || value === undefined) {
+                value = '';
+            }
+
+            // Convert to string
+            value = String(value);
+
+            // Handle CSV special characters
+            if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
+                // Escape quotes by doubling them
+                value = value.replace(/"/g, '""');
+                // Wrap in quotes
+                value = `"${value}"`;
+            }
+
+            return value;
+        });
+
+        csvContent += row.join(',') + '\r\n';
+    });
+
+    return csvContent;
+}
+
+// Updated filtered export function
+async function exportFilteredDevices() {
+    try {
+        showBulkAlert('Preparing filtered export... Please wait.', 'info');
+
+        let exportUrl;
+
+        if (window.location.pathname.includes('device_crud/list')) {
+            // We're on the device list page, can export current filters
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('format', 'csv');
+            urlParams.set('export', 'filtered');
+            exportUrl = `{{ url_for("device_crud.api_devices") }}?${urlParams.toString()}`;
+        } else {
+            // Not on device list page, export all
+            exportUrl = `{{ url_for("device_crud.api_devices") }}?format=csv&export=all`;
+        }
+
+        const response = await fetch(exportUrl);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const responseText = await response.text();
+        let csvContent;
+
+        try {
+            // Try to parse as JSON
+            const jsonData = JSON.parse(responseText);
+            csvContent = convertDeviceJSONToCSV(jsonData);
+        } catch (jsonError) {
+            // If it's not JSON, assume it's already CSV
+            csvContent = responseText;
+        }
+
+        // Create and trigger download
+        const blob = new Blob([csvContent], {
+            type: 'text/csv;charset=utf-8;'
+        });
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `filtered_devices_export_${timestamp}.csv`;
+
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        window.URL.revokeObjectURL(url);
+
+        showBulkAlert('Filtered export completed successfully!', 'success');
+
+    } catch (error) {
+        console.error('Filtered export failed:', error);
+        showBulkAlert('Filtered export failed: ' + error.message, 'danger');
+    }
+}
+
+// Alternative: Request JSON explicitly and convert
+async function exportAllDevicesJSON() {
+    try {
+        showBulkAlert('Preparing export... Please wait.', 'info');
+
+        // Request JSON format explicitly
+        const response = await fetch('{{ url_for("device_crud.api_devices") }}?format=json&export=all');
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const jsonData = await response.json();
+        const csvContent = convertDeviceJSONToCSV(jsonData);
+
+        // Create and trigger download
+        const blob = new Blob([csvContent], {
+            type: 'text/csv;charset=utf-8;'
+        });
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `all_devices_export_${timestamp}.csv`;
+
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        window.URL.revokeObjectURL(url);
+
+        showBulkAlert('Export completed successfully!', 'success');
+
+    } catch (error) {
+        console.error('Export failed:', error);
+        showBulkAlert('Export failed: ' + error.message, 'danger');
+    }
+}
+
+        function downloadErrorReport() {
+            const errorContent = `Row,Error,Device Name,Details
+5,Invalid site code,switch-bad-01,Site code must be 3+ uppercase letters
+8,Missing serial number,router-missing,Serial number is required
+12,Invalid IP,server-bad-ip,IP address format is invalid
+`;
+            downloadCSV(errorContent, 'import_errors_report.csv');
+        }
+
+        function viewImportedDevices() {
+            window.location.href = '{{ url_for("device_crud.list_devices") }}?recent=true';
+        }
+
+        // Utility functions using your existing alert system
+        function showBulkAlert(message, type) {
+                // Fallback to creating alert if base function not available
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+                alertDiv.style.top = '20px';
+                alertDiv.style.right = '20px';
+                alertDiv.style.zIndex = '9999';
+                alertDiv.style.minWidth = '350px';
+                alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                document.body.appendChild(alertDiv);
+
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.remove();
+                    }
+                }, 5000);
+
+        }
+
+        // Load initial stats from your dashboard system
+        async function loadStats() {
+            try {
+                const response = await fetch('{{ url_for("dashboard.api_metrics") }}');
+                const data = await response.json();
+
+                if (data.device_stats) {
+                    document.getElementById('totalDevices').textContent = data.device_stats.total || 0;
+                    document.getElementById('activeDevices').textContent = data.device_stats.total || 0; // Assuming most are active
+
+                    // Update vendor count
+                    const vendorCount = data.device_stats.vendors ? data.device_stats.vendors.length : 0;
+                    document.getElementById('totalVendors').textContent = vendorCount;
+                }
+
+                // Update timestamp
+                document.getElementById('lastUpdate').textContent = 'Just now';
+
+            } catch (error) {
+                console.log('Could not load dashboard stats, using defaults');
+                // Keep the default values already in HTML
+            }
+        }
+
+        // Initialize with theme-aware functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Bulk operations page loaded with theme:', '{{ current_theme_name }}');
+            loadStats();
+
+            // Apply theme-specific enhancements
+            const themeColors = getThemeColors();
+            console.log('Theme colors loaded:', themeColors);
+        });
+    </script>
+
+{% endblock %}

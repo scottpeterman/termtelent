@@ -1,0 +1,694 @@
+{
+  "platforms": {
+    "cisco_ios_xe": {
+      "display_name": "Cisco IOS XE",
+      "description": "Cisco IOS XE devices (ISR, ASR, Catalyst 9000 series)",
+      "netmiko": {
+        "device_type": "cisco_xe",
+        "fast_cli": false,
+        "timeout": 30,
+        "auth_timeout": 10
+      },
+      "templates": {
+        "platform": "cisco_ios",
+        "base_path": "templates/textfsm"
+      },
+      "commands": {
+        "system_info": {
+          "command": "show version",
+          "template": "cisco_ios_show_version.textfsm",
+          "timeout": 15,
+          "description": "Device system information"
+        },
+        "cdp_neighbors": {
+          "command": "show cdp neighbors detail",
+          "template": "cisco_ios_show_cdp_neighbors_detail.textfsm",
+          "timeout": 30,
+          "description": "CDP neighbor discovery"
+        },
+        "lldp_neighbors": {
+          "command": "show lldp neighbors detail",
+          "template": "cisco_ios_show_lldp_neighbors_detail.textfsm",
+          "timeout": 30,
+          "description": "LLDP neighbor discovery"
+        },
+        "arp_table": {
+          "command": "show ip arp",
+          "template": "cisco_ios_show_ip_arp.textfsm",
+          "timeout": 20,
+          "description": "ARP table entries"
+        },
+        "route_table": {
+          "command": "show ip route",
+          "template": "cisco_ios_show_ip_route.textfsm",
+          "timeout": 30,
+          "description": "IP routing table"
+        },
+        "route_table_vrf": {
+          "command": "show ip route vrf {vrf_name}",
+          "template": "cisco_ios_show_ip_route.textfsm",
+          "timeout": 30,
+          "description": "VRF-specific routing table",
+          "parameters": ["vrf_name"]
+        },
+        "vrf_list": {
+          "command": "show vrf",
+          "template": "cisco_ios_show_vrf.textfsm",
+          "timeout": 15,
+          "description": "List of VRFs"
+        },
+        "interface_status": {
+          "command": "show ip interface brief",
+          "template": "cisco_ios_show_ip_interface_brief.textfsm",
+          "timeout": 20,
+          "description": "Interface status summary"
+        },
+        "cpu_utilization": {
+          "command": "show processes cpu",
+          "template": "cisco_ios_show_processes_cpu.textfsm",
+          "timeout": 15,
+          "description": "CPU utilization"
+        },
+        "memory_utilization": {
+          "command": "show memory statistics",
+          "template": "cisco_ios_show_memory_statistics.textfsm",
+          "timeout": 15,
+          "description": "Memory utilization"
+        },
+        "logs": {
+          "command": "show logging",
+          "template": "cisco_ios_show_logging.textfsm",
+          "timeout": 20,
+          "description": "System logs"
+        }
+      },
+      "field_mappings": {
+        "protocols": {
+          "S": "Static",
+          "C": "Connected",
+          "L": "Local",
+          "O": "OSPF",
+          "B": "BGP",
+          "D": "EIGRP",
+          "R": "RIP",
+          "I": "IGRP",
+          "M": "Mobile",
+          "N": "NAT"
+        },
+        "interface_types": {
+          "Gi": "GigabitEthernet",
+          "Te": "TenGigabitEthernet",
+          "Fa": "FastEthernet",
+          "Et": "Ethernet",
+          "Se": "Serial",
+          "Lo": "Loopback"
+        }
+      },
+      "capabilities": {
+        "supports_vrf": true,
+        "supports_cdp": true,
+        "supports_lldp": true,
+        "supports_temperature": true,
+        "neighbor_protocol": "cdp"
+      }
+    },
+
+    "cisco_ios": {
+      "display_name": "Cisco IOS",
+      "description": "Cisco IOS devices (legacy routers and switches)",
+      "netmiko": {
+        "device_type": "cisco_ios",
+        "fast_cli": false,
+        "timeout": 30,
+        "auth_timeout": 10
+      },
+      "templates": {
+        "platform": "cisco_ios",
+        "base_path": "templates/textfsm"
+      },
+      "commands": {
+        "system_info": {
+          "command": "show version",
+          "template": "cisco_ios_show_version.textfsm",
+          "timeout": 15
+        },
+        "cdp_neighbors": {
+          "command": "show cdp neighbors detail",
+          "template": "cisco_ios_show_cdp_neighbors_detail.textfsm",
+          "timeout": 30
+        },
+        "arp_table": {
+          "command": "show ip arp",
+          "template": "cisco_ios_show_ip_arp.textfsm",
+          "timeout": 20
+        },
+        "route_table": {
+          "command": "show ip route",
+          "template": "cisco_ios_show_ip_route.textfsm",
+          "timeout": 30
+        },
+        "route_table_vrf": {
+          "command": "show ip route vrf {vrf_name}",
+          "template": "cisco_ios_show_ip_route.textfsm",
+          "timeout": 30,
+          "parameters": ["vrf_name"]
+        },
+        "vrf_list": {
+          "command": "show vrf",
+          "template": "cisco_ios_show_vrf.textfsm",
+          "timeout": 15
+        },
+        "cpu_utilization": {
+          "command": "show processes cpu",
+          "template": "cisco_ios_show_processes_cpu.textfsm",
+          "timeout": 15,
+          "description": "CPU utilization"
+        },
+        "memory_utilization": {
+          "command": "show memory statistics",
+          "template": "cisco_ios_show_memory_statistics.textfsm",
+          "timeout": 15,
+          "description": "Memory utilization"
+        },
+        "logs": {
+          "command": "show logging",
+          "template": "cisco_ios_show_logging.textfsm",
+          "timeout": 20,
+          "description": "System logs"
+        }
+      },
+      "field_mappings": {
+        "protocols": {
+          "S": "Static",
+          "C": "Connected",
+          "L": "Local",
+          "O": "OSPF",
+          "B": "BGP",
+          "D": "EIGRP",
+          "R": "RIP"
+        }
+      },
+      "capabilities": {
+        "supports_vrf": false,
+        "supports_cdp": true,
+        "supports_lldp": false,
+        "supports_temperature": false,
+        "neighbor_protocol": "cdp"
+      }
+    },
+
+    "cisco_nxos": {
+      "display_name": "Cisco NX-OS",
+      "description": "Cisco Nexus switches running NX-OS",
+      "netmiko": {
+        "device_type": "cisco_nxos",
+        "fast_cli": true,
+        "timeout": 45,
+        "auth_timeout": 15
+      },
+      "templates": {
+        "platform": "cisco_nxos",
+        "base_path": "templates/textfsm"
+      },
+      "commands": {
+        "system_info": {
+          "command": "show version",
+          "template": "cisco_nxos_show_version.textfsm",
+          "timeout": 20
+        },
+        "cdp_neighbors": {
+          "command": "show cdp neighbors detail",
+          "template": "cisco_nxos_show_cdp_neighbors_detail.textfsm",
+          "timeout": 30
+        },
+        "arp_table": {
+          "command": "show ip arp",
+          "template": "cisco_nxos_show_ip_arp.textfsm",
+          "timeout": 25
+        },
+        "route_table": {
+          "command": "show ip route",
+          "template": "cisco_nxos_show_ip_route.textfsm",
+          "timeout": 40
+        },
+        "vrf_list": {
+          "command": "show vrf",
+          "template": "cisco_nxos_show_vrf.textfsm",
+          "timeout": 15
+        }
+      },
+      "field_mappings": {
+        "protocols": {
+          "S": "Static",
+          "C": "Connected",
+          "O": "OSPF",
+          "B": "BGP",
+          "E": "EIGRP"
+        }
+      },
+      "capabilities": {
+        "supports_vrf": true,
+        "supports_cdp": true,
+        "supports_lldp": true,
+        "supports_temperature": true,
+        "neighbor_protocol": "cdp"
+      }
+    },
+
+    "arista_eos": {
+      "display_name": "Arista EOS",
+      "description": "Arista switches and routers running EOS",
+      "netmiko": {
+        "device_type": "arista_eos",
+        "fast_cli": true,
+        "timeout": 30,
+        "auth_timeout": 10
+      },
+      "templates": {
+        "platform": "arista_eos",
+        "base_path": "templates/textfsm"
+      },
+      "commands": {
+        "system_info": {
+          "command": "show version",
+          "template": "arista_eos_show_version.textfsm",
+          "timeout": 15,
+          "description": "Device system information"
+        },
+        "cpu_utilization": {
+          "command": "show processes top once",
+          "template": "arista_eos_show_processes_top_once.textfsm",
+          "timeout": 15,
+          "description": "CPU and memory utilization from top command"
+        },
+        "memory_utilization": {
+          "command": "show processes top once",
+          "template": "arista_eos_show_processes_top_once.textfsm",
+          "timeout": 15,
+          "description": "Memory utilization (same command as CPU - contains both)"
+        },
+        "temperature": {
+          "command": "show system environment temperature",
+          "template": "arista_eos_show_environment_temperature.textfsm",
+          "timeout": 15,
+          "description": "System temperature sensors",
+          "fallback_commands": ["show environment temperature", "show environment"]
+        },
+        "cdp_neighbors": {
+          "command": "show lldp neighbors detail",
+          "template": "arista_eos_show_lldp_neighbors_detail.textfsm",
+          "timeout": 30,
+          "description": "Neighbor discovery (Arista uses LLDP)"
+        },
+        "lldp_neighbors": {
+          "command": "show lldp neighbors detail",
+          "template": "arista_eos_show_lldp_neighbors_detail.textfsm",
+          "timeout": 30,
+          "description": "LLDP neighbor discovery"
+        },
+        "arp_table": {
+          "command": "show ip arp",
+          "template": "arista_eos_show_ip_arp.textfsm",
+          "timeout": 20,
+          "description": "ARP table entries"
+        },
+        "route_table": {
+          "command": "show ip route",
+          "template": "arista_eos_show_ip_route.textfsm",
+          "timeout": 30,
+          "description": "IP routing table"
+        },
+        "route_table_vrf": {
+          "command": "show ip route vrf {vrf_name}",
+          "template": "arista_eos_show_ip_route.textfsm",
+          "timeout": 30,
+          "description": "VRF-specific routing table",
+          "parameters": ["vrf_name"]
+        },
+        "vrf_list": {
+          "command": "show vrf",
+          "template": "arista_eos_show_vrf.textfsm",
+          "timeout": 15,
+          "description": "List of VRFs"
+        },
+        "interface_status": {
+          "command": "show interfaces status",
+          "template": "arista_eos_show_interfaces_status.textfsm",
+          "timeout": 20,
+          "description": "Interface status summary"
+        },
+        "logs": {
+          "command": "show logging last 1000 hours",
+          "template": "arista_eos_show_logging.textfsm",
+          "timeout": 20,
+          "description": "Recent system logs",
+          "fallback_commands": ["show logging last 500 hours", "show logging"]
+        }
+      },
+      "field_mappings": {
+        "protocols": {
+          "S": "Static",
+          "S*": "Static Default",
+          "C": "Connected",
+          "O": "OSPF",
+          "O I": "OSPF Inter-Area",
+          "O E": "OSPF External",
+          "O N": "OSPF NSSA",
+          "B": "BGP",
+          "B I": "BGP Internal",
+          "B E": "BGP External",
+          "I": "ISIS",
+          "i": "ISIS",
+          "L1": "ISIS Level-1",
+          "L2": "ISIS Level-2",
+          "K": "Kernel",
+          "D": "EIGRP",
+          "R": "RIP",
+          "M": "Mobile",
+          "static": "Static",
+          "connected": "Connected",
+          "ospf": "OSPF",
+          "bgp": "BGP",
+          "isis": "ISIS",
+          "kernel": "Kernel",
+          "rip": "RIP"
+        },
+        "interface_types": {
+          "Et": "Ethernet",
+          "Gi": "GigabitEthernet",
+          "Te": "TenGigabitEthernet",
+          "Fo": "FortyGigabitEthernet",
+          "Hu": "HundredGigabitEthernet",
+          "Ma": "Management",
+          "Lo": "Loopback",
+          "Vl": "Vlan"
+        },
+        "memory_units": {
+          "KiB": "1024",
+          "MiB": "1048576",
+          "GiB": "1073741824",
+          "k": "1024",
+          "m": "1048576",
+          "g": "1073741824"
+        },
+        "system_info_fields": {
+          "MODEL": "model",
+          "HW_VERSION": "version",
+          "SERIAL_NUMBER": "serial",
+          "SYS_MAC": "mac_address",
+          "IMAGE": "software_version",
+          "TOTAL_MEMORY": "memory_total",
+          "FREE_MEMORY": "memory_free"
+        }
+      },
+      "capabilities": {
+        "supports_vrf": true,
+        "supports_cdp": false,
+        "supports_lldp": true,
+        "supports_temperature": true,
+        "neighbor_protocol": "lldp"
+      },
+      "parsing_rules": {
+        "cpu_command_provides_memory": true,
+        "memory_unit_conversion_required": true,
+        "temperature_requires_environment_command": true,
+        "uses_lldp_for_neighbors": true
+      }
+    },
+
+    "hp_procurve": {
+      "display_name": "HP ProCurve",
+      "description": "HP ProCurve switches (legacy)",
+      "netmiko": {
+        "device_type": "hp_procurve",
+        "fast_cli": false,
+        "timeout": 30,
+        "auth_timeout": 10
+      },
+      "templates": {
+        "platform": "hp_procurve",
+        "base_path": "templates/textfsm"
+      },
+      "commands": {
+        "system_info": {
+          "command": "show version",
+          "template": "hp_procurve_show_version.textfsm",
+          "timeout": 15,
+          "description": "Device system information"
+        },
+        "cdp_neighbors": {
+          "command": "show lldp info remote-device detail",
+          "template": "hp_procurve_show_lldp_info_remote-device_detail.textfsm",
+          "timeout": 30,
+          "description": "LLDP neighbor discovery (HP uses LLDP)"
+        },
+        "lldp_neighbors": {
+          "command": "show lldp info remote-device detail",
+          "template": "hp_procurve_show_lldp_info_remote-device_detail.textfsm",
+          "timeout": 30,
+          "description": "LLDP neighbor discovery"
+        },
+        "arp_table": {
+          "command": "show arp",
+          "template": "hp_procurve_show_arp.textfsm",
+          "timeout": 20,
+          "description": "ARP table entries"
+        },
+        "route_table": {
+          "command": "show ip route",
+          "template": "hp_procurve_show_ip_route.textfsm",
+          "timeout": 30,
+          "description": "IP routing table"
+        }
+      },
+      "field_mappings": {
+        "protocols": {
+          "S": "Static",
+          "C": "Connected",
+          "O": "OSPF",
+          "R": "RIP"
+        }
+      },
+      "capabilities": {
+        "supports_vrf": false,
+        "supports_cdp": false,
+        "supports_lldp": true,
+        "supports_temperature": false,
+        "neighbor_protocol": "lldp"
+      }
+    },
+
+    "juniper_junos": {
+      "display_name": "Juniper JunOS",
+      "description": "Juniper routers and switches running JunOS",
+      "netmiko": {
+        "device_type": "juniper_junos",
+        "fast_cli": false,
+        "timeout": 30,
+        "auth_timeout": 10
+      },
+      "templates": {
+        "platform": "juniper_junos",
+        "base_path": "templates/textfsm"
+      },
+      "commands": {
+        "system_info": {
+          "command": "show version",
+          "template": "juniper_junos_show_version.textfsm",
+          "timeout": 15,
+          "description": "Device system information"
+        },
+        "lldp_neighbors": {
+          "command": "show lldp neighbors",
+          "template": "juniper_junos_show_lldp_neighbors.textfsm",
+          "timeout": 30,
+          "description": "LLDP neighbor discovery"
+        },
+        "cdp_neighbors": {
+          "command": "show lldp neighbors",
+          "template": "juniper_junos_show_lldp_neighbors.textfsm",
+          "timeout": 30,
+          "description": "Neighbor discovery (Juniper uses LLDP)"
+        },
+        "arp_table": {
+          "command": "show arp no-resolve",
+          "template": "juniper_junos_show_arp_no-resolve.textfsm",
+          "timeout": 20,
+          "description": "ARP table entries"
+        }
+      },
+      "field_mappings": {
+        "protocols": {
+          "S": "Static",
+          "C": "Connected",
+          "O": "OSPF",
+          "B": "BGP",
+          "I": "ISIS"
+        }
+      },
+      "capabilities": {
+        "supports_vrf": false,
+        "supports_cdp": false,
+        "supports_lldp": true,
+        "supports_temperature": false,
+        "neighbor_protocol": "lldp"
+      }
+    },
+
+    "linux": {
+      "display_name": "Linux",
+      "description": "Linux servers and network devices",
+      "netmiko": {
+        "device_type": "linux",
+        "fast_cli": false,
+        "timeout": 30,
+        "auth_timeout": 10
+      },
+      "templates": {
+        "platform": "linux",
+        "base_path": "templates/textfsm"
+      },
+      "commands": {
+        "arp_table": {
+          "command": "arp -a",
+          "template": "linux_arp_-a.textfsm",
+          "timeout": 15,
+          "description": "ARP table entries"
+        },
+        "route_table": {
+          "command": "ip route show",
+          "template": "linux_ip_route_show.textfsm",
+          "timeout": 20,
+          "description": "IP routing table"
+        },
+        "vrf_list": {
+          "command": "ip vrf show",
+          "template": "linux_ip_vrf_show.textfsm",
+          "timeout": 15,
+          "description": "VRF information"
+        }
+      },
+      "field_mappings": {
+        "protocols": {
+          "static": "Static",
+          "connected": "Connected",
+          "kernel": "Kernel",
+          "ospf": "OSPF",
+          "bgp": "BGP"
+        }
+      },
+      "capabilities": {
+        "supports_vrf": true,
+        "supports_cdp": false,
+        "supports_lldp": false,
+        "supports_temperature": false,
+        "neighbor_protocol": "none"
+      }
+    },
+
+    "aruba_aos_s": {
+      "display_name": "Aruba AOS-S",
+      "description": "Aruba switches running AOS-S",
+      "netmiko": {
+        "device_type": "aruba_os",
+        "fast_cli": false,
+        "timeout": 30,
+        "auth_timeout": 10
+      },
+      "templates": {
+        "platform": "aruba_os",
+        "base_path": "templates/textfsm"
+      },
+      "commands": {
+        "system_info": {
+          "command": "show version",
+          "template": "aruba_os_show_version.textfsm",
+          "timeout": 15
+        },
+        "cdp_neighbors": {
+          "command": "show lldp info remote-device",
+          "template": "hp_procurve_show_lldp_info_remote-device.textfsm",
+          "timeout": 30
+        },
+        "arp_table": {
+          "command": "show arp",
+          "template": "aruba_os_show_arp.textfsm",
+          "timeout": 20
+        }
+      },
+      "field_mappings": {
+        "protocols": {
+          "S": "Static",
+          "C": "Connected",
+          "O": "OSPF"
+        }
+      },
+      "capabilities": {
+        "supports_vrf": false,
+        "supports_cdp": false,
+        "supports_lldp": true,
+        "supports_temperature": false,
+        "neighbor_protocol": "lldp"
+      }
+    },
+
+    "aruba_aos_cx": {
+      "display_name": "Aruba AOS-CX",
+      "description": "Aruba switches running AOS-CX",
+      "netmiko": {
+        "device_type": "aruba_os",
+        "fast_cli": false,
+        "timeout": 30,
+        "auth_timeout": 10
+      },
+      "templates": {
+        "platform": "aruba_aoscx",
+        "base_path": "templates/textfsm"
+      },
+      "commands": {
+        "system_info": {
+          "command": "show system",
+          "template": "aruba_aoscx_show_system.textfsm",
+          "timeout": 15
+        },
+        "route_table": {
+          "command": "show ip route all-vrfs",
+          "template": "aruba_aoscx_show_ip_route_all-vrfs.textfsm",
+          "timeout": 30
+        }
+      },
+      "field_mappings": {
+        "protocols": {
+          "S": "Static",
+          "C": "Connected",
+          "O": "OSPF",
+          "B": "BGP"
+        }
+      },
+      "capabilities": {
+        "supports_vrf": true,
+        "supports_cdp": false,
+        "supports_lldp": true,
+        "supports_temperature": true,
+        "neighbor_protocol": "lldp"
+      }
+    }
+  },
+
+  "global_settings": {
+    "template_search_paths": [
+      "templates/textfsm",
+      "templates/user_custom",
+      "~/.telemetry/templates"
+    ],
+    "default_timeouts": {
+      "command": 30,
+      "auth": 10,
+      "connection": 15
+    },
+    "fallback_parsing": {
+      "enabled": true,
+      "use_basic_regex": true
+    }
+  }
+}

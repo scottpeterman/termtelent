@@ -1,0 +1,675 @@
+<!-- templates/devices/list.html (for CRUD) -->
+{% extends "base.html" %}
+
+{% block title %}Device Management{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">Device Management</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Device Management</h2>
+            <p class="text-muted">{{ total_devices | number_format }} devices total • Administrative Interface</p>
+        </div>
+        <div>
+            <a href="{{ url_for('device_crud.new_device') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add Device
+            </a>
+            <a href="{{ url_for('device_crud.bulk_operations') }}" class="btn btn-secondary">
+                <i class="bi bi-collection"></i> Bulk Operations
+            </a>
+            <a href="{{ url_for('devices.list_devices') }}" class="btn btn-outline-info">
+                <i class="bi bi-search"></i> Discovery View
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-2">
+                    <label for="site" class="form-label small">Site</label>
+                    <select name="site" id="site" class="form-select form-select-sm">
+                        <option value="">All Sites</option>
+                        {% for site in sites %}
+                        <option value="{{ site }}" {% if filters.site == site %}selected{% endif %}>{{ site }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="vendor" class="form-label small">Vendor</label>
+                    <select name="vendor" id="vendor" class="form-select form-select-sm">
+                        <option value="">All Vendors</option>
+                        {% for vendor in vendors %}
+                        <option value="{{ vendor }}" {% if filters.vendor == vendor %}selected{% endif %}>{{ vendor }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="role" class="form-label small">Role</label>
+                    <select name="role" id="role" class="form-select form-select-sm">
+                        <option value="">All Roles</option>
+                        {% for role in roles %}
+                        <option value="{{ role }}" {% if filters.role == role %}selected{% endif %}>{{ role }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="status" class="form-label small">Status</label>
+                    <select name="status" id="status" class="form-select form-select-sm">
+                        <option value="all" {% if filters.status == 'all' %}selected{% endif %}>All Status</option>
+                        <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Active</option>
+                        <option value="inactive" {% if filters.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="search" class="form-label small">Search</label>
+                    <input type="text" name="search" id="search" class="form-control form-control-sm"
+                           placeholder="Search devices..." value="{{ filters.search }}">
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label small">&nbsp;</label>
+                    <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Selection Form -->
+    <form id="bulkForm" method="POST" action="{{ url_for('device_crud.bulk_update') }}">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <input type="checkbox" id="selectAll" class="form-check-input me-2">
+                    <span id="selectedCount">0</span> selected
+                </div>
+                <div id="bulkActions" style="display: none;">
+                    <button type="button" class="btn btn-sm btn-warning" onclick="showBulkModal()">
+                        <i class="bi bi-pencil"></i> Bulk Edit
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="bulkDeactivate()">
+                        <i class="bi bi-x-circle"></i> Deactivate
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th width="30">
+                                    <input type="checkbox" id="selectAllHeader" class="form-check-input">
+                                </th>
+                                <th>Device Name</th>
+                                <th>Site</th>
+                                <th>Vendor</th>
+                                <th>Model</th>
+                                <th>Role</th>
+                                <th>Primary IP</th>
+                                <th>Collection Status</th>
+                                <th>Status</th>
+                                <th>Last Updated</th>
+                                <th width="120">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for device in devices %}
+                            <tr class="{% if not device.is_active %}table-secondary text-muted{% endif %}">
+                                <td>
+                                    <input type="checkbox" name="device_ids" value="{{ device.id }}"
+                                           class="form-check-input device-checkbox">
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('device_crud.view_device', device_id=device.id) }}"
+                                       class="text-decoration-none">
+                                        <strong>{{ device.device_name }}</strong>
+                                    </a>
+                                    {% if device.hostname and device.hostname != device.device_name %}
+                                    <br><small class="text-muted">{{ device.hostname }}</small>
+                                    {% endif %}
+                                </td>
+                                <td><span class="badge bg-info">{{ device.site_code }}</span></td>
+                                <td>{{ device.vendor }}</td>
+                                <td>{{ device.model or 'Unknown' }}</td>
+                                <td><span class="badge bg-secondary">{{ device.device_role }}</span></td>
+                                <td>
+                                    {% if device.primary_ip %}
+                                    <code>{{ device.primary_ip }}</code>
+                                    {% else %}
+                                    <span class="text-muted">No IP</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if device.collection_status == 'recent' %}
+                                    <span class="badge bg-success">Recent</span>
+                                    {% elif device.collection_status == 'stale' %}
+                                    <span class="badge bg-warning">Stale</span>
+                                    {% elif device.collection_status == 'failed' %}
+                                    <span class="badge bg-danger">Failed</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Never</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if device.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ device.last_updated | datetime }}</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('device_crud.view_device', device_id=device.id) }}"
+                                           class="btn btn-outline-primary" title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('device_crud.edit_device', device_id=device.id) }}"
+                                           class="btn btn-outline-warning" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger"
+                                                onclick="confirmDelete({{ device.id }}, '{{ device.device_name }}')"
+                                                title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox display-1 text-muted mb-3"></i>
+                                    <h5>No devices found</h5>
+                                    <p>Try adjusting your filters or <a href="{{ url_for('device_crud.new_device') }}">add a new device</a>.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <div class="card-footer">
+                <nav aria-label="Device pagination">
+                    <ul class="pagination pagination-sm mb-0 justify-content-center">
+                        {% if current_page > 1 %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ current_page - 1 }}{% for key, value in filters.items() %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                <i class="bi bi-chevron-left"></i> Previous
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for page_num in range(1, total_pages + 1) %}
+                        {% if page_num == current_page %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% elif page_num <= 3 or page_num >= total_pages - 2 or (page_num >= current_page - 1 and page_num <= current_page + 1) %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_num }}{% for key, value in filters.items() %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ page_num }}</a>
+                        </li>
+                        {% elif page_num == 4 or page_num == total_pages - 3 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if current_page < total_pages %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ current_page + 1 }}{% for key, value in filters.items() %}{% if value %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                Next <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                <div class="text-center mt-2">
+                    <small class="text-muted">
+                        Showing {{ ((current_page - 1) * per_page) + 1 }} to {{ ((current_page - 1) * per_page) + devices|length }} of {{ total_devices | number_format }} devices
+                    </small>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Bulk Edit Modal -->
+<div class="modal fade" id="bulkEditModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Edit Devices</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="bulkEditForm">
+                <div class="modal-body">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="updateSite" name="update_site_code">
+                        <label class="form-check-label" for="updateSite">Update Site Code</label>
+                        <select name="site_code" class="form-select mt-2">
+                            {% for site in sites %}
+                            <option value="{{ site }}">{{ site }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="updateRole" name="update_device_role">
+                        <label class="form-check-label" for="updateRole">Update Role</label>
+                        <select name="device_role" class="form-select mt-2">
+                            {% for role in roles %}
+                            <option value="{{ role }}">{{ role.title() }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="updateVendor" name="update_vendor">
+                        <label class="form-check-label" for="updateVendor">Update Vendor</label>
+                        <select name="vendor" class="form-select mt-2">
+                            {% for vendor in vendors %}
+                            <option value="{{ vendor }}">{{ vendor }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="updateStatus" name="update_status">
+                        <label class="form-check-label" for="updateStatus">Update Status</label>
+                        <select name="status" class="form-select mt-2">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Selected</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete device <strong id="deleteDeviceName"></strong>?</p>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="softDelete" name="soft_delete">
+                    <label class="form-check-label" for="softDelete">
+                        Soft delete (deactivate only - recommended)
+                    </label>
+                </div>
+                <div class="alert alert-warning mt-3">
+                    <small><strong>Note:</strong> Hard delete will permanently remove all device data including collection history.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <input type="hidden" name="soft_delete" value="true">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Device List Management - Separated Concerns
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Device list page initializing...');
+
+    // Initialize separate modules
+    DeviceSelection.init();
+    BulkOperations.init();
+    DeleteModal.init();
+});
+
+// ==========================================
+// MODULE 1: Device Selection Management
+// ==========================================
+const DeviceSelection = {
+    elements: {},
+
+    init() {
+        this.cacheElements();
+        if (!this.elements.selectAll) {
+            console.log('Device selection elements not found - skipping');
+            return;
+        }
+
+        console.log('Initializing device selection module');
+        this.bindEvents();
+        this.updateSelectionState();
+    },
+
+    cacheElements() {
+        this.elements = {
+            selectAll: document.getElementById('selectAll'),
+            selectAllHeader: document.getElementById('selectAllHeader'),
+            deviceCheckboxes: document.querySelectorAll('.device-checkbox'),
+            selectedCount: document.getElementById('selectedCount'),
+            bulkActions: document.getElementById('bulkActions')
+        };
+    },
+
+    bindEvents() {
+        // Primary select all handler
+        if (this.elements.selectAll) {
+            this.elements.selectAll.addEventListener('change', (e) => {
+                console.log('Primary selectAll changed:', e.target.checked);
+                this.selectAllDevices(e.target.checked);
+            });
+        }
+
+        // Header select all handler
+        if (this.elements.selectAllHeader) {
+            this.elements.selectAllHeader.addEventListener('change', (e) => {
+                console.log('Header selectAll changed:', e.target.checked);
+                this.selectAllDevices(e.target.checked);
+            });
+        }
+
+        // Individual device checkbox handlers
+        this.elements.deviceCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                console.log('Device checkbox changed:', e.target.value, e.target.checked);
+                this.updateSelectionState();
+            });
+        });
+    },
+
+    selectAllDevices(checked) {
+        this.elements.deviceCheckboxes.forEach(cb => {
+            cb.checked = checked;
+        });
+        this.updateSelectionState();
+    },
+
+    updateSelectionState() {
+        const checkedBoxes = document.querySelectorAll('.device-checkbox:checked');
+        const checkedCount = checkedBoxes.length;
+        const totalCount = this.elements.deviceCheckboxes.length;
+
+        // Update counter and bulk actions visibility
+        this.elements.selectedCount.textContent = checkedCount;
+        this.elements.bulkActions.style.display = checkedCount > 0 ? 'block' : 'none';
+
+        // Update select all checkboxes state
+        const allSelected = checkedCount === totalCount && totalCount > 0;
+        const someSelected = checkedCount > 0 && checkedCount < totalCount;
+
+        // Update both select all checkboxes
+        [this.elements.selectAll, this.elements.selectAllHeader].forEach(selectAllEl => {
+            if (selectAllEl) {
+                selectAllEl.indeterminate = someSelected;
+                selectAllEl.checked = allSelected;
+            }
+        });
+
+        console.log(`Selection state: ${checkedCount}/${totalCount} selected`);
+    },
+
+    getSelectedDeviceIds() {
+        return Array.from(document.querySelectorAll('.device-checkbox:checked'))
+                   .map(cb => cb.value);
+    }
+};
+
+// ==========================================
+// MODULE 2: Bulk Operations
+// ==========================================
+const BulkOperations = {
+    elements: {},
+
+    init() {
+        this.cacheElements();
+        console.log('Initializing bulk operations module');
+    },
+
+    cacheElements() {
+        this.elements = {
+            bulkForm: document.getElementById('bulkForm'),
+            bulkEditModal: document.getElementById('bulkEditModal'),
+            bulkEditForm: document.getElementById('bulkEditForm')
+        };
+    },
+
+    showBulkEditModal() {
+        console.log('Opening bulk edit modal');
+
+        const selectedDevices = DeviceSelection.getSelectedDeviceIds();
+        if (selectedDevices.length === 0) {
+            alert('No devices selected');
+            return;
+        }
+
+        console.log('Selected devices for bulk edit:', selectedDevices);
+
+        // Show modal
+        const modal = new bootstrap.Modal(this.elements.bulkEditModal);
+        modal.show();
+
+        // Reset and bind form handler
+        this.bindBulkEditForm();
+    },
+
+    bindBulkEditForm() {
+        // Remove any existing event listeners by cloning the form
+        const oldForm = this.elements.bulkEditForm;
+        const newForm = oldForm.cloneNode(true);
+        oldForm.parentNode.replaceChild(newForm, oldForm);
+        this.elements.bulkEditForm = newForm;
+
+        // Add fresh event listener
+        newForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            console.log('Bulk edit form submitting');
+            this.submitBulkEdit(e.target);
+        });
+    },
+
+    submitBulkEdit(form) {
+        // Clear existing hidden inputs from bulk form (except device_ids)
+        const existingHidden = this.elements.bulkForm.querySelectorAll('input[type="hidden"]:not([name="device_ids"])');
+        existingHidden.forEach(input => input.remove());
+
+        // Add new hidden inputs from modal form
+        const formData = new FormData(form);
+        for (let [key, value] of formData.entries()) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = key;
+            hiddenInput.value = value;
+            this.elements.bulkForm.appendChild(hiddenInput);
+        }
+
+        console.log('Submitting bulk form with updated data');
+        this.elements.bulkForm.submit();
+    },
+
+    bulkDeactivate() {
+        console.log('Bulk deactivate triggered');
+
+        const selectedDevices = DeviceSelection.getSelectedDeviceIds();
+        if (selectedDevices.length === 0) {
+            alert('No devices selected');
+            return;
+        }
+
+        const confirmMessage = `Are you sure you want to deactivate ${selectedDevices.length} selected device(s)?`;
+        if (!confirm(confirmMessage)) {
+            console.log('Bulk deactivate cancelled by user');
+            return;
+        }
+
+        // Clear existing hidden inputs
+        const existingHidden = this.elements.bulkForm.querySelectorAll('input[type="hidden"]:not([name="device_ids"])');
+        existingHidden.forEach(input => input.remove());
+
+        // Add deactivation parameters
+        this.addHiddenInput('update_status', 'true');
+        this.addHiddenInput('status', 'inactive');
+
+        console.log('Submitting bulk deactivate for', selectedDevices.length, 'devices');
+        this.elements.bulkForm.submit();
+    },
+
+    addHiddenInput(name, value) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        this.elements.bulkForm.appendChild(input);
+    }
+};
+
+// ==========================================
+// MODULE 3: Delete Modal Management (SIMPLIFIED)
+// ==========================================
+const DeleteModal = {
+    currentDeviceId: null,
+
+    init() {
+        const deleteModal = document.getElementById('deleteModal');
+        if (!deleteModal) {
+            console.log('Delete modal not found - skipping');
+            return;
+        }
+
+        console.log('Initializing delete modal module');
+
+        // Only bind the form submit event - nothing else
+        const deleteForm = document.getElementById('deleteForm');
+        if (deleteForm) {
+            // Remove any existing listeners by cloning the form
+            const newForm = deleteForm.cloneNode(true);
+            deleteForm.parentNode.replaceChild(newForm, deleteForm);
+
+            // Add single submit listener
+            newForm.addEventListener('submit', (e) => {
+                this.handleDeleteSubmit(e);
+            });
+        }
+    },
+
+    showDeleteModal(deviceId, deviceName) {
+        console.log('Opening delete modal for device:', deviceName, 'ID:', deviceId);
+
+        this.currentDeviceId = deviceId;
+
+        // Set modal content
+        const deleteDeviceName = document.getElementById('deleteDeviceName');
+        if (deleteDeviceName) {
+            deleteDeviceName.textContent = deviceName;
+        }
+
+        // Set form action
+        const deleteForm = document.getElementById('deleteForm');
+        if (deleteForm) {
+            deleteForm.action = `/admin/devices/${deviceId}/delete`;
+        }
+
+        // Set checkbox to soft delete WITHOUT any event listeners
+        const softDeleteCheckbox = document.getElementById('softDelete');
+        if (softDeleteCheckbox) {
+            // Remove all event listeners by cloning
+            const newCheckbox = softDeleteCheckbox.cloneNode(true);
+            softDeleteCheckbox.parentNode.replaceChild(newCheckbox, softDeleteCheckbox);
+
+            // Set to checked
+            newCheckbox.checked = true;
+
+            console.log('Checkbox reset and set to:', newCheckbox.checked);
+        }
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    },
+
+    handleDeleteSubmit(e) {
+        const softDeleteCheckbox = document.getElementById('softDelete');
+        const hiddenInput = document.querySelector('#deleteForm input[name="soft_delete"]');
+
+        const isSoftDelete = softDeleteCheckbox ? softDeleteCheckbox.checked : true;
+
+        console.log('Form submitting - Checkbox:', isSoftDelete);
+
+        // Update hidden input to match checkbox
+        if (hiddenInput) {
+            hiddenInput.value = isSoftDelete ? 'true' : 'false';
+            console.log('Hidden input set to:', hiddenInput.value);
+        }
+
+        // Confirm hard delete
+        if (!isSoftDelete) {
+            const deviceName = document.getElementById('deleteDeviceName').textContent;
+            const confirmMessage = `⚠️ This will PERMANENTLY delete "${deviceName}" and ALL its data. Continue?`;
+
+            if (!confirm(confirmMessage)) {
+                console.log('Hard delete cancelled by user');
+                e.preventDefault();
+                return false;
+            }
+        }
+
+        return true;
+    }
+};
+
+// ==========================================
+// GLOBAL FUNCTIONS (for onclick handlers)
+// ==========================================
+
+// These functions are called from the HTML onclick attributes
+window.showBulkModal = function() {
+    BulkOperations.showBulkEditModal();
+};
+
+window.confirmDelete = function(deviceId, deviceName) {
+    DeleteModal.showDeleteModal(deviceId, deviceName);
+};
+
+window.bulkDeactivate = function() {
+    BulkOperations.bulkDeactivate();
+};
+
+// ==========================================
+// DEBUG: Global modal event tracking
+// ==========================================
+
+document.addEventListener('show.bs.modal', function(e) {
+    console.log('Modal opening:', e.target.id);
+});
+
+document.addEventListener('hidden.bs.modal', function(e) {
+    console.log('Modal closed:', e.target.id);
+});
+</script>
+{% endblock %}

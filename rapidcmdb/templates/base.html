@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ app_name }}{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.1/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script src="/static/js/pyqt6.js"></script>
+    <!-- Dynamic Theme Styles -->
+    <style id="theme-styles">
+        :root {
+            /* Theme colors from your JSON files */
+            --primary: {{ theme.primary or '#0F172A' }};
+            --secondary: {{ theme.secondary or '#1E293B' }};
+            --background: {{ theme.background or '#0F172A' }};
+            --darker-bg: {{ theme.darker_bg or '#0D1526' }};
+            --lighter-bg: {{ theme.lighter_bg or '#1E293B' }};
+            --text: {{ theme.text or '#E2E8F0' }};
+            --grid: {{ theme.grid or 'rgba(59, 130, 246, 0.1)' }};
+            --line: {{ theme.line or '#3B82F6' }};
+            --border: {{ theme.border or '#3B82F6' }};
+            --success: {{ theme.success or '#22C55E' }};
+            --error: {{ theme.error or '#EF4444' }};
+            --border-light: {{ theme.border_light or 'rgba(226, 232, 240, 0.4)' }};
+            --corner-gap: {{ theme.corner_gap or '#0F172A' }};
+            --corner-bright: {{ theme.corner_bright or '#3B82F6' }};
+            --panel-bg: {{ theme.panel_bg or 'rgba(15, 23, 42, 0.95)' }};
+            --scrollbar-bg: {{ theme.scrollbar_bg or 'rgba(226, 232, 240, 0.1)' }};
+            --selected-bg: {{ theme.selected_bg or 'rgba(226, 232, 240, 0.2)' }};
+            --button-hover: {{ theme.button_hover or '#1E293B' }};
+            --button-pressed: {{ theme.button_pressed or '#0D1526' }};
+            --chart-bg: {{ theme.chart_bg or 'rgba(15, 23, 42, 0.25)' }};
+
+            /* Legacy variable mappings for compatibility */
+            --bs-body-bg: var(--background);
+            --bs-body-color: var(--text);
+            --sidebar-bg: var(--lighter-bg);
+            --sidebar-border: var(--border-light);
+            --card-bg: var(--lighter-bg);
+            --card-border: var(--border-light);
+            --accent-color: var(--line);
+            --accent-hover: var(--corner-bright);
+            --danger-color: var(--error);
+            --warning-color: #d79921;
+            --info-color: var(--line);
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+        }
+
+        .minimal-navbar {
+            background-color: var(--panel-bg) !important;
+            border-bottom: 1px solid var(--border-light);
+            backdrop-filter: blur(10px);
+            padding: 0.75rem 0;
+        }
+
+        .navbar-brand {
+            color: var(--text) !important;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+
+        .navbar-brand i {
+            color: var(--line);
+            margin-right: 0.5rem;
+        }
+
+        .navbar-nav .nav-link {
+            color: var(--text) !important;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            margin: 0 0.25rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .navbar-nav .nav-link:hover {
+            background-color: var(--button-hover);
+            color: var(--text) !important;
+        }
+
+        .navbar-nav .nav-link.active {
+            background-color: var(--line);
+            color: var(--background) !important;
+        }
+
+        .navbar-nav .nav-link i {
+            margin-right: 0.5rem;
+            width: 16px;
+        }
+
+        .main-content {
+            min-height: calc(100vh - 80px);
+            padding-top: 2rem;
+        }
+
+        .card {
+            background-color: var(--lighter-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        }
+
+        .card-header {
+            background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--border-light);
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .table-dark {
+            --bs-table-bg: var(--lighter-bg);
+            --bs-table-border-color: var(--border-light);
+            color: var(--text);
+        }
+
+        .table-dark th,
+        .table-dark td {
+            border-color: var(--border-light);
+            color: var(--text);
+        }
+
+        .btn-primary {
+            background-color: var(--line);
+            border-color: var(--line);
+            color: var(--background);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--corner-bright);
+            border-color: var(--corner-bright);
+            color: var(--background);
+        }
+
+        .btn-outline-primary {
+            color: var(--line);
+            border-color: var(--line);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--line);
+            border-color: var(--line);
+            color: var(--background);
+        }
+
+        .btn-outline-secondary {
+            color: var(--text);
+            border-color: var(--border-light);
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: var(--button-hover);
+            border-color: var(--border-light);
+            color: var(--text);
+        }
+
+        .btn-outline-info {
+            color: var(--line);
+            border-color: var(--line);
+        }
+
+        .btn-outline-info:hover {
+            background-color: var(--line);
+            border-color: var(--line);
+            color: var(--background);
+        }
+
+        .btn-outline-success {
+            color: var(--success);
+            border-color: var(--success);
+        }
+
+        .btn-outline-success:hover {
+            background-color: var(--success);
+            border-color: var(--success);
+            color: var(--background);
+        }
+
+        .btn-outline-warning {
+            color: var(--warning-color);
+            border-color: var(--warning-color);
+        }
+
+        .btn-outline-warning:hover {
+            background-color: var(--warning-color);
+            border-color: var(--warning-color);
+            color: var(--background);
+        }
+
+        .alert-success {
+            background-color: rgba(34, 197, 94, 0.15);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .alert-danger {
+            background-color: rgba(239, 68, 68, 0.15);
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .alert-warning {
+            background-color: rgba(215, 153, 33, 0.15);
+            border-color: var(--warning-color);
+            color: var(--warning-color);
+        }
+
+        .alert-info {
+            background-color: rgba(59, 130, 246, 0.15);
+            border-color: var(--line);
+            color: var(--line);
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .status-online {
+            background-color: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .status-offline {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
+        .status-warning {
+            background-color: rgba(215, 153, 33, 0.2);
+            color: var(--warning-color);
+            border: 1px solid var(--warning-color);
+        }
+
+        .metric-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: var(--text);
+            opacity: 0.7;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .breadcrumb {
+            background-color: transparent;
+            padding: 0;
+            margin-bottom: 1rem;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            color: var(--text);
+            opacity: 0.5;
+        }
+
+        .breadcrumb-item a {
+            color: var(--line);
+        }
+
+        .form-control, .form-select {
+            background-color: var(--lighter-bg);
+            border-color: var(--border-light);
+            color: var(--text);
+        }
+
+        .form-control:focus, .form-select:focus {
+            background-color: var(--lighter-bg);
+            border-color: var(--line);
+            color: var(--text);
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border-light);
+            border-radius: 50%;
+            border-top-color: var(--line);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            background-color: var(--chart-bg);
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .quick-actions {
+            background-color: var(--lighter-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .navbar-toggler {
+            border-color: var(--border-light);
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+        }
+
+        .dropdown-menu {
+            background-color: var(--lighter-bg);
+            border-color: var(--border-light);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .dropdown-item {
+            color: var(--text);
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--button-hover);
+            color: var(--text);
+        }
+
+        .dropdown-divider {
+            border-color: var(--border-light);
+        }
+
+        .theme-preview {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 8px;
+            border: 1px solid var(--border-light);
+        }
+
+        .badge.bg-primary {
+            background-color: var(--line) !important;
+            color: var(--background);
+        }
+
+        .badge.bg-secondary {
+            background-color: var(--text) !important;
+            color: var(--background);
+        }
+
+        .progress {
+            background-color: var(--darker-bg);
+        }
+
+        .progress-bar.bg-success {
+            background-color: var(--success) !important;
+        }
+
+        .text-primary {
+            color: var(--line) !important;
+        }
+
+        .text-success {
+            color: var(--success) !important;
+        }
+
+        .text-danger {
+            color: var(--error) !important;
+        }
+
+        .text-warning {
+            color: var(--warning-color) !important;
+        }
+
+        .text-info {
+            color: var(--line) !important;
+        }
+
+        .text-muted {
+            color: var(--text) !important;
+            opacity: 0.6;
+        }
+
+        .text-secondary {
+            color: var(--text) !important;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 991px) {
+            .navbar-collapse {
+                background-color: var(--panel-bg);
+                border: 1px solid var(--border-light);
+                border-radius: 8px;
+                margin-top: 1rem;
+                padding: 1rem;
+            }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--scrollbar-bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text);
+            opacity: 0.8;
+        }
+        /* CORRECTED DROPDOWN FIX - Replace the previous CSS with this */
+
+/* High z-index but proper positioning */
+.dropdown-menu,
+.dropdown-menu.show,
+.nav-item .dropdown-menu,
+.navbar-nav .dropdown-menu,
+.navbar .dropdown-menu {
+    z-index: 99999 !important;
+    position: absolute !important; /* Back to absolute, not fixed */
+    background-color: var(--lighter-bg) !important;
+    border: 2px solid var(--border-light) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(10px) !important;
+    top: 100% !important; /* Position directly under the toggle */
+    left: 0 !important;
+    transform: none !important;
+    margin-top: 0.125rem !important;
+}
+
+/* Ensure the dropdown container maintains relative positioning */
+.nav-item.dropdown,
+.dropdown {
+    z-index: 99998 !important;
+    position: relative !important; /* This is crucial for absolute positioning to work */
+}
+
+/* Ensure navbar itself has high z-index but maintains flow */
+.navbar,
+.minimal-navbar {
+    z-index: 99997 !important;
+    position: relative !important;
+}
+
+/* Force all potential blocking elements to lower z-index */
+.main-content,
+.container-fluid,
+.card,
+.chart-container,
+canvas,
+svg,
+.network-topology,
+.topology-container,
+.chart-area,
+div[id*="chart"],
+div[class*="chart"],
+div[class*="topology"],
+div[class*="network"] {
+    z-index: 1 !important;
+}
+
+/* Special targeting for your network page elements */
+.topology-filters,
+.network-devices,
+.topology-visualization,
+.network-topology-visualization {
+    z-index: 1 !important;
+}
+
+/* Ensure dropdown appears correctly on different screen sizes */
+@media (max-width: 991px) {
+    .navbar-collapse .dropdown-menu {
+        position: static !important;
+        z-index: auto !important;
+        box-shadow: none !important;
+        border: 1px solid var(--border-light) !important;
+        margin-top: 0.5rem !important;
+    }
+}
+
+/* Override any Bootstrap or library z-index */
+.modal,
+.modal-backdrop {
+    z-index: 99990 !important;
+}
+
+/* Replace your existing dropdown CSS with this more targeted approach */
+
+/* Navbar dropdown fixes - more specific selectors */
+.navbar .nav-item.dropdown {
+    position: relative !important;
+    z-index: 1000 !important;
+}
+
+.navbar .dropdown-menu {
+    position: absolute !important;
+    z-index: 1001 !important;
+    background-color: var(--lighter-bg) !important;
+    border: 2px solid var(--border-light) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(10px) !important;
+    margin-top: 0.125rem !important;
+    min-width: 200px !important;
+}
+
+.navbar .dropdown-menu.show {
+    display: block !important;
+    z-index: 1001 !important;
+}
+
+/* Ensure navbar itself doesn't interfere */
+.navbar.minimal-navbar {
+    position: relative !important;
+    z-index: 999 !important;
+}
+
+/* Force lower z-index for potentially conflicting elements */
+.terminal-card,
+.card,
+.tab-content,
+.tab-pane,
+#scannerTerminal,
+#collectionTerminal,
+#databaseCollectionTerminal {
+    z-index: 1 !important;
+    position: relative !important;
+}
+
+/* Dropdown item styling */
+.navbar .dropdown-item {
+    position: relative !important;
+    z-index: 1002 !important;
+    padding: 0.5rem 1rem !important;
+    color: var(--text) !important;
+    text-decoration: none !important;
+    background-color: transparent !important;
+    border: none !important;
+    display: block !important;
+    width: 100% !important;
+    cursor: pointer !important;
+}
+
+.navbar .dropdown-item:hover,
+.navbar .dropdown-item:focus {
+    background-color: var(--button-hover) !important;
+    color: var(--text) !important;
+}
+
+/* Mobile dropdown fixes */
+@media (max-width: 991px) {
+    .navbar-collapse .dropdown-menu {
+        position: static !important;
+        z-index: auto !important;
+        box-shadow: none !important;
+        border: 1px solid var(--border-light) !important;
+        margin-top: 0.5rem !important;
+    }
+}
+    </style>
+
+    <!-- Add this CSS to your base.html <style> section, after your existing dropdown CSS -->
+
+<style>
+/* MODAL Z-INDEX FIX - Higher than dropdown z-index (9999) */
+.modal {
+    z-index: 100050 !important;
+}
+
+.modal.fade {
+    z-index: 100050 !important;
+}
+
+.modal.show {
+    z-index: 100050 !important;
+}
+
+.modal-backdrop {
+    z-index: 100040 !important;
+}
+
+.modal-backdrop.fade {
+    z-index: 100040 !important;
+}
+
+.modal-backdrop.show {
+    z-index: 100040 !important;
+}
+
+.modal-dialog {
+    z-index: 100051 !important;
+    position: relative !important;
+}
+
+.modal-content {
+    z-index: 100052 !important;
+    position: relative !important;
+    background-color: var(--lighter-bg) !important;
+    border: 2px solid var(--line) !important;
+    color: var(--text) !important;
+}
+
+.modal-header {
+    background-color: var(--panel-bg) !important;
+    border-bottom: 1px solid var(--border-light) !important;
+    color: var(--text) !important;
+}
+
+.modal-body {
+    background-color: var(--lighter-bg) !important;
+    color: var(--text) !important;
+}
+
+.modal-footer {
+    background-color: var(--panel-bg) !important;
+    border-top: 1px solid var(--border-light) !important;
+    color: var(--text) !important;
+}
+
+/* Ensure modal buttons are clickable */
+.modal .btn {
+    z-index: 100053 !important;
+    position: relative !important;
+}
+
+/* Override any Bootstrap default modal positioning */
+.modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Fix for dark theme close button */
+.modal .btn-close {
+    background: none !important;
+    border: none !important;
+    color: var(--text) !important;
+    opacity: 0.8 !important;
+    z-index: 100054 !important;
+}
+
+.modal .btn-close:hover {
+    opacity: 1 !important;
+    color: var(--error) !important;
+}
+
+/* Ensure form controls in modals work */
+.modal .form-control,
+.modal .form-select {
+    background-color: var(--lighter-bg) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text) !important;
+    z-index: 100053 !important;
+}
+
+.modal .form-control:focus,
+.modal .form-select:focus {
+    background-color: var(--lighter-bg) !important;
+    border-color: var(--line) !important;
+    color: var(--text) !important;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Checkboxes and labels in modals */
+.modal .form-check-input {
+    z-index: 100053 !important;
+    position: relative !important;
+}
+
+.modal .form-check-label {
+    color: var(--text) !important;
+    z-index: 100053 !important;
+}
+
+/* Alert boxes in modals */
+.modal .alert {
+    background-color: rgba(215, 153, 33, 0.15) !important;
+    border-color: var(--warning-color) !important;
+    color: var(--warning-color) !important;
+    z-index: 100053 !important;
+}
+
+/* Specific fix for delete modal */
+#deleteModal {
+    z-index: 100055 !important;
+}
+
+#deleteModal .modal-dialog {
+    z-index: 100056 !important;
+}
+
+#deleteModal .modal-content {
+    z-index: 100057 !important;
+}
+
+/* Bulk edit modal */
+#bulkEditModal {
+    z-index: 100055 !important;
+}
+
+#bulkEditModal .modal-dialog {
+    z-index: 100056 !important;
+}
+
+#bulkEditModal .modal-content {
+    z-index: 100057 !important;
+}
+</style>
+
+<style>
+
+/* Prevent body scrolling when modal is open */
+body.modal-open {
+    overflow: hidden !important;
+    padding-right: 0px !important;
+}
+
+/* Modal container - ensure it can receive clicks */
+#deviceDetailsModal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 99999 !important;
+    background-color: rgba(0, 0, 0, 0.7) !important;
+    display: none !important;
+    pointer-events: none !important; /* Allow clicks to pass through to modal-dialog */
+}
+
+/* When modal is active - CRITICAL: Enable pointer events */
+#deviceDetailsModal.show {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    pointer-events: auto !important; /* Enable clicks */
+}
+
+/* Modal dialog - ensure it's interactive */
+#deviceDetailsModal .modal-dialog {
+    position: relative !important;
+    margin: 20px auto !important;
+    max-width: 90vw !important;
+    width: 1200px !important;
+    max-height: 90vh !important;
+    z-index: 100000 !important;
+    transform: none !important;
+    pointer-events: auto !important; /* Ensure dialog is clickable */
+}
+
+/* Modal content - bright, visible, and interactive - USING THEME VARIABLES */
+#deviceDetailsModal .modal-content {
+    background-color: var(--lighter-bg) !important; /* Changed from #1e293b */
+    border: 2px solid var(--line) !important; /* Changed from #38bdf8 */
+    border-radius: 8px !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.9) !important;
+    color: var(--text) !important; /* Changed from #f1f5f9 */
+    opacity: 1 !important;
+    z-index: 100001 !important;
+    position: relative !important;
+    pointer-events: auto !important; /* Ensure content is interactive */
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: 90vh !important;
+}
+
+/* Modal header - clickable - USING THEME VARIABLES */
+#deviceDetailsModal .modal-header {
+    background-color: var(--panel-bg) !important; /* Changed from #334155 */
+    border-bottom: 1px solid var(--border-light) !important; /* Changed from #475569 */
+    color: var(--text) !important; /* Changed from #f1f5f9 */
+    padding: 1rem 1.5rem !important;
+    flex-shrink: 0 !important;
+    pointer-events: auto !important;
+}
+
+#deviceDetailsModal .modal-title {
+    color: var(--line) !important; /* Changed from #38bdf8 */
+    font-weight: 600 !important;
+    pointer-events: auto !important;
+}
+
+#deviceDetailsModal .btn-close {
+    background: none !important;
+    border: none !important;
+    color: var(--text) !important; /* Changed from #f1f5f9 */
+    opacity: 0.8 !important;
+    font-size: 1.2rem !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    z-index: 100002 !important;
+}
+
+#deviceDetailsModal .btn-close:hover {
+    opacity: 1 !important;
+    color: var(--error) !important; /* Changed from #ef4444 */
+    background-color: rgba(239, 68, 68, 0.1) !important; /* Could be themed as var(--error) with opacity */
+}
+
+/* Modal body - scrollable and interactive - USING THEME VARIABLES */
+#deviceDetailsModal .modal-body {
+    background-color: var(--lighter-bg) !important; /* Changed from #1e293b */
+    color: var(--text) !important; /* Changed from #f1f5f9 */
+    padding: 1.5rem !important;
+    flex: 1 !important;
+    overflow-y: auto !important;
+    pointer-events: auto !important;
+    max-height: calc(90vh - 120px) !important; /* Account for header/footer */
+}
+
+/* Modal footer - interactive - USING THEME VARIABLES */
+#deviceDetailsModal .modal-footer {
+    background-color: var(--panel-bg) !important; /* Changed from #334155 */
+    border-top: 1px solid var(--border-light) !important; /* Changed from #475569 */
+    color: var(--text) !important; /* Changed from #f1f5f9 */
+    padding: 1rem 1.5rem !important;
+    flex-shrink: 0 !important;
+    pointer-events: auto !important;
+}
+
+/* All buttons must be clickable */
+#deviceDetailsModal .btn {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    z-index: 100002 !important;
+    position: relative !important;
+}
+
+/* Cards inside modal - interactive - USING THEME VARIABLES */
+#deviceDetailsModal .card {
+    background-color: var(--lighter-bg) !important; /* Changed from #2d3748 */
+    border: 1px solid var(--border-light) !important; /* Changed from #4a5568 */
+    color: var(--text) !important; /* Changed from #f1f5f9 */
+    pointer-events: auto !important;
+}
+
+#deviceDetailsModal .card-header {
+    background-color: var(--panel-bg) !important; /* Changed from #374151 */
+    border-bottom: 1px solid var(--border-light) !important; /* Changed from #4a5568 */
+    color: var(--text) !important; /* Changed from #f1f5f9 */
+    pointer-events: auto !important;
+}
+
+#deviceDetailsModal .card-body {
+    background-color: var(--lighter-bg) !important; /* Changed from #2d3748 */
+    color: var(--text) !important; /* Changed from #f1f5f9 */
+    pointer-events: auto !important;
+}
+
+/* Table container - MUST be scrollable - USING THEME VARIABLES */
+#deviceDetailsModal .table-responsive {
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--border-light) var(--darker-bg) !important; /* Changed from #4a5568 #1a202c */
+    max-height: 400px !important;
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+    pointer-events: auto !important;
+    border: 1px solid var(--border-light) !important; /* Changed from #4a5568 */
+}
+
+/* Table - interactive - USING THEME VARIABLES */
+#deviceDetailsModal .table {
+    pointer-events: auto !important;
+    margin-bottom: 0 !important;
+}
+
+#deviceDetailsModal .table-dark {
+    --bs-table-bg: var(--darker-bg) !important; /* Changed from #1a202c */
+    --bs-table-striped-bg: var(--lighter-bg) !important; /* Changed from #2d3748 */
+    color: var(--text) !important; /* Changed from #f1f5f9 */
+    pointer-events: auto !important;
+}
+
+#deviceDetailsModal .table-dark th,
+#deviceDetailsModal .table-dark td {
+    border-color: var(--border-light) !important; /* Changed from #4a5568 */
+    color: var(--text) !important; /* Changed from #f1f5f9 */
+    pointer-events: auto !important;
+}
+
+/* Sticky header - USING THEME VARIABLES */
+#deviceDetailsModal .table-sticky-header thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    background-color: var(--darker-bg) !important; /* Changed from #1a202c */
+    border-bottom: 2px solid var(--border-light) !important; /* Changed from #4a5568 */
+    pointer-events: auto !important;
+}
+
+/* Custom scrollbar - USING THEME VARIABLES */
+#deviceDetailsModal .table-responsive::-webkit-scrollbar {
+    width: 12px !important;
+    height: 12px !important;
+}
+
+#deviceDetailsModal .table-responsive::-webkit-scrollbar-track {
+    background: var(--darker-bg) !important; /* Changed from #1a202c */
+    border-radius: 6px !important;
+}
+
+#deviceDetailsModal .table-responsive::-webkit-scrollbar-thumb {
+    background: var(--border-light) !important; /* Changed from #4a5568 */
+    border-radius: 6px !important;
+}
+
+#deviceDetailsModal .table-responsive::-webkit-scrollbar-thumb:hover {
+    background: var(--text) !important; /* Changed from #6b7280 */
+    opacity: 0.8;
+}
+
+/* Ensure all interactive elements work */
+#deviceDetailsModal button,
+#deviceDetailsModal a,
+#deviceDetailsModal input,
+#deviceDetailsModal select,
+#deviceDetailsModal textarea {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    z-index: 100002 !important;
+    position: relative !important;
+}
+
+/* Loading spinner - visible - USING THEME VARIABLES */
+#deviceDetailsModal .spinner-border {
+    color: var(--line) !important; /* Changed from #38bdf8 */
+    pointer-events: none !important;
+}
+
+/* Debug styles - USING THEME VARIABLES */
+#deviceDetailsModal .table-responsive {
+    background-color: var(--background) !important; /* Changed from #0f172a */
+    border: 2px solid var(--success) !important; /* Changed from #22d3ee - using success color for visibility */
+}
+
+/* Debug: Show modal bounds - USING THEME VARIABLES */
+#deviceDetailsModal.show {
+    border: 3px solid var(--warning-color) !important; /* Changed from #f59e0b - using warning color */
+}
+
+/* Additional themed styles for better integration */
+#deviceDetailsModal .badge {
+    background-color: var(--line) !important;
+    color: var(--background) !important;
+}
+
+#deviceDetailsModal .progress {
+    background-color: var(--darker-bg) !important;
+}
+
+#deviceDetailsModal .progress-bar {
+    background-color: var(--success) !important;
+}
+
+/* Status badges within modal */
+#deviceDetailsModal .status-online {
+    background-color: rgba(34, 197, 94, 0.2) !important;
+    color: var(--success) !important;
+    border: 1px solid var(--success) !important;
+}
+
+#deviceDetailsModal .status-offline {
+    background-color: rgba(239, 68, 68, 0.2) !important;
+    color: var(--error) !important;
+    border: 1px solid var(--error) !important;
+}
+
+#deviceDetailsModal .status-warning {
+    background-color: rgba(215, 153, 33, 0.2) !important;
+    color: var(--warning-color) !important;
+    border: 1px solid var(--warning-color) !important;
+}
+
+/* Form controls within modal */
+#deviceDetailsModal .form-control,
+#deviceDetailsModal .form-select {
+    background-color: var(--lighter-bg) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text) !important;
+}
+
+#deviceDetailsModal .form-control:focus,
+#deviceDetailsModal .form-select:focus {
+    background-color: var(--lighter-bg) !important;
+    border-color: var(--line) !important;
+    color: var(--text) !important;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
+
+
+
+}
+</style>
+</head>
+<body>
+    <!-- Minimal Top Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark minimal-navbar">
+        <div class="container-fluid">
+            <!-- Brand -->
+            <a class="navbar-brand" href="{{ url_for('dashboard.index') }}">
+                <i class="bi bi-hdd-network"></i>
+                RapidCMDB
+            </a>
+
+            <!-- Mobile toggle -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Navigation Links -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+
+                 <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" href="{{ url_for('dashboard.index') }}">
+                            <i class="bi bi-speedometer2"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and 'search' in request.endpoint %}active{% endif %}" href="{{ url_for('search.index') }}">
+                            <i class="bi bi-search"></i>Search
+                        </a>
+                    </li>
+
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.endpoint and 'device' in request.endpoint %}active{% endif %}" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-router"></i>Devices
+                        </a>
+                        <ul class="dropdown-menu">
+                            <!-- Discovery Views -->
+                            <li><h6 class="dropdown-header">
+                                <i class="bi bi-search me-1"></i>Discovery Views
+                            </h6></li>
+                            <li><a class="dropdown-item" href="{{ url_for('devices.list_devices') }}">
+                                <i class="bi bi-list-ul me-2"></i>Discovered Devices
+                            </a></li>
+
+                            <li><hr class="dropdown-divider"></li>
+
+                            <!-- Administrative Views -->
+                            <li><h6 class="dropdown-header">
+                                <i class="bi bi-gear me-1"></i>Device Management
+                            </h6></li>
+                            <li><a class="dropdown-item" href="{{ url_for('device_crud.list_devices') }}">
+                                <i class="bi bi-tools me-2"></i>Manage Devices
+                            </a></li>
+                             <li><a class="dropdown-item" href="{{ url_for('uptime.uptime_analysis') }}">
+                                <i class="bi bi-clock me-2"></i>Uptime Analysis
+                            </a></li>
+
+                            <li><a class="dropdown-item" href="{{ url_for('device_crud.new_device') }}">
+                                <i class="bi bi-plus-circle me-2"></i>Add Device
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('device_crud.bulk_operations') }}">
+                                <i class="bi bi-collection me-2"></i>Bulk Operations
+                            </a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and 'network' in request.endpoint %}active{% endif %}" href="{{ url_for('network.enhanced_topology') }}">
+                            <i class="bi bi-diagram-3"></i>Network
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and 'reports' in request.endpoint %}active{% endif %}" href="{{ url_for('reports.index') }}">
+                            <i class="bi bi-graph-up"></i>Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and 'pipeline' in request.endpoint %}active{% endif %}" href="{{ url_for('pipeline.index') }}">
+                            <i class="bi bi-gear-wide-connected"></i>Pipeline
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Right side actions -->
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="navbar-text me-3">
+                            <small class="text-muted">
+                                <i class="bi bi-clock me-1"></i>
+                                Last updated: <span id="updateTime">Loading...</span>
+                            </small>
+                        </span>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profile</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/health"><i class="bi bi-heart-pulse me-2"></i>System Health</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">
+                                <i class="bi bi-palette me-1"></i>Themes ({{ theme_count }})
+                                <span class="badge bg-secondary ms-1">{{ current_theme_name }}</span>
+                            </h6></li>
+                            {% for theme in available_themes %}
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center" href="?theme={{ theme.name }}">
+                                    <span class="theme-preview me-2" id="preview-{{ theme.name }}"></span>
+                                    {{ theme.display_name }}
+                                    {% if theme.name == current_theme_name %}
+                                        <i class="bi bi-check ms-auto"></i>
+                                    {% endif %}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container-fluid mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {% if category == 'success' %}
+                            <i class="bi bi-check-circle me-2"></i>
+                        {% elif category == 'error' or category == 'danger' %}
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                        {% elif category == 'warning' %}
+                            <i class="bi bi-exclamation-circle me-2"></i>
+                        {% elif category == 'info' %}
+                            <i class="bi bi-info-circle me-2"></i>
+                        {% endif %}
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Quick Actions Bar (Optional) -->
+        <div class="container-fluid">
+            <div class="quick-actions">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <!-- Breadcrumb -->
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-0">
+                                {% block breadcrumb %}
+                                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                                {% endblock %}
+                            </ol>
+                        </nav>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button class="btn btn-outline-primary btn-sm me-2" onclick="refreshData()">
+                            <i class="bi bi-arrow-clockwise me-1"></i>
+                            Refresh
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="exportData()">
+                            <i class="bi bi-download me-1"></i>
+                            Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        <div class="container-fluid px-4 pb-4">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="container-fluid px-4 py-3">
+        <div class="text-center text-muted">
+            <small>Version {{ version or '1.0.0' }} &copy; {{ current_year or '2025' }} RapidCMDB - A Quick Source Of Truth</small>
+            <br>
+            {{ request.url }}
+        </div>
+    </footer>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/downloader.js"></script>
+    <!-- Theme-aware Chart.js configuration -->
+    <script>
+        // Get theme colors from CSS variables
+        function getThemeColors() {
+            const styles = getComputedStyle(document.documentElement);
+            return {
+                primary: styles.getPropertyValue('--primary').trim(),
+                secondary: styles.getPropertyValue('--secondary').trim(),
+                background: styles.getPropertyValue('--background').trim(),
+                text: styles.getPropertyValue('--text').trim(),
+                line: styles.getPropertyValue('--line').trim(),
+                success: styles.getPropertyValue('--success').trim(),
+                error: styles.getPropertyValue('--error').trim(),
+                borderLight: styles.getPropertyValue('--border-light').trim(),
+                grid: styles.getPropertyValue('--grid').trim()
+            };
+        }
+
+        // Chart color palette based on current theme
+        function getChartColors() {
+            const theme = getThemeColors();
+            return [
+                theme.line,      // Primary blue
+                theme.success,   // Green
+                '#d79921',       // Yellow
+                theme.error,     // Red
+                '#d946ef',       // Magenta
+                '#06b6d4',       // Cyan
+                '#f59e0b',       // Amber
+                '#8b5cf6',       // Violet
+                '#ef4444',       // Red variant
+                '#10b981'        // Emerald
+            ];
+        }
+
+        // Default Chart.js configuration with theme awareness
+        Chart.defaults.color = getThemeColors().text;
+        Chart.defaults.borderColor = getThemeColors().borderLight;
+        Chart.defaults.backgroundColor = getThemeColors().background;
+
+        // Load theme previews
+        async function loadThemePreviews() {
+            try {
+                {% for theme in available_themes %}
+                const preview{{ loop.index }} = await fetch('/api/theme/preview/{{ theme.name }}');
+                const previewData{{ loop.index }} = await preview{{ loop.index }}.json();
+                const previewElement{{ loop.index }} = document.getElementById('preview-{{ theme.name }}');
+                if (previewElement{{ loop.index }} && previewData{{ loop.index }}.colors) {
+                    previewElement{{ loop.index }}.style.backgroundColor = previewData{{ loop.index }}.colors.primary || '#000000';
+                }
+                {% endfor %}
+            } catch (error) {
+                console.error('Error loading theme previews:', error);
+            }
+        }
+
+        // Simple theme switching (no longer needed, but kept for compatibility)
+        function changeTheme(themeName) {
+            window.location.href = `?theme=${themeName}`;
+        }
+
+        // Custom JavaScript
+        function updateLastRefreshTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            const updateElement = document.getElementById('updateTime');
+            if (updateElement) {
+                updateElement.textContent = timeString;
+            }
+        }
+
+        async function refreshData() {
+            const refreshBtn = document.querySelector('[onclick="refreshData()"]');
+            const originalText = refreshBtn.innerHTML;
+
+            refreshBtn.innerHTML = '<span class="loading"></span> Refreshing...';
+            refreshBtn.disabled = true;
+
+            try {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                updateLastRefreshTime();
+                showAlert('Data refreshed successfully!', 'success');
+            } catch (error) {
+                showAlert('Failed to refresh data: ' + error.message, 'danger');
+            } finally {
+                refreshBtn.innerHTML = originalText;
+                refreshBtn.disabled = false;
+            }
+        }
+
+        function exportData() {
+            showAlert('Export feature coming soon!', 'info');
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.style.minWidth = '300px';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLastRefreshTime();
+            loadThemePreviews();
+        });
+        // Add this JavaScript to your base.html, in the existing script section
+
+// Enhanced dropdown management
+document.addEventListener('DOMContentLoaded', function() {
+    // Force z-index on all dropdown menus when they show
+    const dropdowns = document.querySelectorAll('.dropdown');
+
+    dropdowns.forEach(dropdown => {
+        const dropdownToggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+        const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+
+        if (dropdownToggle && dropdownMenu) {
+            // When dropdown is about to show
+            dropdownToggle.addEventListener('show.bs.dropdown', function() {
+                // Force high z-index
+                dropdownMenu.style.zIndex = '9999';
+                dropdownMenu.style.position = 'absolute';
+
+                // Ensure parent has relative positioning
+                dropdown.style.position = 'relative';
+                dropdown.style.zIndex = '9998';
+            });
+
+            // When dropdown is shown
+            dropdownToggle.addEventListener('shown.bs.dropdown', function() {
+                // Double-check z-index after Bootstrap positioning
+                setTimeout(() => {
+                    dropdownMenu.style.zIndex = '9999';
+                }, 10);
+            });
+
+            // Clean up when hidden
+            dropdownToggle.addEventListener('hidden.bs.dropdown', function() {
+                dropdown.style.zIndex = '';
+            });
+        }
+    });
+
+    // Special handling for navbar dropdowns
+    const navbarDropdowns = document.querySelectorAll('.navbar .dropdown-menu');
+    navbarDropdowns.forEach(menu => {
+        menu.style.zIndex = '9999';
+    });
+
+    // Handle click outside to close dropdowns (in case of z-index issues)
+    document.addEventListener('click', function(event) {
+        const openDropdowns = document.querySelectorAll('.dropdown-menu.show');
+        openDropdowns.forEach(menu => {
+            const dropdown = menu.closest('.dropdown');
+            if (dropdown && !dropdown.contains(event.target)) {
+                const toggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+                if (toggle) {
+                    const bsDropdown = bootstrap.Dropdown.getInstance(toggle);
+                    if (bsDropdown) {
+                        bsDropdown.hide();
+                    }
+                }
+            }
+        });
+    });
+});
+
+// Fix for any Chart.js or other library conflicts
+if (typeof Chart !== 'undefined') {
+    // Ensure charts don't interfere with dropdowns
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.interaction.intersect = false;
+}
+
+// Function to manually fix dropdown z-index if needed
+function fixDropdownZIndex() {
+    const dropdowns = document.querySelectorAll('.dropdown-menu');
+    dropdowns.forEach(menu => {
+        menu.style.zIndex = '9999';
+        menu.style.position = 'absolute';
+    });
+
+    // Also fix any backdrop issues
+    const backdrops = document.querySelectorAll('.dropdown-backdrop');
+    backdrops.forEach(backdrop => {
+        backdrop.style.zIndex = '9998';
+    });
+}
+
+// Auto-fix on window resize (in case of layout changes)
+window.addEventListener('resize', function() {
+    setTimeout(fixDropdownZIndex, 100);
+});
+
+// Auto-fix on scroll (in case of sticky navbar issues)
+window.addEventListener('scroll', function() {
+    const openDropdowns = document.querySelectorAll('.dropdown-menu.show');
+    if (openDropdowns.length > 0) {
+        fixDropdownZIndex();
+    }
+});
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

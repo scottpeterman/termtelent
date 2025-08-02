@@ -1,0 +1,12 @@
+Value POOL (\S+)
+Value TOTAL (\d+)
+Value USED (\d+)
+Value FREE (\d+)
+Value LOWEST (\d+)
+Value LARGEST (\d+)
+
+Start
+  ^\s*Head\s+Total\(b\)\s+Used\(b\)\s+Free\(b\)\s+Lowest\(b\)\s+Largest\(b\) -> MemoryData
+
+MemoryData
+  ^\s*${POOL}\s+\S+\s+${TOTAL}\s+${USED}\s+${FREE}\s+${LOWEST}\s+${LARGEST} -> Record

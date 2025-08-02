@@ -1,0 +1,173 @@
+graph TB
+   %% Input Sources
+   subgraph "📥 Discovery Sources"
+       Networks[Network Ranges<br/>IP Subnets]
+       Creds[SNMP/SSH Credentials<br/>Community Strings]
+       Seeds[Seed Devices<br/>Starting Points]
+   end
+
+   %% Core Scanner Suite
+   subgraph "🔍 SNMP Scanner Suite"
+       TCPCheck[TCP Pre-Filter<br/>Port Responsiveness]
+       SNMPScan[SNMP Collection<br/>v3→v2c Fallback]
+       Fingerprint[Device Fingerprinting<br/>Vendor Detection]
+       FieldExtract[Field Extraction<br/>Model/Serial/Firmware]
+
+       TCPCheck --> SNMPScan
+       SNMPScan --> Fingerprint
+       Fingerprint --> FieldExtract
+   end
+
+   %% Fingerprint Management
+   subgraph "🎯 Fingerprint Engine"
+       FingerprintDB[(vendor_fingerprints.yaml<br/>Community Rules Database)]
+       FingerprintEditor[Fingerprint Editor<br/>Rule Management]
+       ValidationEngine[Pattern Validation<br/>OID Testing]
+
+       FingerprintEditor --> FingerprintDB
+       FingerprintDB --> ValidationEngine
+   end
+
+   %% Discovery Results
+   ScanResults[📄 JSON Discovery Results<br/>Device Inventory + Topology]
+
+   %% Primary Applications
+   subgraph "🖥️ TerminalTelemetry Platform"
+       direction TB
+
+       %% SSH Terminal
+       SSHTerminal[SSH Terminal Emulator<br/>Multi-Tab Sessions]
+       SessionMgmt[Session Management<br/>Device Connections]
+
+       %% Real-time Telemetry
+       TelemetryDash[Real-time Telemetry<br/>Live Device Monitoring]
+       Widgets[Monitoring Widgets<br/>CPU/Memory/Interfaces]
+       NeighborDisc[Neighbor Discovery<br/>CDP/LLDP Topology]
+
+       %% Integration
+       SSHTerminal --> TelemetryDash
+       TelemetryDash --> Widgets
+       TelemetryDash --> NeighborDisc
+   end
+
+   %% Network Mapping Suite
+   subgraph "🗺️ Network Mapping Suite"
+       direction TB
+       TopologyViewer[Interactive Topology Viewer<br/>Real-time Exploration]
+       MapEnhancer[Professional Diagram Creator<br/>DrawIO/GraphML Export]
+       MapEditor[Topology Data Editor<br/>Manual Refinement]
+       IconEditor[Device Icon Mapper<br/>Visual Consistency]
+       MapMerger[Multi-Network Merger<br/>Campus Integration]
+
+       TopologyViewer --> MapEnhancer
+       MapEditor --> MapEnhancer
+       IconEditor --> MapEnhancer
+       MapMerger --> MapEnhancer
+   end
+
+   %% Enterprise CMDB
+   subgraph "📊 RapidCMDB Enterprise"
+       direction TB
+       WebDashboard[Web-Based Dashboard<br/>Device Management]
+       ConfigMgmt[Configuration Management<br/>Change Tracking]
+       Reports[Analytics & Reporting<br/>Compliance & Inventory]
+       APIEndpoints[REST APIs<br/>Integration Platform]
+
+       WebDashboard --> ConfigMgmt
+       WebDashboard --> Reports
+       WebDashboard --> APIEndpoints
+   end
+
+   %% Supporting Tools
+   subgraph "🛠️ Supporting Tools"
+       direction TB
+       CMDBImport[CMDB Import Tool<br/>Domain Processing]
+       CredManager[Credential Manager<br/>Secure Storage]
+       ThemeSystem[Theme System<br/>20+ Visual Themes]
+       GamesSuite[Productivity Distractions<br/>Notepad/Diff/Games]
+   end
+
+   %% Output Formats
+   subgraph "📤 Output & Integration"
+       ProfDiagrams[Professional Diagrams<br/>Visio/DrawIO/GraphML]
+       CSVExports[CSV Data Exports<br/>Analysis Ready]
+       DatabaseOutput[Database Storage<br/>SQLite/PostgreSQL]
+       NetBoxSync[NetBox Integration<br/>IPAM Synchronization]
+       LMSync[LogicMonitor Integration<br/>Monitoring Data]
+   end
+
+   %% External Integrations
+   subgraph "🔗 External Systems"
+       NetBox[(NetBox IPAM<br/>IP Address Management)]
+       LogicMonitor[(LogicMonitor<br/>Infrastructure Monitoring)]
+       Confluence[(Confluence<br/>Documentation)]
+       ITSM[(ITSM Platforms<br/>Change Management)]
+   end
+
+   %% Connections - Discovery Flow
+   Networks --> TCPCheck
+   Creds --> SNMPScan
+   Seeds --> TCPCheck
+
+   FieldExtract --> ScanResults
+   FingerprintDB -.-> Fingerprint
+
+   %% Core Platform Integration
+   ScanResults --> SSHTerminal
+   ScanResults --> TopologyViewer
+   ScanResults --> WebDashboard
+
+   %% Supporting Tools Integration
+   ScanResults --> CMDBImport
+   CMDBImport --> WebDashboard
+
+   CredManager -.-> SNMPScan
+   CredManager -.-> SSHTerminal
+   CredManager -.-> WebDashboard
+
+   ThemeSystem -.-> SSHTerminal
+   ThemeSystem -.-> TopologyViewer
+   ThemeSystem -.-> CMDBImport
+
+   %% Output Generation
+   TelemetryDash --> CSVExports
+   MapEnhancer --> ProfDiagrams
+   WebDashboard --> DatabaseOutput
+   Reports --> CSVExports
+
+   %% External Integrations
+   DatabaseOutput --> NetBox
+   DatabaseOutput --> LogicMonitor
+   ProfDiagrams --> Confluence
+   Reports --> ITSM
+
+   NetBox --> NetBoxSync
+   LogicMonitor --> LMSync
+   NetBoxSync --> WebDashboard
+   LMSync --> WebDashboard
+
+   %% Feedback Loops
+   TelemetryDash -.-> FingerprintEditor
+   MapEditor -.-> FingerprintEditor
+   ValidationEngine -.-> Fingerprint
+
+   %% Styling
+   classDef scanner fill:#0066cc,stroke:#004499,stroke-width:3px,color:#fff
+   classDef terminal fill:#009900,stroke:#006600,stroke-width:2px,color:#fff
+   classDef mapping fill:#cc6600,stroke:#994400,stroke-width:2px,color:#fff
+   classDef cmdb fill:#9900cc,stroke:#660099,stroke-width:2px,color:#fff
+   classDef fingerprint fill:#ff6600,stroke:#cc4400,stroke-width:2px,color:#fff
+   classDef tools fill:#666666,stroke:#333333,stroke-width:2px,color:#fff
+   classDef output fill:#006666,stroke:#004444,stroke-width:2px,color:#fff
+   classDef external fill:#444444,stroke:#222222,stroke-width:1px,color:#fff
+   classDef data fill:#ffcc00,stroke:#cc9900,stroke-width:2px,color:#000
+
+   class TCPCheck,SNMPScan,Fingerprint,FieldExtract scanner
+   class SSHTerminal,TelemetryDash,Widgets,NeighborDisc,SessionMgmt terminal
+   class TopologyViewer,MapEnhancer,MapEditor,IconEditor,MapMerger mapping
+   class WebDashboard,ConfigMgmt,Reports,APIEndpoints cmdb
+   class FingerprintDB,FingerprintEditor,ValidationEngine fingerprint
+   class CMDBImport,CredManager,ThemeSystem,GamesSuite tools
+   class ProfDiagrams,CSVExports,DatabaseOutput,NetBoxSync,LMSync output
+   class NetBox,LogicMonitor,Confluence,ITSM external
+   class ScanResults,Networks,Creds,Seeds data

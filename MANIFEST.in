@@ -1,0 +1,77 @@
+# MANIFEST.in - Ensures all necessary files are included in the distribution
+
+# Documentation
+include README.md
+include LICENSE
+include requirements.txt
+include *.md
+
+# TextFSM templates - CRITICAL
+recursive-include termtel/templates *.textfsm
+recursive-include termtel/templates **/*
+
+# Platform configuration - CRITICAL  
+recursive-include termtel/config *.json
+recursive-include termtel/config/platforms *.json
+include termtel/config/platforms.json
+include termtel/config/platforms/platforms.json
+
+# Static web assets
+recursive-include termtel/static *.css *.js *.html *.wasm *.sav
+recursive-include termtel/static/images *
+recursive-include termtel/static/css *
+recursive-include termtel/static/js *
+recursive-include termtel/themes *.json
+
+# Frontend assets (if still used)
+recursive-include termtel/termtelng **/*
+
+# Icon and logo files
+include termtel/icon.ico
+include termtel/logo.svg
+include termtel/logo.py
+
+# Database files
+include termtel/*.db
+
+# Themes (if you want to ship default themes)
+recursive-include themes *.json
+
+# Python package files
+recursive-include termtel *.py
+recursive-include termtel/termtelwidgets *.py
+recursive-include termtel/helpers *.py
+
+# === NEW: RapidCMDB files ===
+# RapidCMDB Python files
+recursive-include rapidcmdb *.py
+recursive-include rapidcmdb/blueprints *.py
+recursive-include rapidcmdb/config *.yaml *.json
+
+# RapidCMDB web templates and static files
+recursive-include rapidcmdb/templates *.html
+recursive-include rapidcmdb/static *.css *.js *.svg *.png *.ico
+
+# RapidCMDB database and config files
+include rapidcmdb/*.sql
+include rapidcmdb/*.yaml
+include rapidcmdb/*.db
+
+# Sessions directory structure
+include sessions/sessions.yaml
+
+# Main launch script
+include launch.py
+
+# Exclude development and build files
+exclude createproj.bat
+exclude *.log
+exclude .gitignore
+exclude .git*
+recursive-exclude * **pycache**
+recursive-exclude *.*py[co]
+recursive-exclude *.*orig
+recursive-exclude *.*rej
+recursive-exclude logs *
+recursive-exclude sessions *
+recursive-exclude screenshots *

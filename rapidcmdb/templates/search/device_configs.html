@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}{{ device.device_name }} Configurations - {{ app_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('search.index') }}">Search</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('devices.device_detail', device_name=device.device_name) }}">{{ device.device_name }}</a></li>
+<li class="breadcrumb-item active">Configurations</li>
+{% endblock %}
+
+{% block content %}
+<!-- Device Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-1">
+                            <i class="bi bi-file-earmark-code text-primary me-2"></i>
+                            {{ device.device_name }} Configurations
+                        </h2>
+                        <p class="text-muted mb-0">Configuration history and changes</p>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('devices.device_detail', device_name=device.device_name) }}" class="btn btn-outline-secondary me-2">
+                            <i class="bi bi-arrow-left me-1"></i>
+                            Back to Device
+                        </a>
+                        <a href="{{ url_for('search.index') }}?search={{ device.device_name }}&category=config" class="btn btn-primary">
+                            <i class="bi bi-search me-1"></i>
+                            Search Configs
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Configuration Files -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Configuration Files</h5>
+            </div>
+            <div class="card-body">
+                {% if configs %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Collection Time</th>
+                                    <th>Size</th>
+                                    <th>Lines</th>
+                                    <th>Hash</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for config in configs %}
+                                <tr>
+                                    <td>
+                                        <span class="badge 
+                                            {% if config.config_type == 'running' %}bg-success
+                                            {% elif config.config_type == 'startup' %}bg-warning
+                                            {% else %}bg-info{% endif %}">
+                                            {{ config.config_type|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {{ config.collection_time|datetime }}
+                                        <br><small class="text-muted">{{ config.collection_time|relative_time }}</small>
+                                    </td>
+                                    <td>{{ config.size_bytes|file_size }}</td>
+                                    <td>{{ config.line_count or 'N/A' }}</td>
+                                    <td><code class="text-muted">{{ config.config_hash[:12] }}...</code></td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('search.view_config', config_id=config.id) }}" 
+                                               class="btn btn-outline-primary" title="View Configuration">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <button class="btn btn-outline-secondary" 
+                                                    onclick="downloadConfig({{ config.id }})" title="Download">
+                                                <i class="bi bi-download"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-file-earmark-code fs-1"></i>
+                        <p class="mt-2">No configurations found for this device</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Configuration Changes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Configuration Changes</h5>
+            </div>
+            <div class="card-body">
+                {% if changes %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Type</th>
+                                    <th>Config Type</th>
+                                    <th>Summary</th>
+                                    <th>Size</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for change in changes %}
+                                <tr>
+                                    <td>
+                                        {{ change.detected_at|datetime }}
+                                        <br><small class="text-muted">{{ change.detected_at|relative_time }}</small>
+                                    </td>
+                                    <td>
+                                        {% if change.change_type == 'added' %}
+                                            <span class="badge bg-success">Added</span>
+                                        {% elif change.change_type == 'modified' %}
+                                            <span class="badge bg-warning">Modified</span>
+                                        {% elif change.change_type == 'deleted' %}
+                                            <span class="badge bg-danger">Deleted</span>
+                                        {% else %}
+                                            <span class="badge bg-info">{{ change.change_type|title }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="badge bg-secondary">{{ change.config_type|title }}</span></td>
+                                    <td>{{ change.change_summary or 'Configuration updated' }}</td>
+                                    <td>{{ change.change_size }} lines</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('search.view_config', config_id=change.new_config_id) }}" 
+                                               class="btn btn-outline-primary" title="View New Config">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            {% if change.old_config_id %}
+                                            <a href="{{ url_for('search.compare_configs', old_id=change.old_config_id, new_id=change.new_config_id) }}" 
+                                               class="btn btn-outline-info" title="Compare">
+                                                <i class="bi bi-file-diff"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-file-earmark-diff fs-1"></i>
+                        <p class="mt-2">No configuration changes recorded</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function downloadConfig(configId) {
+    // This would implement config download functionality
+    showAlert('Config download functionality would be implemented here', 'info');
+}
+</script>
+{% endblock %}

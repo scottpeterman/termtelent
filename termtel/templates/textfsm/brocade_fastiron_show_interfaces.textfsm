@@ -1,0 +1,117 @@
+Value INTERFACE ([a-zA-Z0-9\/\s]+)
+Value Required INTSTATE (up|down|disabled)
+Value PROTOSTATE (up|down)
+Value STPROOTGUARD (enabled|disabled|Enabled|Disabled)
+Value STPBPDUGUARD (enabled|disabled|Enabled|Disabled)
+Value HARDWARETYPE ([a-zA-Z0-9\s]+)
+Value MAC ([0-9a-f\.]+)
+Value BIA ([0-9a-f\.]+)
+Value CONFSPEED ([0-9a-zA-Z]+)
+Value CONFDUPLEX ([0-9a-zA-Z]+)
+Value ACTUALSPEED ([0-9a-zA-Z]+)
+Value ACTUALDUPLEX ([0-9a-zA-Z]+)
+Value L2PORTSTATE (Forwarding|Disabled|FORWARDING|DISABLED)
+Value L2PORTMODE (tagged|untagged|dual)
+Value UNTAGGEDVLAN (\d+)
+Value NUMTAGGEDVLANS (\d+)
+Value STPCONFSTATE (ON|OFF)
+Value PRIORITY ([a-zA-Z0-9]+)
+Value FLOWCONTROLCONFIGSTATE (enabled|disabled)
+Value FLOWCONTROLOPSTATE (enabled|disabled)
+Value FLOWCONTROLNEGCONFIG (enabled|disabled)
+Value MIRRORSTATE (enabled|disabled)
+Value MONITORSTATE (enabled|disabled)
+Value ACTIVELAGPORTS ([0-9\/\-\,]+)
+Value ACTIVELAGROLE (primary|secondary)
+Value ACTIVELAGPRIMARYPORT ([0-9\/]+)
+Value CONFLAGPORTS ([0-9\/\-\,]+)
+Value CONFLAGROLE (primary|secondary)
+Value CONFLAGPRIMARYPORT ([0-9\/]+)
+Value PORTNAME ([a-zA-Z0-9\.\ \"\(\)\#\/\-]+)
+Value L2MTUBYTES (\d+)
+Value LOADINTERVAL (\d+)
+Value INPUTBITSSEC (\d+)
+Value INPUTPACKETSSEC (\d+)
+Value INPUTPERCENTUTILIZATION ([\d\.]+)
+Value OUTPUTBITSSEC (\d+)
+Value OUTPUTPACKETSSEC (\d+)
+Value OUTPUTPERCENTUTILIZATION ([\d\.]+)
+Value INPUTPACKETSTOTAL (\d+)
+Value INPUTBYTESTOTAL (\d+)
+Value INPUTNOBUFFERS (\d+)
+Value INPUTBROADCASTS (\d+)
+Value INPUTMULTICASTS (\d+)
+Value INPUTUNICASTS (\d+)
+Value INPUTERRORS (\d+)
+Value INPUTCRCERRORS (\d+)
+Value INPUTFRAMEERRORS (\d+)
+Value INPUTIGNOREDERRORS (\d+)
+Value INPUTRUNTS (\d+)
+Value INPUTGIANTS (\d+)
+Value OUTPUTPACKETSTOTAL (\d+)
+Value OUTPUTBYTESTOTAL (\d+)
+Value OUTPUTUNDERRUNS (\d+)
+Value OUTPUTBROADCASTS (\d+)
+Value OUTPUTMULTICASTS (\d+)
+Value OUTPUTUNICASTS (\d+)
+Value OUTPUTERRORS (\d+)
+Value OUTPUTCOLLISIONS (\d+)
+Value RELAYAGENTINFO (Disabled|Enabled)
+Value QUEUE0QUEUED (\d+)
+Value QUEUE0DROPPED (\d+)
+Value QUEUE1QUEUED (\d+)
+Value QUEUE1DROPPED (\d+)
+Value QUEUE2QUEUED (\d+)
+Value QUEUE2DROPPED (\d+)
+Value QUEUE3QUEUED (\d+)
+Value QUEUE3DROPPED (\d+)
+Value QUEUE4QUEUED (\d+)
+Value QUEUE4DROPPED (\d+)
+Value QUEUE5QUEUED (\d+)
+Value QUEUE5DROPPED (\d+)
+Value QUEUE6QUEUED (\d+)
+Value QUEUE6DROPPED (\d+)
+Value QUEUE7QUEUED (\d+)
+Value QUEUE7DROPPED (\d+)
+
+
+Start
+  ^\s+10Gig -> Continue.Record
+  ^(Gig|10Gig|40Gig|\s+10Gig) -> Continue.Record
+  ^\s*${INTERFACE} is ${INTSTATE}, line protocol is ${PROTOSTATE} -> Continue
+  ^\s+Hardware is ${HARDWARETYPE}, address is ${MAC} \(bia ${BIA}\) -> Continue
+  ^\s+BPDU guard is ${STPBPDUGUARD}, ROOT protect is ${STPROOTGUARD} -> Continue
+  ^\s+Configured speed ${CONFSPEED}, actual ${ACTUALSPEED}, configured duplex ${CONFDUPLEX}, actual ${ACTUALDUPLEX} -> Continue
+  ^\s+Member of L2 VLAN ID ${UNTAGGEDVLAN}, port is ${L2PORTMODE}, port state is ${L2PORTSTATE} -> Continue
+  ^\s+Member of ${NUMTAGGEDVLANS} L2 VLANs, port is ${L2PORTMODE} mode in Vlan ${UNTAGGEDVLAN}, port state is ${L2PORTSTATE} -> Continue
+  ^\s+Member of ${NUMTAGGEDVLANS} L2 VLANs, port is ${L2PORTMODE}, port state is ${L2PORTSTATE} -> Continue
+  ^\s+port is in ${L2PORTMODE} mode, port state is ${L2PORTSTATE} -> Continue
+  ^\s+STP configured to ${STPCONFSTATE}, priority is ${PRIORITY} -> Continue
+  ^\s+Flow Control is config ${FLOWCONTROLCONFIGSTATE}, oper ${FLOWCONTROLOPSTATE}, negotiation ${FLOWCONTROLNEGCONFIG} -> Continue
+  ^\s+Flow Control is ${FLOWCONTROLCONFIGSTATE} -> Continue
+  ^\s+Mirror ${MIRRORSTATE}, Monitor ${MONITORSTATE} -> Continue
+  ^\s+Member of active trunk ports ${ACTIVELAGPORTS}, ${ACTIVELAGROLE} port, primary port is ${ACTIVELAGPRIMARYPORT} -> Continue
+  ^\s+Member of configured trunk ports ${CONFLAGPORTS}, ${CONFLAGROLE} port, primary port is ${CONFLAGPRIMARYPORT} -> Continue
+  ^\s+Member of active trunk ports ${ACTIVELAGPORTS}, ${ACTIVELAGROLE} port -> Continue
+  ^\s+Member of configured trunk ports ${CONFLAGPORTS}, ${CONFLAGROLE} port -> Continue
+  ^\s+Port name is ${PORTNAME} -> Continue
+  ^\s+MTU ${L2MTUBYTES} bytes -> Continue
+  ^\s+IP MTU ${L2MTUBYTES} bytes -> Continue
+  ^\s+${LOADINTERVAL} second input rate: ${INPUTBITSSEC} bits/sec, ${INPUTPACKETSSEC} packets/sec, ${INPUTPERCENTUTILIZATION}% utilization -> Continue
+  ^\s+(\d+) second output rate: ${OUTPUTBITSSEC} bits/sec, ${OUTPUTPACKETSSEC} packets/sec, ${OUTPUTPERCENTUTILIZATION}% utilization -> Continue
+  ^\s+${INPUTPACKETSTOTAL} packets input, ${INPUTBYTESTOTAL} bytes, ${INPUTNOBUFFERS} no buffer -> Continue
+  ^\s+Received ${INPUTBROADCASTS} broadcasts, ${INPUTMULTICASTS} multicasts, ${INPUTUNICASTS} unicasts -> Continue
+  ^\s+${INPUTERRORS} input errors, ${INPUTCRCERRORS} CRC, ${INPUTFRAMEERRORS} frame, ${INPUTIGNOREDERRORS} ignored -> Continue
+  ^\s+${INPUTRUNTS} runts, ${INPUTGIANTS} giants -> Continue
+  ^\s+${OUTPUTPACKETSTOTAL} packets output, ${OUTPUTBYTESTOTAL} bytes, ${OUTPUTUNDERRUNS} underruns -> Continue
+  ^\s+Transmitted ${OUTPUTBROADCASTS} broadcasts, ${OUTPUTMULTICASTS} multicasts, ${OUTPUTUNICASTS} unicasts -> Continue
+  ^\s+${OUTPUTERRORS} output errors, ${OUTPUTCOLLISIONS} collisions -> Continue
+  ^\s+Relay Agent Information option: ${RELAYAGENTINFO} -> Continue
+  ^\s+0\s+${QUEUE0QUEUED}\s+${QUEUE0DROPPED} -> Continue
+  ^\s+1\s+${QUEUE1QUEUED}\s+${QUEUE1DROPPED} -> Continue
+  ^\s+2\s+${QUEUE2QUEUED}\s+${QUEUE2DROPPED} -> Continue
+  ^\s+3\s+${QUEUE3QUEUED}\s+${QUEUE3DROPPED} -> Continue
+  ^\s+4\s+${QUEUE4QUEUED}\s+${QUEUE4DROPPED} -> Continue
+  ^\s+5\s+${QUEUE5QUEUED}\s+${QUEUE5DROPPED} -> Continue
+  ^\s+6\s+${QUEUE6QUEUED}\s+${QUEUE6DROPPED} -> Continue
+  ^\s+7\s+${QUEUE7QUEUED}\s+${QUEUE7DROPPED} -> Continue

@@ -1,0 +1,601 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ app_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Dashboard</li>
+{% endblock %}
+
+{% block content %}
+<!-- Two Column Layout -->
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-6">
+        <!-- Key Metrics Row -->
+        <div class="row mb-4">
+            <div class="col-12 mb-3">
+                <div class="card metric-card">
+                    <div class="card-body">
+                        <div class="metric-value text-primary">{{ device_stats.total or 0 }}</div>
+                        <div class="metric-label">Total Devices</div>
+                        <div class="mt-2">
+                            <small class="text-success">
+                                <i class="bi bi-plus-circle me-1"></i>
+                                {{ device_stats.recent or 0 }} added this week
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Device Distribution by Vendor -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Device Distribution by Vendor</h5>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="refreshChart('vendorChart')">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="vendorChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sites Overview -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Sites Overview</h5>
+                        <a href="{{ url_for('devices.list_devices') }}" class="btn btn-outline-primary btn-sm">
+                            View All <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        {% if site_stats %}
+                            <div class="table-responsive">
+                                <table class="table table-sm table-dark">
+                                    <thead>
+                                        <tr>
+                                            <th>Site</th>
+                                            <th class="text-center">Total</th>
+                                            <th class="text-center">Core</th>
+                                            <th class="text-center">Access</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for site in site_stats[:6] %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ site.site_code }}</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-primary">{{ site.device_count }}</span>
+                                            </td>
+                                            <td class="text-center">{{ site.core_devices or 0 }}</td>
+                                            <td class="text-center">{{ site.access_devices or 0 }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-building-gear fs-1"></i>
+                                <p class="mt-2">No site data available</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-6">
+        <!-- Collection Age Chart -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Collection Freshness</h5>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="refreshCollectionAge()">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="collectionAgeChart"></canvas>
+                        </div>
+                        <div class="row mt-3 text-center">
+                            <div class="col-3">
+                                <div class="small text-success fw-semibold" id="age24h">{{ collection_age_stats.age_24h or 0 }}</div>
+                                <div class="small text-muted">24h</div>
+                            </div>
+                            <div class="col-3">
+                                <div class="small text-warning fw-semibold" id="age3d">{{ collection_age_stats.age_3d or 0 }}</div>
+                                <div class="small text-muted">3 days</div>
+                            </div>
+                            <div class="col-3">
+                                <div class="small text-danger fw-semibold" id="age1w">{{ collection_age_stats.age_1w or 0 }}</div>
+                                <div class="small text-muted">1 week</div>
+                            </div>
+                            <div class="col-3">
+                                <div class="small text-secondary fw-semibold" id="age1m">{{ collection_age_stats.age_1m or 0 }}</div>
+                                <div class="small text-muted">1 month+</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Device Distribution by Role -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Device Distribution by Role</h5>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="refreshChart('roleChart')">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="roleChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Alerts -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">System Alerts</h5>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="refreshAlerts()">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                    <div class="card-body" id="alertsContainer">
+                        {% if alerts %}
+                            {% for alert in alerts %}
+                            <div class="alert alert-{{ alert.type }} d-flex align-items-center py-2 mb-2" role="alert">
+                                <div class="flex-shrink-0 me-3">
+                                    {% if alert.type == 'danger' %}
+                                        <i class="bi bi-exclamation-triangle fs-5"></i>
+                                    {% elif alert.type == 'warning' %}
+                                        <i class="bi bi-exclamation-circle fs-5"></i>
+                                    {% elif alert.type == 'info' %}
+                                        <i class="bi bi-info-circle fs-5"></i>
+                                    {% else %}
+                                        <i class="bi bi-check-circle fs-5"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">{{ alert.title }}</div>
+                                    <div class="small">{{ alert.message }}</div>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <span class="badge bg-secondary">{{ alert.count }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-shield-check fs-1 text-success"></i>
+                                <p class="mt-2">All systems operational</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions Row -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Quick Actions</h5>
+                <div class="text-muted small">
+                    <i class="bi bi-palette me-1"></i>Current theme: <strong>{{ current_theme_name or 'default' }}</strong>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-2 col-md-4 col-6 mb-3">
+                        <a href="{{ url_for('devices.list_devices') }}" class="btn btn-outline-primary w-100 py-3">
+                            <i class="bi bi-hdd-network fs-4 d-block mb-2"></i>
+                            <div class="fw-semibold">Devices</div>
+                            <small class="text-muted">Manage</small>
+                        </a>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6 mb-3">
+                        <a href="{{ url_for('search.index') }}" class="btn btn-outline-info w-100 py-3">
+                            <i class="bi bi-search fs-4 d-block mb-2"></i>
+                            <div class="fw-semibold">Search</div>
+                            <small class="text-muted">Configs</small>
+                        </a>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6 mb-3">
+                        <a href="{{ url_for('network.enhanced_topology') }}" class="btn btn-outline-success w-100 py-3">
+                            <i class="bi bi-diagram-3 fs-4 d-block mb-2"></i>
+                            <div class="fw-semibold">Network</div>
+                            <small class="text-muted">Topology</small>
+                        </a>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6 mb-3">
+                        <a href="{{ url_for('reports.index') }}" class="btn btn-outline-warning w-100 py-3">
+                            <i class="bi bi-graph-up fs-4 d-block mb-2"></i>
+                            <div class="fw-semibold">Reports</div>
+                            <small class="text-muted">Analytics</small>
+                        </a>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6 mb-3">
+                        <a href="{{ url_for('pipeline.index') }}" class="btn btn-outline-secondary w-100 py-3">
+                            <i class="bi bi-gear-wide-connected fs-4 d-block mb-2"></i>
+                            <div class="fw-semibold">Pipeline</div>
+                            <small class="text-muted">Collection</small>
+                        </a>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-6 mb-3">
+                        <button class="btn btn-outline-primary w-100 py-3" onclick="refreshAllData()">
+                            <i class="bi bi-arrow-clockwise fs-4 d-block mb-2"></i>
+                            <div class="fw-semibold">Refresh</div>
+                            <small class="text-muted">All Data</small>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Global variable to store chart colors
+let currentChartColors = [];
+
+// Get theme colors from CSS variables
+function getThemeColors() {
+    const styles = getComputedStyle(document.documentElement);
+    return {
+        primary: styles.getPropertyValue('--primary').trim(),
+        secondary: styles.getPropertyValue('--secondary').trim(),
+        background: styles.getPropertyValue('--background').trim(),
+        text: styles.getPropertyValue('--text').trim(),
+        line: styles.getPropertyValue('--line').trim(),
+        success: styles.getPropertyValue('--success').trim(),
+        error: styles.getPropertyValue('--error').trim(),
+        borderLight: styles.getPropertyValue('--border-light').trim()
+    };
+}
+
+// Load theme-specific chart colors
+async function loadChartColors() {
+    const currentTheme = '{{ current_theme_name }}';
+    try {
+        const response = await fetch(`/api/theme/${currentTheme}/chart-colors`);
+        const data = await response.json();
+
+        if (data.chart_palette) {
+            currentChartColors = data.chart_palette;
+            console.log('Loaded theme-specific chart colors:', currentChartColors);
+        } else {
+            // Fallback to theme-aware default colors
+            const theme = getThemeColors();
+            currentChartColors = [
+                theme.line,
+                theme.success,
+                theme.error,
+                theme.primary,
+                theme.secondary,
+                '#d79921', '#d946ef', '#06b6d4', '#f59e0b', '#8b5cf6'
+            ];
+        }
+    } catch (error) {
+        console.error('Failed to load chart colors, using fallback:', error);
+        // Use fallback colors based on theme
+        const theme = getThemeColors();
+        currentChartColors = [
+            theme.line,
+            theme.success,
+            theme.error,
+            theme.primary,
+            theme.secondary,
+            '#d79921', '#d946ef', '#06b6d4', '#f59e0b', '#8b5cf6'
+        ];
+    }
+}
+
+// Chart color palette based on current theme
+function getChartColors() {
+    return currentChartColors.length > 0 ? currentChartColors : [
+        '#3b82f6', '#22c55e', '#ef4444', '#8b5cf6', '#f59e0b',
+        '#06b6d4', '#d946ef', '#84cc16', '#ec4899', '#14b8a6'
+    ];
+}
+
+// Initialize charts
+let vendorChart, roleChart, collectionAgeChart;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Set Chart.js defaults based on theme
+    const themeColors = getThemeColors();
+    Chart.defaults.color = themeColors.text;
+    Chart.defaults.borderColor = themeColors.borderLight;
+    Chart.defaults.backgroundColor = themeColors.background;
+
+    initializeCharts();
+});
+
+// Initialize charts with theme-specific colors
+async function initializeCharts() {
+    // Load chart colors first
+    await loadChartColors();
+
+    const chartColors = getChartColors();
+    const themeColors = getThemeColors();
+
+    console.log('Initializing charts with colors:', chartColors);
+
+    // Vendor distribution chart
+    const vendorCtx = document.getElementById('vendorChart');
+    if (vendorCtx) {
+        const vendorData = {{ device_stats.vendors|tojson|safe }};
+        if (vendorData && vendorData.length > 0) {
+            vendorChart = new Chart(vendorCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: vendorData.map(item => item.vendor),
+                    datasets: [{
+                        data: vendorData.map(item => item.count),
+                        backgroundColor: chartColors.slice(0, vendorData.length),
+                        borderColor: themeColors.borderLight,
+                        borderWidth: 2,
+                        hoverBorderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: themeColors.text,
+                                padding: 10,
+                                usePointStyle: true,
+                                font: { size: 11 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: themeColors.background,
+                            titleColor: themeColors.text,
+                            bodyColor: themeColors.text,
+                            borderColor: themeColors.borderLight,
+                            borderWidth: 1
+                        }
+                    }
+                }
+            });
+        } else {
+            vendorCtx.parentElement.innerHTML = '<p class="text-center text-muted">No vendor data available</p>';
+        }
+    }
+
+    // Role distribution chart
+    const roleCtx = document.getElementById('roleChart');
+    if (roleCtx) {
+        const roleData = {{ device_stats.roles|tojson|safe }};
+        if (roleData && roleData.length > 0) {
+            // Use different colors for each bar
+            const roleColors = roleData.map((_, index) => chartColors[index % chartColors.length]);
+
+            roleChart = new Chart(roleCtx, {
+                type: 'bar',
+                data: {
+                    labels: roleData.map(item => item.device_role),
+                    datasets: [{
+                        label: 'Device Count',
+                        data: roleData.map(item => item.count),
+                        backgroundColor: roleColors,
+                        borderColor: roleColors.map(color => color), // Same color for border
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: themeColors.background,
+                            titleColor: themeColors.text,
+                            bodyColor: themeColors.text,
+                            borderColor: themeColors.borderLight,
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: themeColors.text,
+                                font: { size: 11 }
+                            },
+                            grid: {
+                                color: themeColors.borderLight,
+                                lineWidth: 0.5
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: themeColors.text,
+                                font: { size: 11 },
+                                maxRotation: 45
+                            },
+                            grid: {
+                                color: themeColors.borderLight,
+                                lineWidth: 0.5
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            roleCtx.parentElement.innerHTML = '<p class="text-center text-muted">No role data available</p>';
+        }
+    }
+
+    // Collection Age Chart
+    const collectionCtx = document.getElementById('collectionAgeChart');
+    if (collectionCtx) {
+        const ageData = {{ collection_age_stats|tojson|safe }};
+
+        // Use specific colors for age categories
+        const ageColors = [
+            chartColors[1] || themeColors.success,  // Green for fresh (< 24h)
+            chartColors[4] || '#d79921',            // Yellow for somewhat old (1-3 days)
+            chartColors[2] || themeColors.error,    // Red for old (3-7 days)
+            chartColors[7] || '#6c757d'             // Gray for very old (> 1 week)
+        ];
+
+        collectionAgeChart = new Chart(collectionCtx, {
+            type: 'bar',
+            data: {
+                labels: ['< 24h', '1-3 days', '3-7 days', '> 1 week'],
+                datasets: [{
+                    label: 'Devices',
+                    data: [
+                        ageData.age_24h || 0,
+                        ageData.age_3d || 0,
+                        ageData.age_1w || 0,
+                        ageData.age_1m || 0
+                    ],
+                    backgroundColor: ageColors,
+                    borderColor: ageColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: themeColors.background,
+                        titleColor: themeColors.text,
+                        bodyColor: themeColors.text,
+                        borderColor: themeColors.borderLight,
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: themeColors.text,
+                            font: { size: 11 }
+                        },
+                        grid: {
+                            color: themeColors.borderLight,
+                            lineWidth: 0.5
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: themeColors.text,
+                            font: { size: 11 }
+                        },
+                        grid: {
+                            color: themeColors.borderLight,
+                            lineWidth: 0.5
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Refresh functions
+function refreshChart(chartName) {
+    showAlert('Chart refreshed', 'success');
+}
+
+function refreshCollectionAge() {
+    // Fetch fresh collection age data
+    fetch('/api/collection-age')
+        .then(response => response.json())
+        .then(data => {
+            if (data.collection_age && collectionAgeChart) {
+                const ageData = data.collection_age;
+                collectionAgeChart.data.datasets[0].data = [
+                    ageData.age_24h || 0,
+                    ageData.age_3d || 0,
+                    ageData.age_1w || 0,
+                    ageData.age_1m || 0
+                ];
+                collectionAgeChart.update();
+
+                // Update metric displays
+                document.getElementById('age24h').textContent = ageData.age_24h || 0;
+                document.getElementById('age3d').textContent = ageData.age_3d || 0;
+                document.getElementById('age1w').textContent = ageData.age_1w || 0;
+                document.getElementById('age1m').textContent = ageData.age_1m || 0;
+
+                showAlert('Collection age data refreshed', 'success');
+            }
+        })
+        .catch(error => {
+            showAlert('Failed to refresh collection age data', 'danger');
+        });
+}
+
+function refreshAlerts() {
+    showAlert('Alerts refreshed', 'success');
+}
+
+function refreshAllData() {
+    // Refresh collection age data
+    refreshCollectionAge();
+    showAlert('All data refreshed', 'success');
+}
+
+// Helper function to show alerts
+function showAlert(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.top = '20px';
+    alertDiv.style.right = '20px';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.minWidth = '300px';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    document.body.appendChild(alertDiv);
+
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

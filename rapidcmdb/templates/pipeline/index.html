@@ -1,0 +1,2387 @@
+{% extends "base.html" %}
+
+{% block title %}Pipeline Management - {{ app_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+<li class="breadcrumb-item active">Pipeline Management</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Enhanced Terminal Styling - Textarea Version */
+    .terminal {
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        font-family: 'Courier New', Consolas, 'Liberation Mono', Monaco, 'Lucida Console', monospace;
+        font-size: 13px;
+        line-height: 1.4;
+        padding: 12px;
+        border-radius: 6px;
+        height: 400px !important;
+        max-height: 400px !important;
+        min-height: 300px;
+        width: 100%;
+        border: 1px solid #333;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        resize: none;
+        outline: none;
+        overflow-y: auto;
+        overflow-x: hidden;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        box-sizing: border-box;
+    }
+
+    .terminal:focus {
+        border-color: #555;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.2), 0 0 0 2px rgba(79, 193, 255, 0.2);
+    }
+
+    /* Compact terminal for smaller spaces */
+    .terminal.compact {
+        height: 300px !important;
+        max-height: 300px !important;
+        min-height: 250px;
+        font-size: 12px;
+    }
+
+    /* Custom scrollbar for terminals */
+    .terminal::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+
+    .terminal::-webkit-scrollbar-track {
+        background: #2d2d2d;
+        border-radius: 6px;
+    }
+
+    .terminal::-webkit-scrollbar-thumb {
+        background: #555;
+        border-radius: 6px;
+        border: 1px solid #2d2d2d;
+    }
+
+    .terminal::-webkit-scrollbar-thumb:hover {
+        background: #777;
+    }
+
+    .terminal::-webkit-scrollbar-corner {
+        background: #2d2d2d;
+    }
+
+    /* Terminal content styling */
+    .terminal .timestamp {
+        color: #569cd6;
+        font-weight: 600;
+        user-select: none;
+    }
+
+    .terminal .info {
+        color: #d4d4d4;
+    }
+
+    .terminal .success {
+        color: #4ec9b0;
+        font-weight: 500;
+    }
+
+    .terminal .warning {
+        color: #dcdcaa;
+        font-weight: 500;
+    }
+
+    .terminal .error {
+        color: #f44747;
+        font-weight: 500;
+    }
+
+    .terminal .progress {
+        color: #4fc1ff;
+        font-weight: 500;
+    }
+
+    .terminal .debug {
+        color: #808080;
+        font-style: italic;
+    }
+
+    /* Auto-scroll indicator */
+    .terminal.auto-scrolling::after {
+        content: "📍 Auto-scrolling";
+        position: absolute;
+        bottom: 5px;
+        right: 15px;
+        background: rgba(0,0,0,0.7);
+        color: #4fc1ff;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 10px;
+        pointer-events: none;
+        z-index: 10;
+    }
+
+    /* Terminal header enhancements */
+    .terminal-header {
+        background: linear-gradient(135deg, #343a40 0%, #495057 100%);
+        color: white;
+        border-radius: 6px 6px 0 0;
+        padding: 8px 15px;
+        border-bottom: 1px solid #333;
+    }
+
+    .terminal-controls {
+        display: flex;
+        gap: 5px;
+    }
+
+    .terminal-btn {
+        background: none;
+        border: 1px solid rgba(255,255,255,0.2);
+        color: rgba(255,255,255,0.8);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        transition: all 0.2s ease;
+    }
+
+    .terminal-btn:hover {
+        background: rgba(255,255,255,0.1);
+        color: white;
+        border-color: rgba(255,255,255,0.4);
+    }
+
+    /* Status indicators */
+    .job-status-indicator {
+        position: relative;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: 1px solid transparent;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .job-status-indicator::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .job-status-indicator.pending {
+        background: #e9ecef;
+        color: #495057;
+        border-color: #dee2e6;
+    }
+
+    .job-status-indicator.pending::before {
+        background: #6c757d;
+    }
+
+    .job-status-indicator.running {
+        background: #fff3cd;
+        color: #856404;
+        border-color: #ffeaa7;
+        animation: pulse 2s infinite;
+    }
+
+    .job-status-indicator.running::before {
+        background: #ffc107;
+        animation: blink 1s infinite;
+    }
+
+    .job-status-indicator.completed {
+        background: #d4edda;
+        color: #155724;
+        border-color: #c3e6cb;
+    }
+
+    .job-status-indicator.completed::before {
+        background: #28a745;
+    }
+
+    .job-status-indicator.failed {
+        background: #f8d7da;
+        color: #721c24;
+        border-color: #f5c6cb;
+    }
+
+    .job-status-indicator.failed::before {
+        background: #dc3545;
+    }
+
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+    }
+
+    @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0.3; }
+    }
+
+    /* Card enhancements */
+    .terminal-card {
+        border: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        overflow: hidden;
+        height: fit-content;
+    }
+
+    .terminal-card .card-body {
+        padding: 0 !important;
+        overflow: hidden;
+    }
+
+    /* Scan statistics styling */
+    .scan-stats {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        min-width: 120px;
+        flex: 1;
+    }
+
+    .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        font-size: 12px;
+        opacity: 0.9;
+    }
+
+    .progress-container {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .form-section {
+        margin-bottom: 25px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .form-section:last-child {
+        border-bottom: none;
+    }
+
+    .form-section h6 {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+
+    .file-option {
+        transition: all 0.2s ease;
+        border-radius: 4px;
+    }
+
+    .file-option:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .file-option.btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+    }
+
+    #availableFiles {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 8px;
+        background: #f8f9fa;
+    }
+
+    /* Terminal resizer */
+    .terminal-resizer {
+        cursor: ns-resize;
+        height: 4px;
+        background: #dee2e6;
+        transition: background 0.2s ease;
+    }
+
+    .terminal-resizer:hover {
+        background: #007bff;
+    }
+
+    /* Form validation styling */
+    .invalid-feedback {
+        display: block !important;
+    }
+
+    .form-control.is-invalid {
+        border-color: #dc3545;
+        padding-right: calc(1.5em + 0.75rem);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
+
+    .snmp-mode-indicator {
+        background: #e3f2fd;
+        border: 1px solid #2196f3;
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin-bottom: 15px;
+        font-size: 12px;
+        color: #1976d2;
+        font-weight: 500;
+    }
+
+    .validation-summary {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 15px;
+        display: none;
+    }
+
+    /* Quick filter buttons */
+    .quick-filter {
+        transition: all 0.2s ease;
+    }
+
+    .quick-filter.active {
+        background-color: #007bff !important;
+        border-color: #007bff !important;
+        color: white !important;
+    }
+
+    /* Responsive terminal sizing */
+    @media (max-width: 768px) {
+        .terminal {
+            height: 300px;
+            max-height: 300px;
+            font-size: 11px;
+        }
+
+        .terminal.compact {
+            height: 250px;
+            max-height: 250px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .terminal {
+            height: 250px;
+            max-height: 250px;
+            font-size: 10px;
+            padding: 8px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2><i class="bi bi-gear-wide-connected me-2"></i>Pipeline Management</h2>
+                <p class="text-muted mb-0">Network discovery and data collection pipeline</p>
+            </div>
+            <div>
+                <button class="btn btn-outline-secondary me-2" onclick="refreshStatus()">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+                <button class="btn btn-outline-primary" onclick="viewLogs()">
+                    <i class="bi bi-journal-text"></i> View Logs
+                </button>
+            </div>
+        </div>
+
+        <!-- Credential Status Bar -->
+        <div class="alert alert-info" id="credentialStatusBar" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-shield-lock me-2"></i>
+                    <strong>Credential Status:</strong>
+                    <span id="credentialStatusText">Checking...</span>
+                </div>
+                <div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="showCredentialUnlockModal()" id="unlockCredsBtn">
+                        <i class="bi bi-unlock me-1"></i>Unlock Credentials
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="refreshCredentialStatus()" id="refreshCredsBtn">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs mb-4" id="pipelineTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="scanner-tab" data-bs-toggle="tab" data-bs-target="#scanner" type="button" role="tab">
+                    <i class="bi bi-search me-2"></i>Network Scanner
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="collector-tab" data-bs-toggle="tab" data-bs-target="#collector" type="button" role="tab">
+                    <i class="bi bi-collection me-2"></i>JSON Collection
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="database-collector-tab" data-bs-toggle="tab" data-bs-target="#database-collector" type="button" role="tab">
+                    <i class="bi bi-database me-2"></i>Database Collection
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="pipelineTabContent">
+            <!-- Network Scanner Tab -->
+            <div class="tab-pane fade show active" id="scanner" role="tabpanel">
+                <div class="row">
+                    <!-- Scanner Configuration -->
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-gear me-2"></i>Scanner Configuration</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Validation Summary -->
+                                <div class="validation-summary" id="validationSummary">
+                                    <strong><i class="bi bi-exclamation-triangle me-2"></i>Validation Errors:</strong>
+                                    <ul id="validationErrors" class="mb-0 mt-2"></ul>
+                                </div>
+
+                                <form id="scannerForm" novalidate>
+                                    <!-- Network Target -->
+                                    <div class="form-section">
+                                        <h6><i class="bi bi-globe me-2"></i>Network Target</h6>
+                                        <div class="mb-3">
+                                            <label for="target" class="form-label">Target Network/IP <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="target"
+                                                   placeholder="192.168.1.0/24 or 10.0.0.1" required>
+                                            <div class="invalid-feedback">Please enter a valid network or IP address</div>
+                                            <div class="form-text">CIDR notation for networks or single IP addresses</div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="timeout" class="form-label">Timeout</label>
+                                                <select class="form-select" id="timeout">
+                                                    <option value="2s">2 seconds</option>
+                                                    <option value="4s" selected>4 seconds</option>
+                                                    <option value="6s">6 seconds</option>
+                                                    <option value="10s">10 seconds</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="concurrency" class="form-label">Concurrency</label>
+                                                <input type="number" class="form-control" id="concurrency" value="80" min="10" max="200">
+                                                <div class="invalid-feedback">Concurrency must be between 10 and 200</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- SNMP Configuration -->
+                                    <div class="form-section">
+                                        <h6><i class="bi bi-shield-lock me-2"></i>SNMP Configuration</h6>
+
+                                        <!-- SNMP Mode Indicator -->
+                                        <div class="snmp-mode-indicator" id="snmpModeIndicator">
+                                            <i class="bi bi-info-circle me-2"></i>Current mode: <span id="currentSnmpMode">Mixed (SNMPv2c + SNMPv3)</span>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="communities" class="form-label">SNMP Communities</label>
+                                            <input type="text" class="form-control" id="communities"
+                                                   placeholder="public,private,community1">
+                                            <div class="form-text">Comma-separated list of SNMP communities for v2c</div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="snmpVersion" class="form-label">SNMP Version</label>
+                                            <select class="form-select" id="snmpVersion">
+                                                <option value="mixed" selected>Mixed (v2c + v3) - Recommended</option>
+                                                <option value="2">SNMPv2c Only</option>
+                                                <option value="3">SNMPv3 Only</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- SNMPv3 Configuration -->
+                                        <div id="snmpv3Config">
+                                            <h6 class="mt-4 mb-3"><i class="bi bi-key me-2"></i>SNMPv3 Credentials</h6>
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label for="username" class="form-label">Username <span class="text-danger snmpv3-required">*</span></label>
+                                                    <input type="text" class="form-control" id="username"
+                                                           placeholder="Enter SNMPv3 username">
+                                                    <div class="invalid-feedback">Username is required for SNMPv3</div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="authProtocol" class="form-label">Auth Protocol</label>
+                                                    <select class="form-select" id="authProtocol">
+                                                        <option value="MD5">MD5</option>
+                                                        <option value="SHA" selected>SHA</option>
+                                                        <option value="SHA224">SHA224</option>
+                                                        <option value="SHA256">SHA256</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label for="authKey" class="form-label">Auth Key <span class="text-danger snmpv3-required">*</span></label>
+                                                    <input type="password" class="form-control" id="authKey"
+                                                           placeholder="Enter authentication key">
+                                                    <div class="invalid-feedback">Authentication key is required for SNMPv3</div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="privProtocol" class="form-label">Privacy Protocol</label>
+                                                    <select class="form-select" id="privProtocol">
+                                                        <option value="DES">DES</option>
+                                                        <option value="AES128" selected>AES128</option>
+                                                        <option value="AES192">AES192</option>
+                                                        <option value="AES256">AES256</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="privKey" class="form-label">Privacy Key <span class="text-danger snmpv3-required">*</span></label>
+                                                <input type="password" class="form-control" id="privKey"
+                                                       placeholder="Enter privacy key">
+                                                <div class="invalid-feedback">Privacy key is required for SNMPv3</div>
+                                                <div class="form-text">Privacy key is required when using privacy protocols</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Advanced Options -->
+                                    <div class="form-section">
+                                        <h6><i class="bi bi-sliders me-2"></i>Advanced Options</h6>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label for="fingerprintType" class="form-label">Fingerprint Type</label>
+                                                <select class="form-select" id="fingerprintType">
+                                                    <option value="basic">Basic</option>
+                                                    <option value="full" selected>Full</option>
+                                                    <option value="auto">Auto</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="outputFormat" class="form-label">Output Format</label>
+                                                <select class="form-select" id="outputFormat">
+                                                    <option value="json">JSON</option>
+                                                    <option value="csv" selected>CSV</option>
+                                                    <option value="table">Table</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="outputFile" class="form-label">Output File <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="outputFile"
+                                                   placeholder="scan_results.csv" required>
+                                            <div class="invalid-feedback">Output file name is required</div>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="enableDb" checked>
+                                            <label class="form-check-label" for="enableDb">
+                                                Enable Database Storage (Recommended)
+                                            </label>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="database" class="form-label">Database File</label>
+                                            <input type="text" class="form-control" id="database"
+                                                   placeholder="./scans/scanner_devices.json">
+                                            <div class="form-text">JSON database file for storing device information</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-primary btn-lg" id="startScanBtn">
+                                            <i class="bi bi-play-fill me-2"></i>Start Network Scan
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" id="stopScanBtn" style="display: none;">
+                                            <i class="bi bi-stop-fill me-2"></i>Stop Scan
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scanner Status and Output -->
+                    <div class="col-lg-6">
+                        <!-- Scan Statistics -->
+                        <div class="scan-stats" id="scanStats" style="display: none;">
+                            <div class="stat-card">
+                                <div class="stat-value" id="hostsScanned">0</div>
+                                <div class="stat-label">Hosts Scanned</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="hostsFound">0</div>
+                                <div class="stat-label">Responding</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="snmpReady">0</div>
+                                <div class="stat-label">SNMP Ready</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="scanRate">0.0</div>
+                                <div class="stat-label">Hosts/sec</div>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="progress-container" id="progressContainer" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span><strong>Scan Progress</strong></span>
+                                <span id="progressText">0%</span>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" role="progressbar" id="progressBar" style="width: 0%"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">Elapsed: <span id="elapsedTime">00:00</span></small>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <small class="text-muted">ETA: <span id="etaTime">--:--</span></small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scanner Terminal -->
+                        <div class="card terminal-card">
+                            <div class="terminal-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0"><i class="bi bi-terminal me-2"></i>Scanner Output</h6>
+                                <div class="d-flex align-items-center">
+                                    <div class="job-status-indicator pending me-3" id="scannerJobStatus">Ready</div>
+                                    <div class="terminal-controls">
+                                        <button class="terminal-btn" onclick="clearTerminal('scannerTerminal')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <button class="terminal-btn" onclick="downloadLog('scannerTerminal')">
+                                            <i class="bi bi-download"></i>
+                                        </button>
+                                        <button class="terminal-btn" onclick="toggleAutoScroll('scannerTerminal')">
+                                            <i class="bi bi-arrow-down"></i>
+                                        </button>
+                                        <button class="terminal-btn" onclick="resizeTerminal('scannerTerminal')">
+                                            <i class="bi bi-arrows-expand"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <textarea class="terminal auto-scrolling compact" id="scannerTerminal" rows="40" readonly>
+[Ready] Network scanner ready. Configure your target network and SNMP settings, then click Start Network Scan.
+</textarea>
+                            <div class="terminal-resizer" onmousedown="startResize(event, 'scannerTerminal')"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- JSON Collection Tab -->
+            <div class="tab-pane fade" id="collector" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-collection me-2"></i>JSON Data Collection</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="collectorForm">
+                                    <div class="form-section">
+                                        <h6><i class="bi bi-file-earmark-data me-2"></i>Data Source</h6>
+                                        <div class="mb-3">
+                                            <label for="scanFile" class="form-label">Scanner Database File <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="scanFile"
+                                                       placeholder="Select a JSON database file" required>
+                                                <button class="btn btn-outline-secondary" type="button" onclick="selectScanFile()">
+                                                    <i class="bi bi-folder2-open"></i>
+                                                </button>
+                                                <button class="btn btn-outline-info" type="button" onclick="refreshScanFiles()">
+                                                    <i class="bi bi-arrow-clockwise"></i>
+                                                </button>
+                                            </div>
+                                            <div class="invalid-feedback">Please select a JSON database file from the scanner</div>
+                                            <div class="form-text">JSON database file from network scanner (not the CSV output)</div>
+                                            <div class="mt-2">
+                                                <small class="text-muted">Available files:</small>
+                                                <div id="availableFiles" class="mt-1">
+                                                    <small class="text-muted">Click refresh to scan for JSON files</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-primary btn-lg" id="startCollectionBtn">
+                                            <i class="bi bi-play-fill me-2"></i>Start JSON Collection
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" id="stopCollectionBtn" style="display: none;">
+                                            <i class="bi bi-stop-fill me-2"></i>Stop Collection
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <!-- Collection Terminal -->
+                        <div class="card terminal-card">
+                            <div class="terminal-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0"><i class="bi bi-terminal me-2"></i>JSON Collection Output</h6>
+                                <div class="d-flex align-items-center">
+                                    <div class="job-status-indicator pending me-3" id="collectorJobStatus">Ready</div>
+                                    <div class="terminal-controls">
+                                        <button class="terminal-btn" onclick="clearTerminal('collectionTerminal')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <button class="terminal-btn" onclick="downloadLog('collectionTerminal')">
+                                            <i class="bi bi-download"></i>
+                                        </button>
+                                        <button class="terminal-btn" onclick="toggleAutoScroll('collectionTerminal')">
+                                            <i class="bi bi-arrow-down"></i>
+                                        </button>
+                                        <button class="terminal-btn" onclick="resizeTerminal('collectionTerminal')">
+                                            <i class="bi bi-arrows-expand"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <textarea rows="20" class="terminal auto-scrolling compact" id="collectionTerminal" readonly>
+[Ready] NAPALM JSON collector ready. Select a scan file and configure collection settings.
+</textarea>
+                            <div class="terminal-resizer" onmousedown="startResize(event, 'collectionTerminal')"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Collection Tab -->
+            <div class="tab-pane fade" id="database-collector" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-database me-2"></i>Database-Driven Collection</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Database Collection Validation Summary -->
+                                <div class="validation-summary" id="dbValidationSummary" style="display: none;">
+                                    <strong><i class="bi bi-exclamation-triangle me-2"></i>Validation Errors:</strong>
+                                    <ul id="dbValidationErrors" class="mb-0 mt-2"></ul>
+                                </div>
+
+                                <form id="databaseCollectorForm" novalidate>
+                                    <!-- Database Source -->
+                                    <div class="form-section">
+                                        <h6><i class="bi bi-server me-2"></i>Database Source</h6>
+                                        <div class="mb-3">
+                                            <label for="dbPath" class="form-label">Database Path <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="dbPath"
+                                                       value="napalm_cmdb.db" placeholder="napalm_cmdb.db" required>
+                                                <button class="btn btn-outline-secondary" type="button" onclick="testDatabaseConnection()">
+                                                    <i class="bi bi-database-check"></i> Test
+                                                </button>
+                                            </div>
+                                            <div class="invalid-feedback">Database path is required</div>
+                                            <div class="form-text">SQLite database containing device inventory</div>
+                                        </div>
+
+                                        <!-- Database Statistics -->
+                                        <div class="mb-3" id="dbStats" style="display: none;">
+                                            <div class="alert alert-info">
+                                                <strong>Database Status:</strong>
+                                                <div class="mt-2">
+                                                    <span class="badge bg-primary me-2">
+                                                        <span id="totalDevicesCount">0</span> Total Devices
+                                                    </span>
+                                                    <span class="badge bg-success me-2">
+                                                        <span id="activeDevicesCount">0</span> Active
+                                                    </span>
+                                                    <span class="badge bg-info me-2">
+                                                        <span id="collectibleDevicesCount">0</span> Collectible
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Device Filters -->
+                                    <div class="form-section">
+                                        <h6><i class="bi bi-funnel me-2"></i>Device Filters</h6>
+
+                                        <!-- Quick Filter Buttons -->
+                                        <div class="mb-3">
+                                            <label class="form-label">Quick Filters</label>
+                                            <div class="btn-group-toggle d-flex flex-wrap gap-2" data-bs-toggle="buttons">
+                                                <button type="button" class="btn btn-outline-primary btn-sm quick-filter"
+                                                        data-filter-type="vendor" data-filter-value="cisco">
+                                                    <i class="bi bi-router"></i> Cisco
+                                                </button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm quick-filter"
+                                                        data-filter-type="vendor" data-filter-value="arista">
+                                                    <i class="bi bi-hdd-network"></i> Arista
+                                                </button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm quick-filter"
+                                                        data-filter-type="role" data-filter-value="core">
+                                                    <i class="bi bi-diagram-3"></i> Core
+                                                </button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm quick-filter"
+                                                        data-filter-type="role" data-filter-value="access">
+                                                    <i class="bi bi-diagram-2"></i> Access
+                                                </button>
+                                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearAllFilters()">
+                                                    <i class="bi bi-x-circle"></i> Clear All
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Advanced Filters -->
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="filterNames" class="form-label">Device Names</label>
+                                                <input type="text" class="form-control" id="filterNames"
+                                                       placeholder="switch01,router,core (comma-separated)">
+                                                <div class="form-text">Partial matches supported</div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="filterSites" class="form-label">Site Codes</label>
+                                                <input type="text" class="form-control" id="filterSites"
+                                                       placeholder="FRC,USC,NYC (comma-separated)">
+                                            </div>
+                                        </div>
+
+                                        <div class="row mt-3">
+                                            <div class="col-md-6">
+                                                <label for="filterVendors" class="form-label">Vendors</label>
+                                                <input type="text" class="form-control" id="filterVendors"
+                                                       placeholder="cisco,arista,juniper">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="filterRoles" class="form-label">Device Roles</label>
+                                                <input type="text" class="form-control" id="filterRoles"
+                                                       placeholder="core,access,distribution">
+                                            </div>
+                                        </div>
+
+                                        <div class="row mt-3">
+                                            <div class="col-md-6">
+                                                <label for="filterModels" class="form-label">Models</label>
+                                                <input type="text" class="form-control" id="filterModels"
+                                                       placeholder="catalyst,nexus,eos">
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="filterIPs" class="form-label">IP Addresses</label>
+                                                <input type="text" class="form-control" id="filterIPs"
+                                                       placeholder="192.168.1,10.1.1">
+                                                <div class="form-text">Partial IP matches</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Filter Preview -->
+                                        <div class="mt-3">
+                                            <button type="button" class="btn btn-outline-info btn-sm" onclick="previewFilteredDevices()">
+                                                <i class="bi bi-eye me-1"></i>Preview Filtered Devices
+                                            </button>
+                                            <span class="ms-3 text-muted" id="filterPreviewCount"></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Collection Settings -->
+                                    <div class="form-section">
+                                        <h6><i class="bi bi-gear me-2"></i>Collection Settings</h6>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="dbMaxWorkers" class="form-label">Max Workers</label>
+                                                <input type="number" class="form-control" id="dbMaxWorkers"
+                                                       value="10" min="1" max="50">
+                                                <div class="form-text">Concurrent device connections</div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="dbTimeout" class="form-label">Timeout (seconds)</label>
+                                                <input type="number" class="form-control" id="dbTimeout"
+                                                       value="60" min="30" max="300">
+                                            </div>
+                                        </div>
+
+                                        <!-- Collection Methods -->
+                                        <div class="mt-3">
+                                            <label class="form-label">Collection Methods</label>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="dbGetFacts" checked>
+                                                        <label class="form-check-label" for="dbGetFacts">Device Facts</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="dbGetConfig" checked>
+                                                        <label class="form-check-label" for="dbGetConfig">Configuration</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="dbGetInterfaces" checked>
+                                                        <label class="form-check-label" for="dbGetInterfaces">Interfaces</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="dbGetInterfacesIP" checked>
+                                                        <label class="form-check-label" for="dbGetInterfacesIP">Interface IPs</label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="dbGetLLDP">
+                                                        <label class="form-check-label" for="dbGetLLDP">LLDP Neighbors</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="dbGetArp">
+                                                        <label class="form-check-label" for="dbGetArp">ARP Table</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="dbGetMac">
+                                                        <label class="form-check-label" for="dbGetMac">MAC Address Table</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="dbGetEnvironment">
+                                                        <label class="form-check-label" for="dbGetEnvironment">Environment</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Enhanced Credentials Section -->
+                                    <div class="form-section">
+                                        <h6><i class="bi bi-key me-2"></i>Device Credentials</h6>
+
+                                        <!-- Credential Status -->
+                                        <div class="alert alert-info" id="dbCredentialStatus">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <i class="bi bi-info-circle me-2"></i>
+                                                    <span id="dbCredentialStatusText">Credentials will be loaded from secure credential manager</span>
+                                                </div>
+                                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="showCredentialUnlockModal()">
+                                                    <i class="bi bi-gear me-1"></i>Manage Credentials
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Legacy credential inputs (hidden by default, shown only if credential manager unavailable) -->
+                                        <div id="legacyCredentialInputs" style="display: none;">
+                                            <div class="alert alert-warning">
+                                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                                <strong>Warning:</strong> Credential manager not available. Using legacy credential input (less secure).
+                                            </div>
+
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label for="dbUsername" class="form-label">Username <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" id="dbUsername"
+                                                           placeholder="admin" required>
+                                                    <div class="invalid-feedback">Username is required</div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="dbPassword" class="form-label">Password <span class="text-danger">*</span></label>
+                                                    <input type="password" class="form-control" id="dbPassword"
+                                                           placeholder="Password" required>
+                                                    <div class="invalid-feedback">Password is required</div>
+                                                </div>
+                                            </div>
+                                            <div class="mt-3">
+                                                <label for="dbEnablePassword" class="form-label">Enable Password</label>
+                                                <input type="password" class="form-control" id="dbEnablePassword"
+                                                       placeholder="Enable password (if required)">
+                                                <div class="form-text">Required for Cisco devices with privilege separation</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-primary btn-lg" id="startDatabaseCollectionBtn">
+                                            <i class="bi bi-play-fill me-2"></i>Start Database Collection
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" id="stopDatabaseCollectionBtn" style="display: none;">
+                                            <i class="bi bi-stop-fill me-2"></i>Stop Collection
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Database Collection Output -->
+                    <div class="col-lg-6">
+                        <!-- Collection Statistics -->
+                        <div class="scan-stats" id="dbCollectionStats" style="display: none;">
+                            <div class="stat-card">
+                                <div class="stat-value" id="dbDevicesProcessed">0</div>
+                                <div class="stat-label">Processed</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="dbDevicesSuccess">0</div>
+                                <div class="stat-label">Successful</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="dbDevicesFailed">0</div>
+                                <div class="stat-label">Failed</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="dbCollectionRate">0.0</div>
+                                <div class="stat-label">Devices/min</div>
+                            </div>
+                        </div>
+
+                        <!-- Collection Progress -->
+                        <div class="progress-container" id="dbProgressContainer" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span><strong>Collection Progress</strong></span>
+                                <span id="dbProgressText">0%</span>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-info" role="progressbar" id="dbProgressBar" style="width: 0%"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <small class="text-muted">Elapsed: <span id="dbElapsedTime">00:00</span></small>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <small class="text-muted">ETA: <span id="dbEtaTime">--:--</span></small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Database Collection Terminal -->
+                        <div class="card terminal-card">
+                            <div class="terminal-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0"><i class="bi bi-terminal me-2"></i>Database Collection Output</h6>
+                                <div class="d-flex align-items-center">
+                                    <div class="job-status-indicator pending me-3" id="databaseCollectorJobStatus">Ready</div>
+                                    <div class="terminal-controls">
+                                        <button class="terminal-btn" onclick="clearTerminal('databaseCollectionTerminal')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <button class="terminal-btn" onclick="downloadLog('databaseCollectionTerminal')">
+                                            <i class="bi bi-download"></i>
+                                        </button>
+                                        <button class="terminal-btn" onclick="toggleAutoScroll('databaseCollectionTerminal')">
+                                            <i class="bi bi-arrow-down"></i>
+                                        </button>
+                                        <button class="terminal-btn" onclick="resizeTerminal('databaseCollectionTerminal')">
+                                            <i class="bi bi-arrows-expand"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <textarea class="terminal auto-scrolling compact" id="databaseCollectionTerminal" rows="40" readonly>
+[Ready] Database-driven NAPALM collector ready. Configure filters and credentials, then start collection.
+</textarea>
+                            <div class="terminal-resizer" onmousedown="startResize(event, 'databaseCollectionTerminal')"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Preview Modal -->
+    <div class="modal fade" id="devicePreviewModal" tabindex="-1" aria-labelledby="devicePreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="devicePreviewModalLabel">
+                        <i class="bi bi-list-check me-2"></i>Filtered Devices Preview
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <span class="badge bg-primary fs-6" id="previewDeviceCount">0 devices</span>
+                            <span class="ms-2 text-muted" id="previewFilters"></span>
+                        </div>
+                        <div>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="exportDeviceList()">
+                                <i class="bi bi-download me-1"></i>Export List
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive" style="max-height: 400px;">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    <th>Device Name</th>
+                                    <th>IP Address</th>
+                                    <th>Vendor</th>
+                                    <th>Model</th>
+                                    <th>Site</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="previewDeviceList">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">No devices to display</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="proceedWithFilteredCollection()">
+                        <i class="bi bi-play-fill me-1"></i>Proceed with Collection
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Credential Unlock Modal -->
+    <div class="modal fade" id="credentialUnlockModal" tabindex="-1" aria-labelledby="credentialUnlockModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="credentialUnlockModalLabel">
+                        <i class="bi bi-shield-lock me-2"></i>Unlock Network Credentials
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Network credentials are required for device collection. Please enter your master password to unlock the secure credential store.
+                    </div>
+
+                    <form id="credentialUnlockForm">
+                        <div class="mb-3">
+                            <label for="credentialPassword" class="form-label">Master Password</label>
+                            <input type="password" class="form-control" id="credentialPassword"
+                                   placeholder="Enter credential store master password" required>
+                            <div class="invalid-feedback" id="credentialPasswordError"></div>
+                        </div>
+
+                        <!-- Credential Status Display -->
+                        <div class="mb-3" id="credentialDetails" style="display: none;">
+                            <h6>Available Credentials:</h6>
+                            <div class="list-group list-group-flush" id="credentialList">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </form>
+
+                    <div id="credentialUnlockStatus" class="mt-3" style="display: none;">
+                        <!-- Status messages will appear here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="unlockCredentials()" id="unlockCredentialBtn">
+                        <i class="bi bi-unlock me-1"></i>Unlock
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Global variables
+let socket = null;
+let scanStartTime = null;
+let collectionStartTime = null;
+let dbCollectionStartTime = null;
+let currentJobs = {
+   scanner: null,
+   collector: null,
+   databaseCollector: null
+};
+
+// Terminal management
+let autoScrollEnabled = {
+   scannerTerminal: true,
+   collectionTerminal: true,
+   databaseCollectionTerminal: true
+};
+
+let resizing = false;
+
+// Database collection variables
+let currentFilteredDevices = [];
+
+// Global variables for credential management
+let credentialStatus = {
+   network_manager_available: false,
+   network_manager_initialized: false,
+   network_manager_unlocked: false,
+   network_credentials_count: 0,
+   credential_names: []
+};
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+   initializeSocketIO();
+   setupEventListeners();
+   updateSnmpModeDisplay();
+   refreshScanFiles();
+   initializeDatabaseCollection();
+   initializeCredentialManagement();
+});
+
+function initializeSocketIO() {
+   socket = io();
+
+   // Scanner events
+   socket.on('scanner_output', function(data) {
+       appendToTerminal('scannerTerminal', data.message, data.type);
+       updateJobStatus('scannerJobStatus', 'running');
+   });
+
+   socket.on('scanner_progress', function(stats) {
+       updateScannerProgress(stats);
+   });
+
+   socket.on('scanner_complete', function(data) {
+       updateJobStatus('scannerJobStatus', 'completed');
+       appendToTerminal('scannerTerminal', `[COMPLETE] Network scan completed. Found ${data.found} responding hosts, ${data.snmp_ready} SNMP ready.`, 'success');
+       hideProgress();
+       enableScannerForm();
+   });
+
+   socket.on('scanner_error', function(data) {
+       updateJobStatus('scannerJobStatus', 'failed');
+       appendToTerminal('scannerTerminal', `[ERROR] ${data.message}`, 'error');
+       hideProgress();
+       enableScannerForm();
+   });
+
+   // Collection events
+   socket.on('collection_output', function(data) {
+       appendToTerminal('collectionTerminal', data.message, data.type);
+       updateJobStatus('collectorJobStatus', 'running');
+   });
+
+   socket.on('collection_progress', function(stats) {
+       updateCollectionProgress(stats);
+   });
+
+   socket.on('collection_complete', function(data) {
+       updateJobStatus('collectorJobStatus', 'completed');
+       appendToTerminal('collectionTerminal', `[COMPLETE] Collection completed. Processed ${data.processed} devices successfully.`, 'success');
+       enableCollectionForm();
+   });
+
+   socket.on('collection_error', function(data) {
+       updateJobStatus('collectorJobStatus', 'failed');
+       appendToTerminal('collectionTerminal', `[ERROR] ${data.message}`, 'error');
+       enableCollectionForm();
+   });
+
+   // Database collection events
+   socket.on('database_collection_output', function(data) {
+       appendToTerminal('databaseCollectionTerminal', data.message, data.type);
+       updateJobStatus('databaseCollectorJobStatus', 'running');
+   });
+
+   socket.on('database_collection_progress', function(stats) {
+       updateDatabaseCollectionProgress(stats);
+   });
+
+   socket.on('database_collection_complete', function(data) {
+       updateJobStatus('databaseCollectorJobStatus', 'completed');
+       appendToTerminal('databaseCollectionTerminal', `[COMPLETE] Database collection completed. Processed ${data.processed} devices successfully.`, 'success');
+       hideDatabaseProgress();
+       enableDatabaseCollectionForm();
+   });
+
+   socket.on('database_collection_error', function(data) {
+       updateJobStatus('databaseCollectorJobStatus', 'failed');
+       appendToTerminal('databaseCollectionTerminal', `[ERROR] ${data.message}`, 'error');
+       hideDatabaseProgress();
+       enableDatabaseCollectionForm();
+   });
+
+   // Database events
+   socket.on('database_status', function(data) {
+       if (data.status === 'connected') {
+           updateDatabaseStats(data);
+       } else {
+           showDatabaseError(data.message);
+       }
+   });
+
+   socket.on('filtered_device_count', function(data) {
+       document.getElementById('filterPreviewCount').textContent = `${data.count} devices match current filters`;
+   });
+
+   socket.on('device_preview', function(data) {
+       showDevicePreview(data.devices);
+   });
+
+   // Credential events
+   socket.on('credential_status_update', function(data) {
+       updateCredentialStatusBar(data);
+   });
+
+   socket.on('credential_unlock_success', function(data) {
+       onCredentialUnlockSuccess(data);
+   });
+
+   socket.on('credential_unlock_error', function(data) {
+       onCredentialUnlockError(data);
+   });
+
+   socket.on('credentials_loaded', function(data) {
+       onCredentialsLoaded(data);
+   });
+}
+
+function initializeCredentialManagement() {
+   // Check credential status periodically
+   refreshCredentialStatus();
+
+   // Set up periodic status checks (every 30 seconds)
+   setInterval(refreshCredentialStatus, 30000);
+
+   // Add credential unlock form handler
+   document.getElementById('credentialUnlockForm').addEventListener('submit', function(e) {
+       e.preventDefault();
+       unlockCredentials();
+   });
+}
+
+function refreshCredentialStatus() {
+   if (socket) {
+       socket.emit('get_credential_status');
+   }
+}
+
+function updateCredentialStatusBar(status) {
+   credentialStatus = status;
+   const statusBar = document.getElementById('credentialStatusBar');
+   const statusText = document.getElementById('credentialStatusText');
+   const unlockBtn = document.getElementById('unlockCredsBtn');
+
+   let statusMessage = '';
+   let statusClass = 'alert-info';
+   let showUnlockBtn = false;
+
+   if (!status.network_manager_available) {
+       statusMessage = 'Network credential manager not available';
+       statusClass = 'alert-danger';
+   } else if (!status.network_manager_initialized) {
+       statusMessage = 'Network credential manager not initialized - please set up credentials first';
+       statusClass = 'alert-warning';
+   } else if (!status.network_manager_unlocked) {
+       statusMessage = 'Network credentials are locked';
+       statusClass = 'alert-warning';
+       showUnlockBtn = true;
+   } else {
+       const count = status.network_credentials_count || 0;
+       statusMessage = `Network credentials unlocked (${count} credential${count !== 1 ? 's' : ''} available)`;
+       statusClass = 'alert-success';
+
+       if (status.credential_names && status.credential_names.length > 0) {
+           statusMessage += ` - ${status.credential_names.join(', ')}`;
+       }
+   }
+
+   statusText.textContent = statusMessage;
+   statusBar.className = `alert ${statusClass}`;
+   statusBar.style.display = 'block';
+   unlockBtn.style.display = showUnlockBtn ? 'inline-block' : 'none';
+
+   // Update database credential status
+   updateDatabaseCredentialStatus(status);
+}
+
+function updateDatabaseCredentialStatus(status) {
+   const dbCredentialStatus = document.getElementById('dbCredentialStatus');
+   const dbCredentialStatusText = document.getElementById('dbCredentialStatusText');
+   const legacyInputs = document.getElementById('legacyCredentialInputs');
+
+   if (status.network_manager_unlocked && status.network_credentials_count > 0) {
+       dbCredentialStatusText.textContent = `Using ${status.network_credentials_count} secure credential sets from credential manager`;
+       dbCredentialStatus.className = 'alert alert-success';
+       legacyInputs.style.display = 'none';
+   } else if (status.network_manager_available) {
+       dbCredentialStatusText.textContent = 'Credential manager available but locked - click to unlock';
+       dbCredentialStatus.className = 'alert alert-warning';
+       legacyInputs.style.display = 'block';
+   } else {
+       dbCredentialStatusText.textContent = 'Credential manager not available - using legacy credential input';
+       dbCredentialStatus.className = 'alert alert-warning';
+       legacyInputs.style.display = 'block';
+   }
+}
+
+function showCredentialUnlockModal() {
+   const modal = new bootstrap.Modal(document.getElementById('credentialUnlockModal'));
+
+   // Reset form
+   document.getElementById('credentialPassword').value = '';
+   document.getElementById('credentialPassword').classList.remove('is-invalid');
+   document.getElementById('credentialUnlockStatus').style.display = 'none';
+   document.getElementById('credentialDetails').style.display = 'none';
+
+   modal.show();
+
+   // Focus on password field
+   setTimeout(() => {
+       document.getElementById('credentialPassword').focus();
+   }, 500);
+}
+
+function unlockCredentials() {
+   const password = document.getElementById('credentialPassword').value;
+   const statusDiv = document.getElementById('credentialUnlockStatus');
+   const unlockBtn = document.getElementById('unlockCredentialBtn');
+
+   if (!password) {
+       document.getElementById('credentialPassword').classList.add('is-invalid');
+       document.getElementById('credentialPasswordError').textContent = 'Password is required';
+       return;
+   }
+
+   // Show loading state
+   unlockBtn.disabled = true;
+   unlockBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Unlocking...';
+
+   statusDiv.innerHTML = '<div class="alert alert-info mb-0"><i class="bi bi-hourglass-split me-2"></i>Unlocking credential store...</div>';
+   statusDiv.style.display = 'block';
+
+   // Send unlock request
+   socket.emit('unlock_credential_manager', {
+       manager_type: 'network',
+       password: password
+   });
+}
+
+function onCredentialUnlockSuccess(data) {
+   const statusDiv = document.getElementById('credentialUnlockStatus');
+   const unlockBtn = document.getElementById('unlockCredentialBtn');
+
+   statusDiv.innerHTML = '<div class="alert alert-success mb-0"><i class="bi bi-check-circle me-2"></i>' + data.message + '</div>';
+   unlockBtn.innerHTML = '<i class="bi bi-check me-1"></i>Success';
+   unlockBtn.disabled = false;
+
+   // Refresh credential status
+   setTimeout(() => {
+       refreshCredentialStatus();
+       bootstrap.Modal.getInstance(document.getElementById('credentialUnlockModal')).hide();
+   }, 2000);
+}
+
+function onCredentialUnlockError(data) {
+   const statusDiv = document.getElementById('credentialUnlockStatus');
+   const unlockBtn = document.getElementById('unlockCredentialBtn');
+
+   statusDiv.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-exclamation-triangle me-2"></i>' + data.message + '</div>';
+   unlockBtn.innerHTML = '<i class="bi bi-unlock me-1"></i>Unlock';
+   unlockBtn.disabled = false;
+
+   // Mark password field as invalid
+   document.getElementById('credentialPassword').classList.add('is-invalid');
+   document.getElementById('credentialPasswordError').textContent = 'Invalid password or unlock failed';
+}
+
+function onCredentialsLoaded(data) {
+   const credentialDetails = document.getElementById('credentialDetails');
+   const credentialList = document.getElementById('credentialList');
+
+   credentialList.innerHTML = '';
+
+   if (data.names && data.names.length > 0) {
+       data.names.forEach(name => {
+           const item = document.createElement('div');
+           item.className = 'list-group-item';
+           item.innerHTML = `<i class="bi bi-key me-2"></i>${name}`;
+           credentialList.appendChild(item);
+       });
+       credentialDetails.style.display = 'block';
+   }
+}
+
+function setupEventListeners() {
+   // Scanner form
+   document.getElementById('scannerForm').addEventListener('submit', function(e) {
+       e.preventDefault();
+       startNetworkScan();
+   });
+
+   // Collection form
+   document.getElementById('collectorForm').addEventListener('submit', function(e) {
+       e.preventDefault();
+       startJSONCollection();
+   });
+
+   // Database collection form
+   document.getElementById('databaseCollectorForm').addEventListener('submit', function(e) {
+       e.preventDefault();
+       startDatabaseCollection();
+   });
+
+   // Stop buttons
+   document.getElementById('stopScanBtn').addEventListener('click', function() {
+       stopProcess('scanner');
+   });
+
+   document.getElementById('stopCollectionBtn').addEventListener('click', function() {
+       stopProcess('collector');
+   });
+
+   document.getElementById('stopDatabaseCollectionBtn').addEventListener('click', function() {
+       stopProcess('database_collector');
+   });
+
+   // SNMP version change handler
+   document.getElementById('snmpVersion').addEventListener('change', updateSnmpModeDisplay);
+
+   // Quick filter handlers
+   document.querySelectorAll('.quick-filter').forEach(button => {
+       button.addEventListener('click', function() {
+           toggleQuickFilter(this);
+       });
+   });
+}
+
+function updateSnmpModeDisplay() {
+   const snmpVersion = document.getElementById('snmpVersion').value;
+   const indicator = document.getElementById('currentSnmpMode');
+   const snmpv3Config = document.getElementById('snmpv3Config');
+
+   switch(snmpVersion) {
+       case '2':
+           indicator.textContent = 'SNMPv2c Only';
+           snmpv3Config.style.display = 'none';
+           break;
+       case '3':
+           indicator.textContent = 'SNMPv3 Only';
+           snmpv3Config.style.display = 'block';
+           break;
+       case 'mixed':
+       default:
+           indicator.textContent = 'Mixed (SNMPv2c + SNMPv3)';
+           snmpv3Config.style.display = 'block';
+           break;
+   }
+}
+
+function startNetworkScan() {
+   if (!validateScannerForm()) {
+       return;
+   }
+
+   const formData = {
+       target: document.getElementById('target').value,
+       timeout: document.getElementById('timeout').value,
+       concurrency: parseInt(document.getElementById('concurrency').value),
+       communities: document.getElementById('communities').value || 'public',
+       snmpVersion: document.getElementById('snmpVersion').value,
+       username: document.getElementById('username').value,
+       authProtocol: document.getElementById('authProtocol').value,
+       authKey: document.getElementById('authKey').value,
+       privProtocol: document.getElementById('privProtocol').value,
+       privKey: document.getElementById('privKey').value,
+       fingerprintType: document.getElementById('fingerprintType').value,
+       outputFormat: document.getElementById('outputFormat').value,
+       outputFile: document.getElementById('outputFile').value,
+       enableDb: document.getElementById('enableDb').checked,
+       database: document.getElementById('database').value
+   };
+
+   // Reset terminal and show progress
+   clearTerminal('scannerTerminal');
+   showProgress();
+   disableScannerForm();
+   updateJobStatus('scannerJobStatus', 'running');
+
+   appendToTerminal('scannerTerminal', '[INFO] Starting network scan...', 'info');
+
+   // Emit to backend
+   socket.emit('start_scanner', formData);
+   scanStartTime = Date.now();
+}
+
+function startJSONCollection() {
+   const scanFile = document.getElementById('scanFile').value;
+   if (!scanFile) {
+       alert('Please select a scan file');
+       return;
+   }
+
+   const formData = {
+       scan_file: scanFile
+   };
+
+   // Reset terminal
+   clearTerminal('collectionTerminal');
+   disableCollectionForm();
+   updateJobStatus('collectorJobStatus', 'running');
+
+   appendToTerminal('collectionTerminal', '[INFO] Starting JSON collection...', 'info');
+
+   socket.emit('start_collector', formData);
+   collectionStartTime = Date.now();
+}
+
+function startDatabaseCollection() {
+   if (!validateDatabaseCollectionForm()) {
+       return;
+   }
+
+   // Gather form data
+   const formData = {
+       database_path: document.getElementById('dbPath').value,
+       max_workers: parseInt(document.getElementById('dbMaxWorkers').value),
+       timeout: parseInt(document.getElementById('dbTimeout').value),
+       filters: getDatabaseFilters(),
+       collection_methods: getCollectionMethods(),
+       credentials: getDatabaseCredentials()
+   };
+
+   // Reset terminal and show progress
+   clearTerminal('databaseCollectionTerminal');
+   showDatabaseProgress();
+   disableDatabaseCollectionForm();
+   updateJobStatus('databaseCollectorJobStatus', 'running');
+
+   appendToTerminal('databaseCollectionTerminal', '[INFO] Starting database-driven collection...', 'info');
+
+   socket.emit('start_database_collection', formData);
+   dbCollectionStartTime = Date.now();
+}
+
+function validateScannerForm() {
+   let isValid = true;
+   const validationErrors = [];
+
+   // Clear previous validation
+   document.querySelectorAll('.form-control').forEach(el => el.classList.remove('is-invalid'));
+
+   // Validate target
+   const target = document.getElementById('target').value.trim();
+   if (!target) {
+       document.getElementById('target').classList.add('is-invalid');
+       validationErrors.push('Target network/IP is required');
+       isValid = false;
+   }
+
+   // Validate output file
+   const outputFile = document.getElementById('outputFile').value.trim();
+   if (!outputFile) {
+       document.getElementById('outputFile').classList.add('is-invalid');
+       validationErrors.push('Output file is required');
+       isValid = false;
+   }
+
+   // Validate concurrency
+   const concurrency = parseInt(document.getElementById('concurrency').value);
+   if (concurrency < 10 || concurrency > 200) {
+       document.getElementById('concurrency').classList.add('is-invalid');
+       validationErrors.push('Concurrency must be between 10 and 200');
+       isValid = false;
+   }
+
+   // Validate SNMPv3 if selected
+   const snmpVersion = document.getElementById('snmpVersion').value;
+   if (snmpVersion === '3' || snmpVersion === 'mixed') {
+       const username = document.getElementById('username').value.trim();
+       const authKey = document.getElementById('authKey').value.trim();
+       const privKey = document.getElementById('privKey').value.trim();
+
+       if (!username) {
+           document.getElementById('username').classList.add('is-invalid');
+           validationErrors.push('Username is required for SNMPv3');
+           isValid = false;
+       }
+
+       if (!authKey) {
+           document.getElementById('authKey').classList.add('is-invalid');
+           validationErrors.push('Authentication key is required for SNMPv3');
+           isValid = false;
+       }
+
+       if (!privKey) {
+           document.getElementById('privKey').classList.add('is-invalid');
+           validationErrors.push('Privacy key is required for SNMPv3');
+           isValid = false;
+       }
+   }
+
+   // Show validation summary
+   showValidationSummary('validationSummary', 'validationErrors', validationErrors);
+
+   return isValid;
+}
+
+function validateDatabaseCollectionForm() {
+   let isValid = true;
+   const validationErrors = [];
+
+   // Clear previous validation
+   document.querySelectorAll('#databaseCollectorForm .form-control').forEach(el => el.classList.remove('is-invalid'));
+
+   // Validate database path
+   const dbPath = document.getElementById('dbPath').value.trim();
+   if (!dbPath) {
+       document.getElementById('dbPath').classList.add('is-invalid');
+       validationErrors.push('Database path is required');
+       isValid = false;
+   }
+
+   // Validate credentials if using legacy mode
+   const legacyInputs = document.getElementById('legacyCredentialInputs');
+   if (legacyInputs.style.display !== 'none') {
+       const username = document.getElementById('dbUsername').value.trim();
+       const password = document.getElementById('dbPassword').value.trim();
+
+       if (!username) {
+           document.getElementById('dbUsername').classList.add('is-invalid');
+           validationErrors.push('Username is required');
+           isValid = false;
+       }
+
+       if (!password) {
+           document.getElementById('dbPassword').classList.add('is-invalid');
+           validationErrors.push('Password is required');
+           isValid = false;
+       }
+   }
+
+   // Show validation summary
+   showValidationSummary('dbValidationSummary', 'dbValidationErrors', validationErrors);
+
+   return isValid;
+}
+
+function showValidationSummary(summaryId, errorsId, errors) {
+   const summary = document.getElementById(summaryId);
+   const errorsList = document.getElementById(errorsId);
+
+   if (errors.length > 0) {
+       errorsList.innerHTML = errors.map(error => `<li>${error}</li>`).join('');
+       summary.style.display = 'block';
+   } else {
+       summary.style.display = 'none';
+   }
+}
+
+function getDatabaseFilters() {
+   const filters = {};
+
+   // Get filter values
+   const names = document.getElementById('filterNames').value.trim();
+   const sites = document.getElementById('filterSites').value.trim();
+   const vendors = document.getElementById('filterVendors').value.trim();
+   const roles = document.getElementById('filterRoles').value.trim();
+   const models = document.getElementById('filterModels').value.trim();
+   const ips = document.getElementById('filterIPs').value.trim();
+
+   // Convert to arrays and add to filters
+   if (names) filters.name = names.split(',').map(s => s.trim()).filter(s => s);
+   if (sites) filters.site = sites.split(',').map(s => s.trim()).filter(s => s);
+   if (vendors) filters.vendor = vendors.split(',').map(s => s.trim()).filter(s => s);
+   if (roles) filters.role = roles.split(',').map(s => s.trim()).filter(s => s);
+   if (models) filters.model = models.split(',').map(s => s.trim()).filter(s => s);
+   if (ips) filters.ip = ips.split(',').map(s => s.trim()).filter(s => s);
+
+   // Add quick filters
+   document.querySelectorAll('.quick-filter.active').forEach(btn => {
+       const filterType = btn.dataset.filterType;
+       const filterValue = btn.dataset.filterValue;
+       if (!filters[filterType]) filters[filterType] = [];
+       if (!filters[filterType].includes(filterValue)) {
+           filters[filterType].push(filterValue);
+       }
+   });
+
+   return filters;
+}
+
+function getCollectionMethods() {
+   return {
+       get_facts: document.getElementById('dbGetFacts').checked,
+       get_config: document.getElementById('dbGetConfig').checked,
+       get_interfaces: document.getElementById('dbGetInterfaces').checked,
+       get_interfaces_ip: document.getElementById('dbGetInterfacesIP').checked,
+       get_lldp_neighbors: document.getElementById('dbGetLLDP').checked,
+       get_arp_table: document.getElementById('dbGetArp').checked,
+       get_mac_address_table: document.getElementById('dbGetMac').checked,
+       get_environment: document.getElementById('dbGetEnvironment').checked
+   };
+}
+
+function getDatabaseCredentials() {
+   // Check if using credential manager or legacy inputs
+   const legacyInputs = document.getElementById('legacyCredentialInputs');
+   if (legacyInputs.style.display === 'none') {
+       // Using credential manager - return empty (will be handled by backend)
+       return {};
+   } else {
+       // Using legacy inputs
+       return {
+           username: document.getElementById('dbUsername').value.trim(),
+           password: document.getElementById('dbPassword').value.trim(),
+           enable_password: document.getElementById('dbEnablePassword').value.trim()
+       };
+   }
+}
+
+function toggleQuickFilter(button) {
+   button.classList.toggle('active');
+   const filterType = button.dataset.filterType;
+   const filterValue = button.dataset.filterValue;
+
+   // Update corresponding input field
+   const inputId = `filter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}s`;
+   const input = document.getElementById(inputId);
+
+   if (input) {
+       let values = input.value.split(',').map(s => s.trim()).filter(s => s);
+
+       if (button.classList.contains('active')) {
+           // Add value if not present
+           if (!values.includes(filterValue)) {
+               values.push(filterValue);
+           }
+       } else {
+           // Remove value
+           values = values.filter(v => v !== filterValue);
+       }
+
+       input.value = values.join(',');
+   }
+}
+
+function clearAllFilters() {
+   // Clear all input fields
+   document.getElementById('filterNames').value = '';
+   document.getElementById('filterSites').value = '';
+   document.getElementById('filterVendors').value = '';
+   document.getElementById('filterRoles').value = '';
+   document.getElementById('filterModels').value = '';
+   document.getElementById('filterIPs').value = '';
+
+   // Deactivate all quick filter buttons
+   document.querySelectorAll('.quick-filter').forEach(btn => {
+       btn.classList.remove('active');
+   });
+
+   // Clear preview count
+   document.getElementById('filterPreviewCount').textContent = '';
+}
+
+function testDatabaseConnection() {
+   const dbPath = document.getElementById('dbPath').value;
+   if (!dbPath) {
+       alert('Please enter a database path');
+       return;
+   }
+
+   appendToTerminal('databaseCollectionTerminal', '[INFO] Testing database connection...', 'info');
+
+   socket.emit('test_database_connection', {
+       database_path: dbPath
+   });
+}
+
+function previewFilteredDevices() {
+   const dbPath = document.getElementById('dbPath').value;
+   const filters = getDatabaseFilters();
+
+   if (!dbPath) {
+       alert('Please enter a database path');
+       return;
+   }
+
+   socket.emit('get_filtered_devices', {
+       database_path: dbPath,
+       filters: filters
+   });
+}
+
+function showDevicePreview(devices) {
+   const modal = new bootstrap.Modal(document.getElementById('devicePreviewModal'));
+   const deviceList = document.getElementById('previewDeviceList');
+   const deviceCount = document.getElementById('previewDeviceCount');
+
+   deviceCount.textContent = `${devices.length} device${devices.length !== 1 ? 's' : ''}`;
+
+   if (devices.length === 0) {
+       deviceList.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No devices match the current filters</td></tr>';
+   } else {
+       deviceList.innerHTML = devices.map(device => `
+           <tr>
+               <td>${device.device_name || 'N/A'}</td>
+               <td>${device.primary_ip || 'N/A'}</td>
+               <td>${device.vendor || 'N/A'}</td>
+               <td>${device.model || 'N/A'}</td>
+               <td>${device.site_code || 'N/A'}</td>
+               <td>${device.device_role || 'N/A'}</td>
+               <td><span class="badge bg-success">Active</span></td>
+           </tr>
+       `).join('');
+   }
+
+   currentFilteredDevices = devices;
+   modal.show();
+}
+
+function proceedWithFilteredCollection() {
+   bootstrap.Modal.getInstance(document.getElementById('devicePreviewModal')).hide();
+
+   // Trigger the database collection with current settings
+   setTimeout(() => {
+       document.getElementById('databaseCollectorForm').dispatchEvent(new Event('submit'));
+   }, 300);
+}
+
+function exportDeviceList() {
+   if (currentFilteredDevices.length === 0) {
+       alert('No devices to export');
+       return;
+   }
+
+   const csv = convertDevicesToCSV(currentFilteredDevices);
+   const blob = new Blob([csv], { type: 'text/csv' });
+   const url = window.URL.createObjectURL(blob);
+   const a = document.createElement('a');
+   a.href = url;
+   a.download = 'filtered_devices.csv';
+   a.click();
+   window.URL.revokeObjectURL(url);
+}
+
+function convertDevicesToCSV(devices) {
+   const headers = ['Device Name', 'IP Address', 'Vendor', 'Model', 'Site', 'Role', 'Status'];
+   const rows = devices.map(device => [
+       device.device_name || '',
+       device.primary_ip || '',
+       device.vendor || '',
+       device.model || '',
+       device.site_code || '',
+       device.device_role || '',
+       'Active'
+   ]);
+
+   return [headers, ...rows].map(row =>
+       row.map(field => `"${field.toString().replace(/"/g, '""')}"`).join(',')
+   ).join('\n');
+}
+
+// Terminal functions
+function appendToTerminal(terminalId, message, type = 'info') {
+   const terminal = document.getElementById(terminalId);
+   if (!terminal) return;
+
+   const timestamp = new Date().toLocaleTimeString();
+   const formattedMessage = `[${timestamp}] ${message}\n`;
+
+   terminal.value += formattedMessage;
+
+   // Auto-scroll if enabled
+   if (autoScrollEnabled[terminalId]) {
+       terminal.scrollTop = terminal.scrollHeight;
+   }
+}
+
+function clearTerminal(terminalId) {
+   const terminal = document.getElementById(terminalId);
+   if (terminal) {
+       terminal.value = '';
+   }
+}
+
+function downloadLog(terminalId) {
+   const terminal = document.getElementById(terminalId);
+   if (!terminal || !terminal.value) {
+       alert('No log content to download');
+       return;
+   }
+
+   const blob = new Blob([terminal.value], { type: 'text/plain' });
+   const url = window.URL.createObjectURL(blob);
+   const a = document.createElement('a');
+   a.href = url;
+   a.download = `${terminalId}_log_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+   a.click();
+   window.URL.revokeObjectURL(url);
+}
+
+function toggleAutoScroll(terminalId) {
+   autoScrollEnabled[terminalId] = !autoScrollEnabled[terminalId];
+   const terminal = document.getElementById(terminalId);
+
+   if (autoScrollEnabled[terminalId]) {
+       terminal.classList.add('auto-scrolling');
+       terminal.scrollTop = terminal.scrollHeight;
+   } else {
+       terminal.classList.remove('auto-scrolling');
+   }
+}
+
+function resizeTerminal(terminalId) {
+   const terminal = document.getElementById(terminalId);
+   if (terminal.classList.contains('compact')) {
+       terminal.classList.remove('compact');
+       terminal.style.height = '500px';
+   } else {
+       terminal.classList.add('compact');
+       terminal.style.height = '300px';
+   }
+}
+
+function startResize(event, terminalId) {
+   resizing = true;
+   const terminal = document.getElementById(terminalId);
+   const startY = event.clientY;
+   const startHeight = parseInt(window.getComputedStyle(terminal).height);
+
+   function doResize(e) {
+       if (!resizing) return;
+       const newHeight = startHeight + (e.clientY - startY);
+       if (newHeight >= 200 && newHeight <= 800) {
+           terminal.style.height = newHeight + 'px';
+       }
+   }
+
+   function stopResize() {
+       resizing = false;
+       document.removeEventListener('mousemove', doResize);
+       document.removeEventListener('mouseup', stopResize);
+   }
+
+   document.addEventListener('mousemove', doResize);
+   document.addEventListener('mouseup', stopResize);
+}
+
+// Progress functions
+function showProgress() {
+   document.getElementById('scanStats').style.display = 'flex';
+   document.getElementById('progressContainer').style.display = 'block';
+}
+
+function hideProgress() {
+   document.getElementById('scanStats').style.display = 'none';
+   document.getElementById('progressContainer').style.display = 'none';
+}
+
+function showDatabaseProgress() {
+   document.getElementById('dbCollectionStats').style.display = 'flex';
+   document.getElementById('dbProgressContainer').style.display = 'block';
+}
+
+function hideDatabaseProgress() {
+   document.getElementById('dbCollectionStats').style.display = 'none';
+   document.getElementById('dbProgressContainer').style.display = 'none';
+}
+
+function updateScannerProgress(stats) {
+   // Update statistics
+   document.getElementById('hostsScanned').textContent = stats.scanned || 0;
+   document.getElementById('hostsFound').textContent = stats.found || 0;
+   document.getElementById('snmpReady').textContent = stats.snmp_ready || 0;
+   document.getElementById('scanRate').textContent = (stats.rate || 0).toFixed(1);
+
+   // Update progress bar
+   if (stats.total > 0) {
+       const percentage = Math.round((stats.scanned / stats.total) * 100);
+       document.getElementById('progressBar').style.width = percentage + '%';
+       document.getElementById('progressText').textContent = percentage + '%';
+
+       // Update elapsed time
+       if (scanStartTime) {
+           const elapsed = Math.floor((Date.now() - scanStartTime) / 1000);
+           document.getElementById('elapsedTime').textContent = formatTime(elapsed);
+
+           // Calculate ETA
+           if (stats.rate > 0) {
+               const remaining = Math.max(0, stats.total - stats.scanned);
+               const eta = Math.floor(remaining / stats.rate);
+               document.getElementById('etaTime').textContent = formatTime(eta);
+           }
+       }
+   }
+}
+
+function updateCollectionProgress(stats) {
+   // This would update collection progress if we had a progress container for it
+   // Currently just updating the terminal output
+}
+
+function updateDatabaseCollectionProgress(stats) {
+   // Update statistics
+   document.getElementById('dbDevicesProcessed').textContent = stats.processed || 0;
+   document.getElementById('dbDevicesSuccess').textContent = (stats.processed - stats.failed) || 0;
+   document.getElementById('dbDevicesFailed').textContent = stats.failed || 0;
+   document.getElementById('dbCollectionRate').textContent = (stats.rate || 0).toFixed(1);
+
+   // Update progress bar
+   if (stats.total > 0) {
+       const percentage = Math.round((stats.processed / stats.total) * 100);
+       document.getElementById('dbProgressBar').style.width = percentage + '%';
+       document.getElementById('dbProgressText').textContent = percentage + '%';
+
+       // Update elapsed time
+       if (dbCollectionStartTime) {
+           const elapsed = Math.floor((Date.now() - dbCollectionStartTime) / 1000);
+           document.getElementById('dbElapsedTime').textContent = formatTime(elapsed);
+
+           // Calculate ETA
+           if (stats.rate > 0) {
+               const remaining = Math.max(0, stats.total - stats.processed);
+               const eta = Math.floor((remaining / stats.rate) * 60); // Convert from devices/min to seconds
+               document.getElementById('dbEtaTime').textContent = formatTime(eta);
+           }
+       }
+   }
+}
+
+function formatTime(seconds) {
+   const mins = Math.floor(seconds / 60);
+   const secs = seconds % 60;
+   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Status functions
+function updateJobStatus(statusId, status) {
+   const statusElement = document.getElementById(statusId);
+   if (!statusElement) return;
+
+   // Remove all status classes
+   statusElement.classList.remove('pending', 'running', 'completed', 'failed');
+
+   // Add new status class
+   statusElement.classList.add(status);
+
+   // Update text
+   const statusText = {
+       'pending': 'Ready',
+       'running': 'Running',
+       'completed': 'Completed',
+       'failed': 'Failed'
+   };
+
+   statusElement.textContent = statusText[status] || status;
+}
+
+function updateDatabaseStats(data) {
+   document.getElementById('totalDevicesCount').textContent = data.total_devices || 0;
+   document.getElementById('activeDevicesCount').textContent = data.active_devices || 0;
+   document.getElementById('collectibleDevicesCount').textContent = data.collectible_devices || 0;
+   document.getElementById('dbStats').style.display = 'block';
+}
+
+function showDatabaseError(message) {
+   const stats = document.getElementById('dbStats');
+   stats.innerHTML = `<div class="alert alert-danger">${message}</div>`;
+   stats.style.display = 'block';
+}
+
+// Form state functions
+function disableScannerForm() {
+   document.getElementById('startScanBtn').style.display = 'none';
+   document.getElementById('stopScanBtn').style.display = 'block';
+   document.querySelectorAll('#scannerForm input, #scannerForm select').forEach(el => el.disabled = true);
+}
+
+function enableScannerForm() {
+   document.getElementById('startScanBtn').style.display = 'block';
+   document.getElementById('stopScanBtn').style.display = 'none';
+   document.querySelectorAll('#scannerForm input, #scannerForm select').forEach(el => el.disabled = false);
+}
+
+function disableCollectionForm() {
+   document.getElementById('startCollectionBtn').style.display = 'none';
+   document.getElementById('stopCollectionBtn').style.display = 'block';
+   document.querySelectorAll('#collectorForm input, #collectorForm select').forEach(el => el.disabled = true);
+}
+
+function enableCollectionForm() {
+   document.getElementById('startCollectionBtn').style.display = 'block';
+   document.getElementById('stopCollectionBtn').style.display = 'none';
+   document.querySelectorAll('#collectorForm input, #collectorForm select').forEach(el => el.disabled = false);
+}
+
+function disableDatabaseCollectionForm() {
+   document.getElementById('startDatabaseCollectionBtn').style.display = 'none';
+   document.getElementById('stopDatabaseCollectionBtn').style.display = 'block';
+   document.querySelectorAll('#databaseCollectorForm input, #databaseCollectorForm select').forEach(el => el.disabled = true);
+}
+
+function enableDatabaseCollectionForm() {
+   document.getElementById('startDatabaseCollectionBtn').style.display = 'block';
+   document.getElementById('stopDatabaseCollectionBtn').style.display = 'none';
+   document.querySelectorAll('#databaseCollectorForm input, #databaseCollectorForm select').forEach(el => el.disabled = false);
+}
+
+// File management functions
+function selectScanFile() {
+   // Show file browser or populate from available files
+   refreshScanFiles();
+}
+
+function refreshScanFiles() {
+   appendToTerminal('collectionTerminal', '[INFO] Refreshing available scan files...', 'info');
+       const container = document.getElementById('availableFiles');
+
+    container.style.maxHeight = '250px';
+    container.style.overflowY = 'auto';
+    container.style.overflowX = 'hidden';
+
+   // Simulate API call to get available files
+   // In real implementation, this would make an AJAX call to the backend
+   fetch('/pipeline/scan-files')
+       .then(response => response.json())
+       .then(data => {
+           displayAvailableFiles(data.files || []);
+       })
+       .catch(error => {
+           console.error('Error fetching scan files:', error);
+           appendToTerminal('collectionTerminal', '[ERROR] Failed to refresh scan files', 'error');
+       });
+}
+
+function displayAvailableFiles(files) {
+   const container = document.getElementById('availableFiles');
+
+   if (files.length === 0) {
+       container.innerHTML = '<small class="text-muted">No JSON scan files found</small>';
+       return;
+   }
+
+   container.innerHTML = files.map(fileInfo => {
+       const [filename, size, modified] = fileInfo.split('|');
+       return `
+           <div class="file-option" onclick="selectFile('${filename}')">
+               <div class="d-flex justify-content-between align-items-center">
+                   <div>
+                       <i class="bi bi-file-earmark-data me-2"></i>
+                       <strong>${filename}</strong>
+                   </div>
+                   <small class="text-muted">${size}</small>
+               </div>
+               <small class="text-muted">Modified: ${modified}</small>
+           </div>
+       `;
+   }).join('');
+}
+
+function selectFile(filename) {
+   document.getElementById('scanFile').value = filename;
+
+   // Highlight selected file
+   document.querySelectorAll('.file-option').forEach(el => {
+       el.classList.remove('btn-primary');
+       el.style.color = '';
+   });
+
+   event.target.closest('.file-option').classList.add('btn-primary');
+}
+
+function initializeDatabaseCollection() {
+   // Initialize any database-specific functionality
+   // Test database connection on load if path is provided
+   const dbPath = document.getElementById('dbPath').value;
+   if (dbPath) {
+       setTimeout(() => {
+           testDatabaseConnection();
+       }, 1000);
+   }
+}
+
+// Utility functions
+function stopProcess(processType) {
+   if (socket) {
+       socket.emit(`stop_${processType}`);
+   }
+}
+
+function refreshStatus() {
+   if (socket) {
+       socket.emit('get_status');
+       refreshCredentialStatus();
+   }
+}
+
+function viewLogs() {
+   // Open logs in new window/tab
+   window.open('/pipeline/logs', '_blank');
+}
+        setTimeout(() => {
+    console.log('Testing dropdown functionality...');
+
+    // Force re-initialize Bootstrap dropdowns
+    const dropdownElementList = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'));
+    const dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
+        return new bootstrap.Dropdown(dropdownToggleEl);
+    });
+
+    console.log('Found dropdowns:', dropdownList.length);
+}, 2000);
+
+        // QUICK FIX - Add this right after your dropdown test
+document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(toggle => {
+    // Remove conflicting event listeners
+    const newToggle = toggle.cloneNode(true);
+    toggle.parentNode.replaceChild(newToggle, toggle);
+
+    // Add working click handler
+    newToggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Close other dropdowns
+        document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+            menu.classList.remove('show');
+        });
+
+        // Toggle this dropdown
+        const menu = this.nextElementSibling;
+        if (menu && menu.classList.contains('dropdown-menu')) {
+            menu.classList.toggle('show');
+        }
+    });
+});
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.dropdown')) {
+        document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+            menu.classList.remove('show');
+        });
+    }
+});
+</script>
+<!-- Socket.IO for real-time updates -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+{% endblock %}

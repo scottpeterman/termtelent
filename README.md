@@ -29,6 +29,7 @@ None talking to each other. None showing you how they actually work. Closed data
 
 **One platform. Zero licensing. Complete transparency.**
 
+**Time to take our networks back. This is open source... Vibe coder or classic, I don't care. Let's build our ecosystem to have the tools we need, together.**
 
 [![GPLv3 License](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://python.org)
@@ -72,6 +73,28 @@ python -m launcher.launch
 The platform consists of two peer components that integrate through shared credentials and data formats:
 
 **SNMP Network Discovery → Real-Time SSH Monitoring → Enterprise CMDB Management**
+
+```mermaid
+graph TB
+    A[SNMP Network Scanner] --> B[Device Discovery]
+    B --> C[SSH Terminal Interface]
+    C --> D[Real-Time Telemetry]
+    D --> E[Configuration Management]
+    E --> F[Network Topology]
+    F --> G[Enterprise CMDB]
+    
+    H[Credential Store] --> A
+    H --> C
+    H --> E
+    H --> G
+    
+    I[Theme System] --> C
+    I --> D
+    I --> G
+    
+    J[Open Fingerprints] --> A
+    J --> B
+```
 
 ### SNMP Network Scanner Suite
 **Comprehensive network discovery with open device fingerprinting**
@@ -136,7 +159,28 @@ The platform consists of two peer components that integrate through shared crede
 
 ## Unified Workflow
 
-![Data Flow Architecture](diagrams/arch_flow.mermaid)
+```mermaid
+flowchart LR
+    A[Network Discovery] --> B[Device Inventory]
+    B --> C[SSH Connection]
+    C --> D[Real-time Monitoring]
+    D --> E[Configuration Management]
+    E --> F[Topology Mapping]
+    F --> G[Documentation Export]
+    
+    subgraph "Data Storage"
+        H[Encrypted Credentials]
+        I[Device Fingerprints]
+        J[Configuration History]
+        K[Telemetry Data]
+    end
+    
+    B --> H
+    C --> H
+    A --> I
+    E --> J
+    D --> K
+```
 
 All components share:
 - **Unified credential store** - secure AES-256 encrypted credential management
@@ -185,10 +229,40 @@ All components share:
 - [Pipeline Architecture](README_Pipeline.md) - Data flow and processing pipelines
 
 ### Architecture Diagrams
-- [High-Level Architecture](diagrams/arch_high_level.mermaid) - System overview
-- [Component Architecture](diagrams/arch_components.mermaid) - Detailed component relationships
-- [Data Flow](diagrams/arch_flow.mermaid) - Information processing pipeline
-- [Architecture Summary](diagrams/arch_summary.mermaid) - Consolidated view
+
+```mermaid
+graph TD
+    subgraph "Frontend Layer"
+        A[SSH Terminal Interface]
+        B[Telemetry Dashboard]
+        C[Network Scanner GUI]
+        D[Web CMDB Interface]
+    end
+    
+    subgraph "Core Services"
+        E[SSH Connection Manager]
+        F[SNMP Discovery Engine]
+        G[Telemetry Collectors]
+        H[Configuration Manager]
+    end
+    
+    subgraph "Data Layer"
+        I[Encrypted Credential Store]
+        J[Device Fingerprint DB]
+        K[Configuration History]
+        L[Real-time Metrics]
+    end
+    
+    A --> E
+    B --> G
+    C --> F
+    D --> H
+    
+    E --> I
+    F --> J
+    G --> L
+    H --> K
+```
 
 ---
 

@@ -6,7 +6,7 @@
 
 Since then, I've watched vendors fragment network management:
 - SecureCRT for terminal access
-- High end, high expensive CMDBs and documentation tools
+- High end, highly expensive CMDBs and documentation tools
 - Lansweeper for asset discovery
 - SolarWinds for monitoring and telemetry
 - Kiwi CatTools for configuration management

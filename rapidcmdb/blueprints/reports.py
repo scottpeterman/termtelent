@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
 Reports Blueprint - Scan file analysis and reporting
-Updated to show vendor_devicetype combinations
+Updated to use vendor-device combinations as stable keys instead of sys_descr
 """
-import urllib
-
+import urllib.parse
 from flask import Blueprint, render_template, jsonify, request, send_file, flash, redirect, url_for
 import os
 import json
@@ -27,7 +26,7 @@ SCANS_FOLDER = 'scans'
 
 
 class DeviceAnalyzer:
-    """Schema-based analyzer that reads vendor/device_type directly from scan data"""
+    """Enhanced analyzer using vendor-device combinations as stable keys"""
 
     def __init__(self):
         # NAPALM supported vendor/device combinations
@@ -68,20 +67,20 @@ class DeviceAnalyzer:
         }
 
     def _normalize_sys_descr(self, sys_descr: str) -> str:
-        """Normalize system description for better grouping"""
+        """Normalize system description for better grouping - kept for compatibility"""
         if not sys_descr:
             return ''
 
         normalized = sys_descr
 
         # Remove version-specific details but keep major versions
-        normalized = re.sub(r'Version\s+(\d+\.\d+)\.\d+[\.\d]*', r'Version \1.x',
+        normalized = re.sub(r'Version\s+(\d+\.\d+)\([^)]+\)[^,]*', r'Version \1.x',
                             normalized, flags=re.IGNORECASE)
-        normalized = re.sub(r'(\d+\.\d+)\.\d+[\.\d]*', r'\1.x', normalized)
+        normalized = re.sub(r'(\d+\.\d+)\([^)]+\)', r'\1.x', normalized)
 
         # Remove build dates and compilation info
         normalized = re.sub(r'\b\d{4}-\d{2}-\d{2}\b', '[DATE]', normalized)
-        normalized = re.sub(r'Compiled\s+\w+\s+\d+.*', '[BUILD_INFO]',
+        normalized = re.sub(r'Compiled\s+\w+\s+\d+-\w+-\d+\s+\d+:\d+\s+by\s+[^\r\n]+', '[BUILD_INFO]',
                             normalized, flags=re.IGNORECASE)
 
         # Remove serial numbers and specific hardware IDs
@@ -89,6 +88,10 @@ class DeviceAnalyzer:
 
         # Remove IP addresses
         normalized = re.sub(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', '[IP]', normalized)
+
+        # Remove carriage returns and normalize whitespace
+        normalized = re.sub(r'\r\n|\r|\n', '\n', normalized)
+        normalized = re.sub(r'\s+', ' ', normalized)
 
         return normalized.strip()
 
@@ -248,7 +251,7 @@ class DeviceAnalyzer:
             return f"{vendor}_{device_type}"
 
     def analyze_scan_file(self, scan_file_path: str) -> Dict:
-        """Schema-based scan file analysis - reads vendor/device_type directly from schema"""
+        """Enhanced scan file analysis using device IDs and vendor/device combinations as keys"""
         logger.info(f"Analyzing scan file: {scan_file_path}")
 
         with open(scan_file_path, 'r', encoding='utf-8') as f:
@@ -257,8 +260,9 @@ class DeviceAnalyzer:
         devices = scan_data.get('devices', {})
         logger.info(f"Found {len(devices)} total devices")
 
-        # Group devices by normalized system description
-        sys_descr_groups = defaultdict(list)
+        # Group devices by vendor_device combination for better analysis
+        vendor_device_groups = defaultdict(list)
+        individual_devices = {}
 
         # Track vendor_device combinations from schema
         vendor_device_combinations = defaultdict(int)
@@ -276,40 +280,9 @@ class DeviceAnalyzer:
             final_vendor = schema_vendor
             final_device_type = enhanced_device_type
 
-            # Track vendor_device combinations
+            # Create a stable key based on vendor_device combination
             vendor_device_combo = f"{final_vendor}_{final_device_type}"
             vendor_device_combinations[vendor_device_combo] += 1
-
-            # Skip devices without system description for grouping
-            if not sys_descr or sys_descr.lower() in ['', 'unknown', 'none']:
-                # Create a synthetic group for devices without sys_descr
-                normalized = f"no_sys_descr_{final_vendor}_{final_device_type}"
-            else:
-                # Normalize and group by system description
-                normalized = self.normalize_sys_descr(sys_descr)
-
-            sys_descr_groups[normalized].append({
-                'device_id': device_id,
-                'device_info': device_info,
-                'original_sys_descr': sys_descr,
-                'vendor_device_combo': vendor_device_combo,
-                'final_vendor': final_vendor,
-                'final_device_type': final_device_type
-            })
-
-        logger.info(f"Grouped into {len(sys_descr_groups)} unique device signatures")
-
-        # Analyze each group
-        signatures = {}
-
-        for normalized_descr, device_group in sys_descr_groups.items():
-            # Use first device as representative
-            representative = device_group[0]
-            device_info = representative['device_info']
-
-            # Use the schema-based vendor and enhanced device type
-            final_vendor = representative['final_vendor']
-            final_device_type = representative['final_device_type']
 
             # Calculate enhanced confidence
             enhanced_confidence = self.calculate_confidence_boost(
@@ -322,24 +295,54 @@ class DeviceAnalyzer:
             # Get combined vendor_type for display
             combined_vendor_type = self.get_combined_vendor_type(final_vendor, final_device_type)
 
-            signature = {
-                'sys_descr': representative['original_sys_descr'] or '',
-                'normalized_sys_descr': normalized_descr or '',
-                'count': len(device_group),
-                'original_vendor': device_info.get('vendor', 'unknown') or 'unknown',
-                'enhanced_vendor': final_vendor or 'unknown',
-                'device_type': final_device_type or 'unknown',
+            # Store individual device with enhanced info
+            individual_device = {
+                'device_id': device_id,
+                'device_info': device_info,
+                'primary_ip': device_info.get('primary_ip', ''),
+                'sys_name': device_info.get('sys_name', ''),
+                'sys_descr': sys_descr,
+                'vendor_device_combo': vendor_device_combo,
+                'final_vendor': final_vendor,
+                'final_device_type': final_device_type,
                 'combined_vendor_type': combined_vendor_type,
-                'vendor_device_combo': f"{final_vendor}_{final_device_type}",
-                'original_confidence': device_info.get('confidence_score', 50) or 50,
-                'enhanced_confidence': enhanced_confidence or 50,
-                'napalm_supported': bool(napalm_supported),
-                'detection_method': device_info.get('detection_method', 'unknown') or 'unknown',
-                'sample_ips': [d['device_info'].get('primary_ip', '') for d in device_group[:5] if
-                               d['device_info'].get('primary_ip')]
+                'enhanced_confidence': enhanced_confidence,
+                'napalm_supported': napalm_supported,
+                'detection_method': device_info.get('detection_method', 'unknown')
             }
 
-            signatures[normalized_descr] = signature
+            individual_devices[device_id] = individual_device
+            vendor_device_groups[vendor_device_combo].append(individual_device)
+
+        logger.info(f"Grouped into {len(vendor_device_groups)} vendor-device combinations")
+
+        # Create signatures based on vendor-device combinations
+        signatures = {}
+
+        for vendor_device_key, device_group in vendor_device_groups.items():
+            # Use first device as representative
+            representative = device_group[0]
+            device_info = representative['device_info']
+
+            signature = {
+                'group_key': vendor_device_key,  # Stable key for API calls
+                'sys_descr': representative['sys_descr'] or '',
+                'count': len(device_group),
+                'original_vendor': device_info.get('vendor', 'unknown') or 'unknown',
+                'enhanced_vendor': representative['final_vendor'] or 'unknown',
+                'device_type': representative['final_device_type'] or 'unknown',
+                'combined_vendor_type': representative['combined_vendor_type'],
+                'vendor_device_combo': vendor_device_key,
+                'original_confidence': device_info.get('confidence_score', 50) or 50,
+                'enhanced_confidence': representative['enhanced_confidence'] or 50,
+                'napalm_supported': bool(representative['napalm_supported']),
+                'detection_method': representative['detection_method'] or 'unknown',
+                'sample_ips': [d['primary_ip'] for d in device_group[:5] if d['primary_ip']],
+                'sample_names': [d['sys_name'] for d in device_group[:3] if d['sys_name']],
+                'device_ids': [d['device_id'] for d in device_group]  # List of device IDs in this group
+            }
+
+            signatures[vendor_device_key] = signature
 
         # Extract scan metadata
         scan_metadata = scan_data.get('scan_metadata', {})
@@ -350,51 +353,107 @@ class DeviceAnalyzer:
             'total_devices': len(devices),
             'unique_signatures': len(signatures),
             'signatures': signatures,
+            'individual_devices': individual_devices,  # Individual device lookup
             'vendor_device_combinations': dict(vendor_device_combinations),
             'analysis_timestamp': datetime.now().isoformat()
         }
 
-    def _calculate_enhanced_stats(self, devices: Dict, vendor_combinations: Dict,
-                                  confidence_dist: Dict, detection_methods: Dict) -> Dict:
-        """Calculate comprehensive statistics"""
-        total_devices = len(devices)
+    def enhance_vendor_detection(self, device_info: dict) -> str:
+        """Enhanced vendor detection logic"""
+        sys_descr = device_info.get('sys_descr', '').lower()
+        original_vendor = device_info.get('vendor', 'unknown').lower()
 
-        # Vendor statistics
-        vendor_counts = defaultdict(int)
-        device_type_counts = defaultdict(int)
-        category_counts = defaultdict(int)
-        napalm_count = 0
-        high_confidence_count = 0
-
-        for device_info in devices.values():
-            vendor = self.clean_schema_field(device_info.get('vendor', 'unknown'))
-            device_type = self.clean_schema_field(device_info.get('device_type', 'unknown'))
-            confidence = device_info.get('confidence_score', 0)
-
-            vendor_counts[vendor] += 1
-            device_type_counts[device_type] += 1
-            category_counts[self._get_device_category(device_type)] += 1
-
-            if self._is_napalm_supported(vendor, device_type):
-                napalm_count += 1
-
-            if confidence >= 80:
-                high_confidence_count += 1
-
-        return {
-            'vendor_counts': dict(vendor_counts),
-            'device_type_counts': dict(device_type_counts),
-            'category_counts': dict(category_counts),
-            'confidence_distribution': confidence_dist,
-            'detection_method_stats': detection_methods,
-            'napalm_supported_count': napalm_count,
-            'napalm_percentage': (napalm_count / total_devices * 100) if total_devices > 0 else 0,
-            'high_confidence_count': high_confidence_count,
-            'high_confidence_percentage': (high_confidence_count / total_devices * 100) if total_devices > 0 else 0,
-            'network_infrastructure_count': category_counts.get('network_infrastructure', 0),
-            'network_infrastructure_percentage': (category_counts.get('network_infrastructure',
-                                                                      0) / total_devices * 100) if total_devices > 0 else 0
+        # Enhanced vendor detection based on system description
+        vendor_patterns = {
+            'cisco': ['cisco', 'ios', 'nx-os', 'asa'],
+            'arista': ['arista', 'eos'],
+            'juniper': ['juniper', 'junos'],
+            'palo_alto': ['palo alto', 'pan-os'],
+            'fortinet': ['fortinet', 'fortigate', 'fortios'],
+            'hp': ['hp ', 'hewlett', 'procurve', 'comware'],
+            'dell': ['dell', 'powerconnect', 'force10'],
+            'aruba': ['aruba', 'airwave'],
+            'checkpoint': ['checkpoint', 'gaia'],
+            'vmware': ['vmware', 'vsphere', 'esx'],
         }
+
+        # Check system description for vendor clues
+        for vendor, patterns in vendor_patterns.items():
+            for pattern in patterns:
+                if pattern in sys_descr:
+                    return vendor
+
+        # Return original vendor if no enhancement found
+        return original_vendor if original_vendor != 'unknown' else 'unknown'
+
+    def determine_device_type(self, vendor: str, sys_descr: str, ip: str = '') -> str:
+        """Determine device type based on vendor and system description"""
+        sys_descr_lower = sys_descr.lower()
+
+        # Device type patterns
+        type_patterns = {
+            'router': ['router', 'routing', 'asr', 'isr', 'mx', 'srx', 'crs'],
+            'switch': ['switch', 'switching', 'catalyst', 'nexus', 'ex', 'qfx', 'powerconnect'],
+            'firewall': ['firewall', 'asa', 'palo alto', 'fortigate', 'checkpoint', 'srx'],
+            'wireless_controller': ['wireless', 'wlc', 'airwave', 'controller'],
+            'access_point': ['access point', 'ap ', 'aironet'],
+            'server': ['server', 'linux', 'windows', 'ubuntu', 'centos', 'redhat'],
+            'printer': ['printer', 'print', 'laserjet', 'inkjet'],
+            'ups': ['ups', 'uninterruptible', 'battery'],
+            'load_balancer': ['load balancer', 'f5', 'bigip', 'ltm'],
+            'sdwan_gateway': ['sdwan', 'sd-wan', 'viptela', 'silver-peak'],
+        }
+
+        # Check patterns
+        for device_type, patterns in type_patterns.items():
+            for pattern in patterns:
+                if pattern in sys_descr_lower:
+                    return device_type
+
+        # Vendor-specific defaults
+        if vendor in ['cisco', 'arista', 'juniper']:
+            if 'ios' in sys_descr_lower or 'eos' in sys_descr_lower:
+                return 'switch'  # Default for network vendors
+
+        return 'unknown'
+
+    def calculate_confidence(self, device_info: dict, enhanced_vendor: str, device_type: str) -> int:
+        """Calculate enhanced confidence score"""
+        base_confidence = device_info.get('confidence_score', 50)
+
+        # Confidence boosters
+        confidence_boost = 0
+
+        # Has system description
+        if device_info.get('sys_descr'):
+            confidence_boost += 10
+
+        # Has hostname
+        if device_info.get('sys_name'):
+            confidence_boost += 5
+
+        # Has model info
+        if device_info.get('model'):
+            confidence_boost += 10
+
+        # Has serial number
+        if device_info.get('serial_number'):
+            confidence_boost += 10
+
+        # Vendor enhancement worked
+        if enhanced_vendor != 'unknown' and enhanced_vendor != device_info.get('vendor', 'unknown'):
+            confidence_boost += 15
+
+        # Device type determined
+        if device_type != 'unknown':
+            confidence_boost += 10
+
+        # Multiple detection methods
+        if device_info.get('detection_method') in ['snmp', 'ssh']:
+            confidence_boost += 5
+
+        # Cap at 95%
+        return min(95, base_confidence + confidence_boost)
 
 
 def get_scan_files():
@@ -442,21 +501,11 @@ def index():
     try:
         scan_files = get_scan_files()
         logger.info(f"Found {len(scan_files)} scan files")
-        logger.info(f"Template should be at: templates/reports/index.html")
-
-        # Test if template exists
-        from flask import current_app
-        template_path = os.path.join(current_app.root_path, 'templates', 'reports', 'index.html')
-        logger.info(f"Looking for template at: {template_path}")
-        logger.info(f"Template exists: {os.path.exists(template_path)}")
-
         return render_template('reports/index.html', scan_files=scan_files)
     except Exception as e:
         logger.error(f"Error in reports index: {e}")
         import traceback
         logger.error(traceback.format_exc())
-
-        # Return a simple HTML response if template fails
         return f"""
         <h1>Reports Debug</h1>
         <p>Error: {str(e)}</p>
@@ -464,8 +513,6 @@ def index():
         <p>Please check that templates/reports/index.html exists</p>
         """
 
-
-# Replace your existing analyze_scan route with this enhanced version
 
 @reports_bp.route('/analyze/<filename>')
 def analyze_scan(filename):
@@ -489,8 +536,8 @@ def analyze_scan(filename):
         signatures = analysis_results['signatures']
         vendor_counts = {}
         device_type_counts = {}
-        combined_vendor_type_counts = {}  # NEW: Track combined vendor_type counts
-        vendor_device_combinations = analysis_results.get('vendor_device_combinations', {})  # NEW
+        combined_vendor_type_counts = {}
+        vendor_device_combinations = analysis_results.get('vendor_device_combinations', {})
 
         # Initialize summary counters
         high_confidence_count = 0
@@ -500,12 +547,13 @@ def analyze_scan(filename):
         for sig_key, sig_data in signatures.items():
             vendor = sig_data.get('enhanced_vendor', 'unknown')
             device_type = sig_data.get('device_type', 'unknown')
-            combined_vendor_type = sig_data.get('combined_vendor_type', 'unknown')  # NEW
+            combined_vendor_type = sig_data.get('combined_vendor_type', 'unknown')
             count = sig_data.get('count', 0)
 
             vendor_counts[vendor] = vendor_counts.get(vendor, 0) + count
             device_type_counts[device_type] = device_type_counts.get(device_type, 0) + count
-            combined_vendor_type_counts[combined_vendor_type] = combined_vendor_type_counts.get(combined_vendor_type, 0) + count  # NEW
+            combined_vendor_type_counts[combined_vendor_type] = combined_vendor_type_counts.get(combined_vendor_type,
+                                                                                                0) + count
 
             # Calculate summary statistics
             confidence = sig_data.get('enhanced_confidence', 0)
@@ -524,28 +572,23 @@ def analyze_scan(filename):
         # Add calculated stats to analysis results
         analysis_results['vendor_counts'] = vendor_counts
         analysis_results['device_type_counts'] = device_type_counts
-        analysis_results['combined_vendor_type_counts'] = combined_vendor_type_counts  # NEW
-        analysis_results['vendor_device_combinations'] = vendor_device_combinations  # NEW
+        analysis_results['combined_vendor_type_counts'] = combined_vendor_type_counts
+        analysis_results['vendor_device_combinations'] = vendor_device_combinations
 
         # Add summary statistics to analysis results
         analysis_results['summary_stats'] = {
             'high_confidence_count': high_confidence_count,
             'napalm_supported_count': napalm_supported_count,
             'network_infrastructure_count': network_infrastructure_count,
-            'high_confidence_percentage': (high_confidence_count / analysis_results['total_devices'] * 100) if analysis_results['total_devices'] > 0 else 0,
-            'napalm_percentage': (napalm_supported_count / analysis_results['total_devices'] * 100) if analysis_results['total_devices'] > 0 else 0,
-            'network_percentage': (network_infrastructure_count / analysis_results['total_devices'] * 100) if analysis_results['total_devices'] > 0 else 0
+            'high_confidence_percentage': (high_confidence_count / analysis_results['total_devices'] * 100) if
+            analysis_results['total_devices'] > 0 else 0,
+            'napalm_percentage': (napalm_supported_count / analysis_results['total_devices'] * 100) if analysis_results[
+                                                                                                           'total_devices'] > 0 else 0,
+            'network_percentage': (network_infrastructure_count / analysis_results['total_devices'] * 100) if
+            analysis_results['total_devices'] > 0 else 0
         }
 
-        # Debug logging
-        logger.info(f"Analysis results keys: {list(analysis_results.keys())}")
-        logger.info(f"Vendor counts: {vendor_counts}")
-        logger.info(f"Device type counts: {device_type_counts}")
-        logger.info(f"Combined vendor_type counts: {combined_vendor_type_counts}")  # NEW
-        logger.info(f"Vendor_device combinations: {vendor_device_combinations}")  # NEW
-        logger.info(f"Summary stats: {analysis_results['summary_stats']}")
-
-        # Clean the data to ensure JSON serialization works (existing logic)
+        # Clean the data to ensure JSON serialization works
         def clean_for_json(obj):
             """Clean object to ensure JSON serialization, handling Jinja2 Undefined objects"""
             from jinja2 import Undefined
@@ -565,25 +608,16 @@ def analyze_scan(filename):
         analysis_results = clean_for_json(analysis_results)
         vendor_counts = clean_for_json(vendor_counts)
         device_type_counts = clean_for_json(device_type_counts)
-        combined_vendor_type_counts = clean_for_json(combined_vendor_type_counts)  # NEW
-        vendor_device_combinations = clean_for_json(vendor_device_combinations)  # NEW
+        combined_vendor_type_counts = clean_for_json(combined_vendor_type_counts)
+        vendor_device_combinations = clean_for_json(vendor_device_combinations)
 
-        # JSON serialization test
-        try:
-            import json
-            json.dumps(analysis_results)
-            logger.info("Analysis results are JSON serializable")
-        except Exception as json_error:
-            logger.error(f"JSON serialization test failed: {json_error}")
-            # Fallback logic here...
-
-        return render_template('reports/analysis.html',  # Use your existing template
+        return render_template('reports/analysis.html',
                                analysis=analysis_results,
                                filename=filename,
                                vendor_counts=vendor_counts,
                                device_type_counts=device_type_counts,
-                               combined_vendor_type_counts=combined_vendor_type_counts,  # NEW
-                               vendor_device_combinations=vendor_device_combinations)  # NEW
+                               combined_vendor_type_counts=combined_vendor_type_counts,
+                               vendor_device_combinations=vendor_device_combinations)
 
     except Exception as e:
         logger.error(f"Error analyzing scan file {filename}: {e}")
@@ -592,12 +626,14 @@ def analyze_scan(filename):
         flash(f'Error analyzing scan file: {str(e)}', 'error')
         return redirect(url_for('reports.index'))
 
-@reports_bp.route('/api/device-details/<filename>/<path:signature_key>')
-def api_device_details(filename, signature_key):
-    """Enhanced API endpoint with better device details"""
+
+@reports_bp.route('/api/device-details/<filename>/<group_key>')
+def api_device_details(filename, group_key):
+    """Enhanced API endpoint using group keys instead of sys_descr"""
     try:
-        import urllib.parse
-        decoded_signature_key = urllib.parse.unquote(signature_key)
+        # Simple decoding since we're using stable group keys now
+        decoded_group_key = urllib.parse.unquote_plus(group_key)
+        logger.info(f"Looking for group key: {decoded_group_key}")
 
         filepath = os.path.join(SCANS_FOLDER, filename)
         if not os.path.exists(filepath):
@@ -608,80 +644,62 @@ def api_device_details(filename, signature_key):
         analysis_results = analyzer.analyze_scan_file(filepath)
 
         signatures = analysis_results['signatures']
+        individual_devices = analysis_results.get('individual_devices', {})
 
-        # Find matching signature
-        signature_data = None
-        matched_key = None
+        logger.info(f"Available group keys: {list(signatures.keys())}")
 
-        # Try exact match first
-        if decoded_signature_key in signatures:
-            signature_data = signatures[decoded_signature_key]
-            matched_key = decoded_signature_key
-        else:
-            # Fuzzy matching
-            for key, data in signatures.items():
-                if key.strip() == decoded_signature_key.strip():
-                    signature_data = data
-                    matched_key = key
-                    break
-
-        if not signature_data:
+        # Find matching signature using stable group key
+        if decoded_group_key not in signatures:
             return jsonify({
-                'error': 'Signature not found',
-                'requested_key': decoded_signature_key,
-                'available_count': len(signatures)
+                'error': 'Group key not found',
+                'requested_key': decoded_group_key,
+                'available_keys': list(signatures.keys())
             }), 404
 
-        # Load original device data
-        with open(filepath, 'r', encoding='utf-8') as f:
-            scan_data = json.load(f)
+        signature_data = signatures[decoded_group_key]
 
-        devices = scan_data.get('devices', {})
+        # Get all devices in this group using device IDs
+        device_ids = signature_data.get('device_ids', [])
         matching_devices = []
 
-        # Find matching devices with enhanced details
-        for device_id, device_info in devices.items():
-            sys_descr = device_info.get('sys_descr', '').strip()
-            if not sys_descr:
-                continue
+        for device_id in device_ids:
+            if device_id in individual_devices:
+                device_detail = individual_devices[device_id]
+                device_info = device_detail['device_info']
 
-            normalized = analyzer._normalize_sys_descr(sys_descr)
-            if normalized == matched_key:
-                # Enhanced device details
-                vendor = device_info.get('vendor', 'unknown')
-                device_type = device_info.get('device_type', 'unknown')
-
-                device_detail = {
+                # Enhanced device details for API response
+                enhanced_device = {
                     'device_id': device_id,
-                    'primary_ip': device_info.get('primary_ip', ''),
+                    'primary_ip': device_detail['primary_ip'],
                     'all_ips': device_info.get('all_ips', []),
-                    'sys_name': device_info.get('sys_name', ''),
-                    'sys_descr': sys_descr,
-                    'vendor': vendor,
-                    'device_type': device_type,
-                    'vendor_device_combo': f"{vendor}_{device_type}",
-                    'category': analyzer._get_device_category(device_type),
+                    'sys_name': device_detail['sys_name'],
+                    'sys_descr': device_detail['sys_descr'],
+                    'vendor': device_detail['final_vendor'],
+                    'device_type': device_detail['final_device_type'],
+                    'vendor_device_combo': device_detail['vendor_device_combo'],
+                    'category': analyzer._get_device_category(device_detail['final_device_type']),
                     'model': device_info.get('model', ''),
                     'serial_number': device_info.get('serial_number', ''),
                     'os_version': device_info.get('os_version', ''),
-                    'confidence_score': device_info.get('confidence_score', 0),
-                    'detection_method': device_info.get('detection_method', 'unknown'),
-                    'napalm_supported': analyzer._is_napalm_supported(vendor, device_type),
+                    'confidence_score': device_detail['enhanced_confidence'],
+                    'detection_method': device_detail['detection_method'],
+                    'napalm_supported': device_detail['napalm_supported'],
                     'first_seen': device_info.get('first_seen', ''),
                     'last_seen': device_info.get('last_seen', ''),
                     'scan_count': device_info.get('scan_count', 0),
                     'interfaces': device_info.get('interfaces', {}),
                     'mac_addresses': device_info.get('mac_addresses', []),
-                    'snmp_version_used': device_info.get('snmp_version_used', 'unknown')
+                    'snmp_version_used': device_info.get('snmp_version_used', 'unknown'),
+                    'snmp_data_by_ip': device_info.get('snmp_data_by_ip', {})
                 }
 
-                matching_devices.append(device_detail)
+                matching_devices.append(enhanced_device)
 
         # Sort by IP address
         matching_devices.sort(key=lambda x: x.get('primary_ip', ''))
 
         response_data = {
-            'signature_key': matched_key,
+            'group_key': decoded_group_key,
             'signature_info': signature_data,
             'matching_devices': matching_devices,
             'device_count': len(matching_devices),
@@ -719,115 +737,6 @@ def api_analyze_scan(filename):
     except Exception as e:
         logger.error(f"API error analyzing {filename}: {e}")
         return jsonify({'error': str(e)}), 500
-
-
-# !/usr/bin/env python3
-"""
-Minimal update to your existing reports.py 
-This adds vendor_device combinations while keeping your existing template
-"""
-
-
-# Add this to your existing DeviceAnalyzer class in reports.py
-
-def analyze_scan_file(self, scan_file_path: str) -> Dict:
-    """Enhanced scan file analysis - minimal update to existing method"""
-    logger.info(f"Analyzing scan file: {scan_file_path}")
-
-    with open(scan_file_path, 'r', encoding='utf-8') as f:
-        scan_data = json.load(f)
-
-    devices = scan_data.get('devices', {})
-    logger.info(f"Found {len(devices)} total devices")
-
-    # Group devices by normalized system description (keep existing logic)
-    sys_descr_groups = defaultdict(list)
-
-    # NEW: Track vendor_device combinations
-    vendor_device_combinations = defaultdict(int)
-
-    for device_id, device_info in devices.items():
-        sys_descr = device_info.get('sys_descr', '').strip()
-
-        # Skip devices without system description
-        if not sys_descr or sys_descr.lower() in ['', 'unknown', 'none']:
-            continue
-
-        # NEW: Track vendor_device combinations
-        vendor = device_info.get('vendor', 'unknown').lower()
-        device_type = device_info.get('device_type', 'unknown').lower()
-        vendor_device_combo = f"{vendor}_{device_type}"
-        vendor_device_combinations[vendor_device_combo] += 1
-
-        # Normalize and group (existing logic)
-        normalized = self.normalize_sys_descr(sys_descr)
-        sys_descr_groups[normalized].append({
-            'device_id': device_id,
-            'device_info': device_info,
-            'original_sys_descr': sys_descr,
-            'vendor_device_combo': vendor_device_combo  # NEW: Add to device data
-        })
-
-    logger.info(f"Grouped into {len(sys_descr_groups)} unique device signatures")
-
-    # Analyze each group (keep existing logic but enhance)
-    signatures = {}
-
-    for normalized_descr, device_group in sys_descr_groups.items():
-        # Use first device as representative
-        representative = device_group[0]
-        device_info = representative['device_info']
-
-        # Enhanced analysis (existing logic)
-        enhanced_vendor = self.enhance_vendor_detection(device_info)
-        device_type = self.determine_device_type(
-            enhanced_vendor,
-            representative['original_sys_descr'],
-            device_info.get('primary_ip', '')
-        )
-        enhanced_confidence = self.calculate_confidence(
-            device_info, enhanced_vendor, device_type
-        )
-
-        # Check if NAPALM supported (existing logic)
-        napalm_supported = self.is_napalm_supported(enhanced_vendor, device_type)
-
-        # NEW: Get combined vendor_type for display
-        combined_vendor_type = self.get_combined_vendor_type(enhanced_vendor, device_type)
-
-        signature = {
-            'sys_descr': representative['original_sys_descr'] or '',
-            'normalized_sys_descr': normalized_descr or '',
-            'count': len(device_group),
-            'original_vendor': device_info.get('vendor', 'unknown') or 'unknown',
-            'enhanced_vendor': enhanced_vendor or 'unknown',
-            'device_type': device_type or 'unknown',
-            'combined_vendor_type': combined_vendor_type,  # NEW: Combined display name
-            'vendor_device_combo': f"{enhanced_vendor}_{device_type}",  # NEW: For charts
-            'original_confidence': device_info.get('confidence_score', 50) or 50,
-            'enhanced_confidence': enhanced_confidence or 50,
-            'napalm_supported': bool(napalm_supported),
-            'detection_method': device_info.get('detection_method', 'unknown') or 'unknown',
-            'sample_ips': [d['device_info'].get('primary_ip', '') for d in device_group[:5] if
-                           d['device_info'].get('primary_ip')]
-        }
-
-        signatures[normalized_descr] = signature
-
-    # Extract scan metadata (existing)
-    scan_metadata = scan_data.get('scan_metadata', {})
-
-    return {
-        'scan_file': scan_file_path,
-        'scan_metadata': scan_metadata,
-        'total_devices': len(devices),
-        'unique_signatures': len(signatures),
-        'signatures': signatures,
-        'vendor_device_combinations': dict(vendor_device_combinations),  # NEW: For charts
-        'analysis_timestamp': datetime.now().isoformat()
-    }
-
-
 
 
 @reports_bp.route('/download/<filename>')
@@ -896,14 +805,14 @@ def generate_text_report(analysis_results: Dict) -> str:
     # Calculate summary statistics
     vendor_counts = Counter()
     device_type_counts = Counter()
-    combined_vendor_type_counts = Counter()  # NEW
+    combined_vendor_type_counts = Counter()
     high_confidence_count = 0
     napalm_supported_count = 0
 
     for sig_key, sig_data in signatures.items():
         vendor_counts[sig_data['enhanced_vendor']] += sig_data['count']
         device_type_counts[sig_data['device_type']] += sig_data['count']
-        combined_vendor_type_counts[sig_data['combined_vendor_type']] += sig_data['count']  # NEW
+        combined_vendor_type_counts[sig_data['combined_vendor_type']] += sig_data['count']
 
         if sig_data['enhanced_confidence'] >= 80:
             high_confidence_count += sig_data['count']
@@ -932,7 +841,6 @@ def generate_text_report(analysis_results: Dict) -> str:
         lines.append(f"{device_type:<20}: {count:>5,} devices ({percentage:>5.1f}%)")
     lines.append("")
 
-    # NEW: Combined vendor_type distribution
     lines.append("VENDOR_TYPE COMBINATIONS")
     lines.append("-" * 40)
     for combined_type, count in combined_vendor_type_counts.most_common(20):
@@ -946,7 +854,7 @@ def generate_text_report(analysis_results: Dict) -> str:
     lines.append("-" * 100)
 
     for i, (sig_key, sig_data) in enumerate(sorted_signatures[:20], 1):
-        combined_type = sig_data['combined_vendor_type'][:19]  # NEW
+        combined_type = sig_data['combined_vendor_type'][:19]
         count = f"{sig_data['count']:,}"
         confidence = f"{sig_data['enhanced_confidence']}%"
         napalm = "Yes" if sig_data['napalm_supported'] else "No"
@@ -959,14 +867,14 @@ def generate_text_report(analysis_results: Dict) -> str:
     lines.append("=" * 80)
 
     for i, (sig_key, sig_data) in enumerate(sorted_signatures[:10], 1):
-        lines.append(f"\n[{i}] {sig_data['combined_vendor_type'].upper()}")  # NEW: Use combined type
+        lines.append(f"\n[{i}] {sig_data['combined_vendor_type'].upper()}")
         lines.append(f"    Device Count: {sig_data['count']:,}")
         lines.append(f"    Confidence: {sig_data['original_confidence']}% -> {sig_data['enhanced_confidence']}%")
         lines.append(f"    NAPALM Support: {'Yes' if sig_data['napalm_supported'] else 'No'}")
         lines.append(f"    Detection Method: {sig_data['detection_method']}")
         lines.append(f"    Sample IPs: {', '.join(sig_data['sample_ips'])}")
-        lines.append(f"    System Description:")
-        lines.append(f"        {sig_data['sys_descr']}")
+        lines.append(f"    Sample Names: {', '.join(sig_data.get('sample_names', []))}")
+        lines.append(f"    Group Key: {sig_data['group_key']}")
 
     return '\n'.join(lines)
 
@@ -996,131 +904,3 @@ def summary():
         logger.error(f"Error in summary: {e}")
         flash(f'Error generating summary: {str(e)}', 'error')
         return redirect(url_for('reports.index'))
-
-
-# Add these methods to your DeviceAnalyzer class in reports.py
-
-def normalize_sys_descr(self, sys_descr: str) -> str:
-    """Normalize system description for better grouping"""
-    return self._normalize_sys_descr(sys_descr)
-
-
-def enhance_vendor_detection(self, device_info: dict) -> str:
-    """Enhanced vendor detection logic"""
-    sys_descr = device_info.get('sys_descr', '').lower()
-    original_vendor = device_info.get('vendor', 'unknown').lower()
-
-    # Enhanced vendor detection based on system description
-    vendor_patterns = {
-        'cisco': ['cisco', 'ios', 'nx-os', 'asa'],
-        'arista': ['arista', 'eos'],
-        'juniper': ['juniper', 'junos'],
-        'palo_alto': ['palo alto', 'pan-os'],
-        'fortinet': ['fortinet', 'fortigate', 'fortios'],
-        'hp': ['hp ', 'hewlett', 'procurve', 'comware'],
-        'dell': ['dell', 'powerconnect', 'force10'],
-        'aruba': ['aruba', 'airwave'],
-        'checkpoint': ['checkpoint', 'gaia'],
-        'vmware': ['vmware', 'vsphere', 'esx'],
-    }
-
-    # Check system description for vendor clues
-    for vendor, patterns in vendor_patterns.items():
-        for pattern in patterns:
-            if pattern in sys_descr:
-                return vendor
-
-    # Return original vendor if no enhancement found
-    return original_vendor if original_vendor != 'unknown' else 'unknown'
-
-
-def determine_device_type(self, vendor: str, sys_descr: str, ip: str = '') -> str:
-    """Determine device type based on vendor and system description"""
-    sys_descr_lower = sys_descr.lower()
-
-    # Device type patterns
-    type_patterns = {
-        'router': ['router', 'routing', 'asr', 'isr', 'mx', 'srx', 'crs'],
-        'switch': ['switch', 'switching', 'catalyst', 'nexus', 'ex', 'qfx', 'powerconnect'],
-        'firewall': ['firewall', 'asa', 'palo alto', 'fortigate', 'checkpoint', 'srx'],
-        'wireless_controller': ['wireless', 'wlc', 'airwave', 'controller'],
-        'access_point': ['access point', 'ap ', 'aironet'],
-        'server': ['server', 'linux', 'windows', 'ubuntu', 'centos', 'redhat'],
-        'printer': ['printer', 'print', 'laserjet', 'inkjet'],
-        'ups': ['ups', 'uninterruptible', 'battery'],
-        'load_balancer': ['load balancer', 'f5', 'bigip', 'ltm'],
-        'sdwan_gateway': ['sdwan', 'sd-wan', 'viptela', 'silver-peak'],
-    }
-
-    # Check patterns
-    for device_type, patterns in type_patterns.items():
-        for pattern in patterns:
-            if pattern in sys_descr_lower:
-                return device_type
-
-    # Vendor-specific defaults
-    if vendor in ['cisco', 'arista', 'juniper']:
-        if 'ios' in sys_descr_lower or 'eos' in sys_descr_lower:
-            return 'switch'  # Default for network vendors
-
-    return 'unknown'
-
-
-def calculate_confidence(self, device_info: dict, enhanced_vendor: str, device_type: str) -> int:
-    """Calculate enhanced confidence score"""
-    base_confidence = device_info.get('confidence_score', 50)
-
-    # Confidence boosters
-    confidence_boost = 0
-
-    # Has system description
-    if device_info.get('sys_descr'):
-        confidence_boost += 10
-
-    # Has hostname
-    if device_info.get('sys_name'):
-        confidence_boost += 5
-
-    # Has model info
-    if device_info.get('model'):
-        confidence_boost += 10
-
-    # Has serial number
-    if device_info.get('serial_number'):
-        confidence_boost += 10
-
-    # Vendor enhancement worked
-    if enhanced_vendor != 'unknown' and enhanced_vendor != device_info.get('vendor', 'unknown'):
-        confidence_boost += 15
-
-    # Device type determined
-    if device_type != 'unknown':
-        confidence_boost += 10
-
-    # Multiple detection methods
-    if device_info.get('detection_method') in ['snmp', 'ssh']:
-        confidence_boost += 5
-
-    # Cap at 95%
-    return min(95, base_confidence + confidence_boost)
-
-
-
-def get_combined_vendor_type(self, vendor: str, device_type: str) -> str:
-    """Get combined vendor_devicetype string for display"""
-    vendor = str(vendor).lower().strip()
-    device_type = str(device_type).lower().strip()
-
-    # Handle unknown cases
-    if vendor == 'unknown' and device_type == 'unknown':
-        return 'unknown'
-    elif vendor == 'unknown':
-        return f"unknown_{device_type}"
-    elif device_type == 'unknown':
-        return f"{vendor}_unknown"
-    else:
-        return f"{vendor}_{device_type}"
-
-def is_napalm_supported(self, vendor: str, device_type: str) -> bool:
-    """Check if device is supported by NAPALM - enhanced version"""
-    return self._is_napalm_supported(vendor, device_type)

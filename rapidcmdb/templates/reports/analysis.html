@@ -119,7 +119,7 @@
         </div>
     </div>
 
-    <!-- NEW: Vendor-Device Combinations Chart -->
+    <!-- Vendor-Device Combinations Chart -->
     <div class="col-lg-6 mb-4">
         <div class="card">
             <div class="card-header">
@@ -150,7 +150,7 @@
         </div>
     </div>
 
-    <!-- NEW: Combined Vendor-Type Overview -->
+    <!-- Combined Vendor-Type Overview -->
     <div class="col-lg-6 mb-4">
         <div class="card">
             <div class="card-header">
@@ -228,12 +228,13 @@
                                 <th class="text-center">NAPALM</th>
                                 <th class="text-center">Detection</th>
                                 <th>Sample IPs</th>
+                                <th>Sample Names</th>
                                 <th class="text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% set sorted_signatures = signatures.items()|list|sort(attribute='1.enhanced_confidence', reverse=true)|sort(attribute='1.count', reverse=true) %}
-                            {% for sig_key, sig_data in sorted_signatures[:20] %}
+                            {% for group_key, sig_data in sorted_signatures[:20] %}
                             <tr data-confidence="{{ sig_data.enhanced_confidence }}" data-napalm="{{ sig_data.napalm_supported|lower }}">
                                 <td>{{ loop.index }}</td>
                                 <td>
@@ -292,9 +293,19 @@
                                         {% endif %}
                                     </div>
                                 </td>
+                                <td>
+                                    <div class="small">
+                                        {% for name in sig_data.sample_names[:2] %}
+                                            <div>{{ name }}</div>
+                                        {% endfor %}
+                                        {% if sig_data.sample_names|length > 2 %}
+                                            <div class="text-muted">+{{ sig_data.sample_names|length - 2 }} more</div>
+                                        {% endif %}
+                                    </div>
+                                </td>
                                 <td class="text-center">
                                     <button class="btn btn-outline-info btn-sm"
-                                            data-sig-key="{{ sig_key|replace('\n', '\\n')|replace('\r', '\\r')|replace('"', '&quot;')|e }}"
+                                            data-group-key="{{ group_key }}"
                                             onclick="showDeviceDetails(this)"
                                             title="View Details">
                                         <i class="bi bi-eye"></i>
@@ -310,14 +321,14 @@
     </div>
 </div>
 
-<!-- Device Details Modal (same as before) -->
+<!-- Device Details Modal -->
 <div class="modal fade" id="deviceDetailsModal" tabindex="-1" aria-labelledby="deviceDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="deviceDetailsModalLabel">
                     <i class="bi bi-eye me-2"></i>
-                    Device Signature Details
+                    Device Group Details
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -345,7 +356,7 @@
                                 <div class="card-header">
                                     <h6 class="mb-0 text-primary">
                                         <i class="bi bi-fingerprint me-2"></i>
-                                        Signature Summary
+                                        Group Summary
                                     </h6>
                                 </div>
                                 <div class="card-body">
@@ -515,7 +526,7 @@ function initializeCharts() {
         }
     }
 
-    // 2. NEW: Vendor-Device Combinations Chart
+    // 2. Vendor-Device Combinations Chart
     const vendorDeviceData = {{ vendor_device_combinations|tojson|safe }};
     const vendorDeviceEntries = Object.entries(vendorDeviceData || {}).sort((a, b) => b[1] - a[1]).slice(0, 10);
 
@@ -645,7 +656,7 @@ function initializeCharts() {
         }
     }
 
-    // 4. NEW: Combined Vendor-Type Overview Chart
+    // 4. Combined Vendor-Type Overview Chart
     const combinedData = {{ combined_vendor_type_counts|tojson|safe }};
     const combinedEntries = Object.entries(combinedData || {}).sort((a, b) => b[1] - a[1]).slice(0, 8);
 
@@ -748,14 +759,14 @@ function filterTable() {
     });
 }
 
-// Device details functions (keep your existing ones)
+// Device details functions - UPDATED to use group keys
 function showDeviceDetails(buttonElement) {
     try {
-        const sigKey = buttonElement.dataset.sigKey;
-        console.log('Original Signature Key:', sigKey);
+        const groupKey = buttonElement.dataset.groupKey;
+        console.log('Group Key:', groupKey);
 
-        if (!sigKey) {
-            alert('No signature key found');
+        if (!groupKey) {
+            alert('No group key found');
             return;
         }
 
@@ -787,10 +798,10 @@ function showDeviceDetails(buttonElement) {
         `;
 
         const filename = '{{ filename }}';
-        const encodedSigKey = encodeURIComponent(sigKey);
-        console.log('Encoded Signature Key:', encodedSigKey);
+        const encodedGroupKey = encodeURIComponent(groupKey);
 
-        const apiUrl = `/reports/api/device-details/${encodeURIComponent(filename)}/${encodedSigKey}`;
+        // NEW: Use simplified API endpoint with group key
+        const apiUrl = `/reports/api/device-details/${encodeURIComponent(filename)}/${encodedGroupKey}`;
         console.log('API URL:', apiUrl);
 
         fetch(apiUrl)
@@ -812,8 +823,8 @@ function showDeviceDetails(buttonElement) {
                 if (data.device_count === 0) {
                     loadingDiv.innerHTML = `
                         <div class="text-center py-4">
-                            <p class="text-warning">No devices found for this signature</p>
-                            <p class="text-muted small">This may indicate a data processing issue</p>
+                            <p class="text-warning">No devices found for this group</p>
+                            <p class="text-muted small">Group: ${groupKey}</p>
                             <button class="btn btn-secondary" onclick="closeDeviceModal()">Close</button>
                         </div>
                     `;
@@ -839,7 +850,7 @@ function showDeviceDetails(buttonElement) {
                             <h6>Error Loading Device Details</h6>
                             <p class="mb-2">${error.message}</p>
                             <small class="text-muted">
-                                Signature: ${sigKey.substring(0, 100)}${sigKey.length > 100 ? '...' : ''}
+                                Group: ${groupKey}
                             </small>
                         </div>
                         <button class="btn btn-danger" onclick="closeDeviceModal()">Close</button>
@@ -880,8 +891,8 @@ function populateSignatureSummary(signatureInfo) {
                     <div><span class="badge bg-info">${(signatureInfo.detection_method || 'unknown').toUpperCase()}</span></div>
                 </div>
                 <div class="mb-2">
-                    <span class="text-muted small">Vendor-Device Combo:</span>
-                    <div class="small text-muted">${signatureInfo.vendor_device_combo || 'unknown'}</div>
+                    <span class="text-muted small">Group Key:</span>
+                    <div class="small text-muted">${signatureInfo.group_key || signatureInfo.vendor_device_combo || 'unknown'}</div>
                 </div>
             </div>
         </div>
@@ -934,7 +945,7 @@ function populateDeviceList(devices) {
     }
 
     const rows = devices.map((device, index) => {
-        const confidence = device.enhanced_confidence || 0;
+        const confidence = device.confidence_score || 0;
         const confidenceClass = confidence >= 80 ? 'success' : confidence >= 60 ? 'warning' : 'danger';
         const interfaceCount = Object.keys(device.interfaces || {}).length;
 
@@ -984,7 +995,30 @@ function populateDeviceList(devices) {
 function showDeviceFullDetails(deviceIndex) {
     const device = window.currentDeviceData.matching_devices[deviceIndex];
     console.log('Full device details:', device);
-    alert(`Device: ${device.sys_name}\nIP: ${device.primary_ip}\nModel: ${device.model}\nSerial: ${device.serial_number}`);
+
+    // Create a detailed modal or alert with device information
+    const details = `
+Device: ${device.sys_name || 'Unknown'}
+Device ID: ${device.device_id}
+Primary IP: ${device.primary_ip}
+All IPs: ${(device.all_ips || []).join(', ')}
+Model: ${device.model || 'N/A'}
+Serial: ${device.serial_number || 'N/A'}
+Vendor: ${device.vendor}
+Device Type: ${device.device_type}
+OS Version: ${device.os_version || 'N/A'}
+Confidence: ${device.confidence_score}%
+Detection Method: ${device.detection_method}
+NAPALM Supported: ${device.napalm_supported ? 'Yes' : 'No'}
+Interfaces: ${Object.keys(device.interfaces || {}).length}
+MAC Addresses: ${(device.mac_addresses || []).join(', ') || 'None'}
+SNMP Version: ${device.snmp_version_used || 'Unknown'}
+First Seen: ${device.first_seen || 'N/A'}
+Last Seen: ${device.last_seen || 'N/A'}
+Scan Count: ${device.scan_count || 0}
+    `;
+
+    alert(details);
 }
 
 function exportDeviceList() {
@@ -995,7 +1029,7 @@ function exportDeviceList() {
 
     const devices = window.currentDeviceData.matching_devices;
     const csv = [
-        ['Device Name', 'Device ID', 'Primary IP', 'All IPs', 'Model', 'Serial Number', 'Vendor', 'Device Type', 'Confidence', 'NAPALM', 'First Seen', 'Interfaces'].join(','),
+        ['Device Name', 'Device ID', 'Primary IP', 'All IPs', 'Model', 'Serial Number', 'Vendor', 'Device Type', 'OS Version', 'Confidence', 'NAPALM', 'Detection Method', 'First Seen', 'Last Seen', 'Interfaces', 'MAC Addresses', 'SNMP Version'].join(','),
         ...devices.map(device => [
             device.sys_name || '',
             device.device_id || '',
@@ -1003,12 +1037,17 @@ function exportDeviceList() {
             (device.all_ips || []).join(';'),
             device.model || '',
             device.serial_number || '',
-            device.enhanced_vendor || '',
+            device.vendor || '',
             device.device_type || '',
-            device.enhanced_confidence || 0,
+            device.os_version || '',
+            device.confidence_score || 0,
             device.napalm_supported ? 'Yes' : 'No',
+            device.detection_method || '',
             device.first_seen || '',
-            Object.keys(device.interfaces || {}).length
+            device.last_seen || '',
+            Object.keys(device.interfaces || {}).length,
+            (device.mac_addresses || []).join(';'),
+            device.snmp_version_used || ''
         ].map(field => `"${field}"`).join(','))
     ].join('\n');
 
@@ -1016,13 +1055,14 @@ function exportDeviceList() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `device_details_${window.currentDeviceData.signature_key}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `device_group_${window.currentDeviceData.group_key}_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
 }
 
 function toggleAllDetails() {
     console.log('Toggle all details - not implemented yet');
+    // Could implement expanding/collapsing additional device info rows
 }
 
 function closeDeviceModal() {
